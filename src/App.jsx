@@ -841,7 +841,7 @@ function App() {
 
       let captureNode = node;
 
-      if (usesCompletionCard) {
+      if (usesCompletionCard && mapSnapshotDataUrl) {
         exportClone = node.cloneNode(true);
         exportClone.classList.add("is-exporting");
         exportClone.style.position = "fixed";
@@ -860,7 +860,7 @@ function App() {
 
         const exportMapShell = exportClone.querySelector(".completion-map-shell");
         const exportMapWrapper = exportClone.querySelector(".completion-map-wrapper");
-        if (exportMapShell && exportMapWrapper && mapSnapshotDataUrl) {
+        if (exportMapShell && exportMapWrapper) {
           exportMapWrapper.replaceChildren();
           exportMapWrapper.style.position = "relative";
           exportMapWrapper.style.background = "#050b14";
@@ -876,6 +876,8 @@ function App() {
           exportMapWrapper.appendChild(snapshotImage);
         }
         captureNode = exportClone;
+      } else if (usesCompletionCard) {
+        console.warn("Map snapshot unavailable, using live completion card capture fallback.");
       }
 
       const captureWidth = Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width));
