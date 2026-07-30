@@ -41,10 +41,11 @@ export default async (request) => {
     }
 
     const origin = requestUrl.origin;
+    const websiteUrl = `${origin}/`;
     const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
     const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
     const title = "Osudovy moment";
-    const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
+    const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz. Pokracujte na hlavni web a vytvorte vlastni moment.";
 
     const html = `<!doctype html>
 <html lang="cs">
@@ -69,7 +70,11 @@ export default async (request) => {
     <meta name="robots" content="noindex,nofollow" />
   </head>
   <body>
-    <p>Odkaz s náhledem momentu.</p>
+    <p>Presmerovavam na hlavni web aplikace...</p>
+    <p><a href="${escapeHtml(websiteUrl)}">Prejit na osudovymoment.cz</a></p>
+    <script>
+      window.location.replace(${JSON.stringify(websiteUrl)});
+    </script>
   </body>
 </html>`;
 
