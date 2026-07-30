@@ -531,7 +531,7 @@ function App() {
   };
 
   const triggerServerDownload = (downloadUrl, options = {}) => {
-    const { sameTab = false, filename = "" } = options;
+    const { sameTab = false } = options;
 
     if (!downloadUrl) {
       return false;
@@ -545,7 +545,7 @@ function App() {
 
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = filename || "";
+      link.download = "";
       link.rel = "noopener";
       document.body.appendChild(link);
       link.click();
@@ -851,23 +851,22 @@ function App() {
       }
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
-        const desktopShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
-        const mobileShareUrl = `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
         // Mobile browsers are more reliable with same-tab navigation than async popups.
         if (isMobileDevice) {
-          window.location.href = mobileShareUrl;
+          window.location.href = facebookShareUrl;
           return;
         }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = desktopShareUrl;
+          preopenedFacebookWindow.location.href = facebookShareUrl;
           return;
         }
 
-        const facebookWindow = window.open(desktopShareUrl, "_blank", "noopener,noreferrer");
+        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
         if (!facebookWindow) {
-          window.location.href = desktopShareUrl;
+          window.location.href = facebookShareUrl;
         }
       };
 
@@ -1776,17 +1775,15 @@ function App() {
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
                     {directDownloadUrl ? (
-                      <button
+                      <a
                         className="wizard-continue"
-                        type="button"
-                        onClick={() =>
-                          triggerServerDownload(directDownloadUrl, {
-                            filename: directDownloadFilename,
-                          })
-                        }
+                        href={directDownloadUrl}
+                        download={directDownloadFilename || undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
                         Přímé stažení JPG
-                      </button>
+                      </a>
                     ) : null}
                   </div>
                 )}
