@@ -1172,9 +1172,9 @@ a {
 
 .share-card {
   position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 2147483647;
+  left: -200vw;
+  top: -200vh;
+  z-index: -1;
   width: 1080px;
   height: 1080px;
   padding: 24px;

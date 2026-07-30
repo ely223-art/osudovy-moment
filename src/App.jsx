@@ -101,6 +101,7 @@ function App() {
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
   const completionCardRef = useRef(null);
+  const shareCardRef = useRef(null);
   const animationStartedRef = useRef(false);
   const animationTimersRef = useRef([]);
   const [screen, setScreen] = useState("home");
@@ -508,27 +509,28 @@ function App() {
   };
 
   const exportCompletionCard = async (mode) => {
-    if (!completionCardRef.current || !completeMoment) {
+    if (!shareCardRef.current || !completeMoment) {
       return;
     }
 
     setIsExporting(true);
     setShareStatus("");
-    completionCardRef.current.classList.add("is-exporting");
+    completionCardRef.current?.classList.add("is-exporting");
 
     await new Promise((resolve) => window.setTimeout(resolve, 400));
 
     try {
-      const node = completionCardRef.current;
+      const node = shareCardRef.current;
       const shareUrl = `${window.location.origin}/moment/${completeMoment.id}`;
       const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
+      const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
 
       const dataUrl = await toJpeg(node, {
         cacheBust: true,
-        pixelRatio: 2,
+        pixelRatio: isMobileViewport ? 1.4 : 2,
         backgroundColor: "#07111f",
-        quality: 0.95,
+        quality: 0.92,
       });
 
       const response = await fetch(dataUrl);
@@ -563,28 +565,31 @@ function App() {
         typeof navigator !== "undefined" &&
         /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
-      if (mode === "facebook") {
-        const downloaded = triggerDownload();
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}&quote=${encodeURIComponent(`${completeMoment.nazev} · ${shareUrl}`)}`;
-        window.open(facebookUrl, "_blank", "noopener,noreferrer");
-
-        if (downloaded) {
-          setShareStatus("JPG byl stažen a otevřelo se sdílení na Facebook s odkazem na web.");
-        } else {
-          setShareStatus("Otevřelo se sdílení na Facebook s odkazem na web.");
-        }
-        return;
-      }
-
       if (mode === "share") {
         if (canShareFiles) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: "Osudový moment",
+              text: `${completeMoment.nazev}\n${websiteUrl}`,
+              url: websiteUrl,
+            });
+            setShareStatus("Kartička byla sdílená.");
+          } catch (shareError) {
+            await navigator.share({
+              title: "Osudový moment",
+              text: `${completeMoment.nazev}\n${websiteUrl}`,
+              url: websiteUrl,
+            });
+            setShareStatus("Odkaz na web byl sdílený.");
+          }
+        } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
           await navigator.share({
-            files: [file],
             title: "Osudový moment",
             text: `${completeMoment.nazev}\n${websiteUrl}`,
             url: websiteUrl,
           });
-          setShareStatus("Kartička byla sdílená.");
+          setShareStatus("Odkaz na web byl sdílený.");
         } else {
           const downloaded = triggerDownload();
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -599,19 +604,23 @@ function App() {
           }
         }
       } else {
-        const downloaded = triggerDownload();
-
-        if (!downloaded && canShareFiles) {
+        if (canShareFiles) {
           await navigator.share({
             files: [file],
             title: "Osudový moment",
-            text: "Vyberte Uložit do souborů nebo Fotek.",
+            text: "Vyberte Uložit obrázek / Uložit do souborů.",
           });
-          setShareStatus("Otevřelo se sdílení. Pro uložení vyberte Uložit do souborů/Fotek.");
-        } else if (isAppleMobile && canShareFiles) {
-          setShareStatus("Pokud Safari neuloží JPG přímo, použijte tlačítko Sdílet a uložte obrázek přes systémové menu.");
+          setShareStatus("Otevřelo se systémové menu. Pro stažení vyberte Uložit obrázek / Uložit do souborů.");
         } else {
-          setShareStatus("Kartička byla stažena jako JPG.");
+          const downloaded = triggerDownload();
+          if (!downloaded) {
+            window.open(dataUrl, "_blank", "noopener,noreferrer");
+            setShareStatus("Obrázek se otevřel v nové kartě. Podržením uložte JPG.");
+          } else if (isAppleMobile) {
+            setShareStatus("Pokud Safari JPG neuloží přímo, použijte tlačítko Sdílet.");
+          } else {
+            setShareStatus("Kartička byla stažena jako JPG.");
+          }
         }
       }
     } catch (error) {
@@ -1397,15 +1406,41 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting}>
                         {isExporting ? "Probíhá…" : "Stáhnout JPG"}
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("facebook")} disabled={isExporting}>
-                        {isExporting ? "Probíhá…" : "Sdílet na Facebook"}
-                      </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
                   </div>
                 )}
               </section>
             </main>
+
+            <div className="share-card" ref={shareCardRef} aria-hidden="true">
+              <div className="share-card__inner">
+                <div className="share-card__header">
+                  <img className="share-card__logo" src={logo} alt="" />
+                  <div className="share-card__title">Osudovy moment</div>
+                </div>
+
+                <div className="share-card__map">
+                  <img className="share-card__map-image" src="/mapa.png" alt="" />
+                  <div className="share-card__map-overlay">
+                    <div className="share-map__line" />
+                    <div className="share-map__point" />
+                    <div className="share-map__symbol">
+                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt="" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="share-card__body">
+                  <div className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</div>
+                  <div className="share-card__name">{completeMoment.nazev}</div>
+                  {completeMoment.datum ? <div className="share-card__date">{completeMoment.datum}</div> : null}
+                  {completeMoment.prikaz ? <div className="share-card__note">{completeMoment.prikaz}</div> : null}
+                </div>
+
+                <div className="share-card__footer">osudovymoment.cz</div>
+              </div>
+            </div>
           </>
         )}
       </div>
