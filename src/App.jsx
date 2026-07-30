@@ -41,8 +41,9 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
-const EXPORT_VIEWPORT_WIDTH = 390;
-const EXPORT_VIEWPORT_HEIGHT = 844;
+const EXPORT_VIEWPORT_WIDTH = 1440;
+const EXPORT_VIEWPORT_HEIGHT = 1800;
+const EXPORT_CARD_WIDTH = 840;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -713,6 +714,60 @@ function App() {
     return results.every(Boolean);
   };
 
+  const resizeBlobToWidth = async (blob, targetWidth) => {
+    if (!blob || !targetWidth) {
+      return blob;
+    }
+
+    const imageUrl = URL.createObjectURL(blob);
+
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const instance = new Image();
+        instance.onload = () => resolve(instance);
+        instance.onerror = () => reject(new Error("Nepodařilo se načíst JPG pro změnu velikosti."));
+        instance.src = imageUrl;
+      });
+
+      const sourceWidth = image.naturalWidth || image.width;
+      const sourceHeight = image.naturalHeight || image.height;
+
+      if (!sourceWidth || !sourceHeight || targetWidth >= sourceWidth) {
+        return blob;
+      }
+
+      const targetHeight = Math.max(1, Math.round((targetWidth / sourceWidth) * sourceHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return blob;
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+      return await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (!result) {
+              reject(new Error("Nepodařilo se změnit velikost JPG."));
+              return;
+            }
+            resolve(result);
+          },
+          "image/jpeg",
+          EXPORT_JPEG_QUALITY
+        );
+      });
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+    }
+  };
+
   const prepareShareImage = async ({ preferShareCard = false } = {}) => {
     console.log("Export started", {
       screen,
@@ -734,7 +789,6 @@ function App() {
     setIsPreparingShareImage(true);
     let shareCardWasActivated = false;
     let exportClone = null;
-    let exportMap = null;
 
     try {
       const selectedPlace = completeMoment || selectedTown;
@@ -847,11 +901,9 @@ function App() {
         exportClone.style.position = "fixed";
         exportClone.style.left = "0";
         exportClone.style.top = "0";
-        exportClone.style.width = "390px";
-        exportClone.style.minWidth = "390px";
+        exportClone.style.width = `${EXPORT_CARD_WIDTH}px`;
+        exportClone.style.minWidth = `${EXPORT_CARD_WIDTH}px`;
         exportClone.style.maxWidth = "none";
-        exportClone.style.height = "844px";
-        exportClone.style.minHeight = "844px";
         exportClone.style.zIndex = "-1";
         exportClone.style.margin = "0";
         exportClone.style.transform = "none";
@@ -985,6 +1037,12 @@ function App() {
 
       if (!blob) {
         blob = await captureWithHtml2Canvas(false);
+      }
+
+      if (usesCompletionCard && blob) {
+        const liveCardWidth = Math.max(320, Math.round(completionCardRef.current?.getBoundingClientRect().width || 390));
+        const targetWidth = Math.round(liveCardWidth * 2);
+        blob = await resizeBlobToWidth(blob, targetWidth);
       }
 
       console.log("JPG generated", {
