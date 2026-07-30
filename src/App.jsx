@@ -1141,6 +1141,54 @@ function App() {
     return `${websiteUrl}/s/${encodeURIComponent(exportShareId)}`;
   }, [exportShareId]);
 
+  const renderExportCardContent = () => (
+    <>
+      <div className="completion-map-shell completion-map-shell--export">
+        <div className="map-animated-surface is-ready">
+          {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
+            <div className="completion-map-wrapper completion-map-wrapper--export" ref={exportMapContainerRef} />
+          ) : (
+            <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="completion-content completion-content--export">
+        <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
+        <p className="completion-subtitle">
+          {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
+        </p>
+
+        <div className="completion-summary">
+          <div className="completion-summary__row">
+            <span className="completion-label">Symbol</span>
+            <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
+          </div>
+          <div className="completion-summary__row">
+            <span className="completion-label">Název</span>
+            <span className="completion-value">{completeMoment.nazev}</span>
+          </div>
+          {completeMoment.datum ? (
+            <div className="completion-summary__row">
+              <span className="completion-label">Datum</span>
+              <span className="completion-value">{completeMoment.datum}</span>
+            </div>
+          ) : null}
+          {completeMoment.prikaz ? (
+            <div className="completion-summary__row">
+              <span className="completion-label">Poznámka</span>
+              <span className="completion-value">{completeMoment.prikaz}</span>
+            </div>
+          ) : null}
+          <div className="completion-summary__row">
+            <span className="completion-label">Web</span>
+            <span className="completion-value">{exportMomentUrl}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   const renderCompletionCardContent = ({ showActions = false, mapRef = mapContainerRef } = {}) => (
     <>
       <div className="completion-map-shell">
@@ -2040,7 +2088,7 @@ function App() {
 
             <div className="export-render-surface" aria-hidden="true">
               <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
-                {renderCompletionCardContent({ showActions: false, mapRef: exportMapContainerRef })}
+                {renderExportCardContent()}
               </section>
             </div>
           </>
