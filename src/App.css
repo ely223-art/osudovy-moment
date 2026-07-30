@@ -1586,7 +1586,7 @@ a {
   .hero-layout {
     min-height: auto;
     gap: 20px;
-    padding: 104px 18px 20px;
+    padding: 92px 18px 18px;
   }
 
   .hero-title {
@@ -1708,7 +1708,7 @@ a {
   }
 
   .completion-layout {
-    padding-top: 72px;
+    padding-top: 64px;
   }
 
   .completion-card {
@@ -1729,11 +1729,16 @@ a {
     flex-wrap: wrap;
     gap: 10px;
   }
+
+  .completion-actions .wizard-continue--secondary-mobile,
+  .completion-actions .wizard-continue:nth-child(2) {
+    display: none;
+  }
 }
 
 @media (max-width: 430px) {
   .hero-layout {
-    padding-top: 92px;
+    padding-top: 84px;
   }
 
   .hero-title {
@@ -1745,7 +1750,7 @@ a {
   }
 
   .wizard-layout {
-    padding-top: 74px;
+    padding-top: 68px;
   }
 
   .hero-actions {
