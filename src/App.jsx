@@ -1081,6 +1081,40 @@ function App() {
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
+    const shareViaNativeSheet = async (imageBlob, imageFilename, targetUrl) => {
+      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        return false;
+      }
+
+      try {
+        const file = new File([imageBlob], imageFilename, { type: "image/jpeg" });
+        const shareData = {
+          title: "Osudový moment",
+          text: `Můj osudový moment: ${targetUrl}`,
+          url: targetUrl,
+          files: [file],
+        };
+
+        if (typeof navigator.canShare === "function" && !navigator.canShare(shareData)) {
+          return false;
+        }
+
+        await navigator.share(shareData);
+        return true;
+      } catch (shareError) {
+        // User cancel should not be treated as fatal.
+        if (shareError?.name === "AbortError") {
+          return true;
+        }
+
+        console.error("Native share failed", {
+          message: shareError?.message || String(shareError),
+          name: shareError?.name || null,
+        });
+        return false;
+      }
+    };
+
     const preopenedFacebookWindow =
       mode === "share"
         ? window.open("about:blank", "_blank", "noopener,noreferrer")
@@ -1120,6 +1154,19 @@ function App() {
         }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
+
+        if (isMobileDevice) {
+          const sharedNatively = await shareViaNativeSheet(blob, filename, facebookTargetUrl);
+          if (sharedNatively) {
+            if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+              preopenedFacebookWindow.close();
+            }
+            setShareStatus(
+              "Sdílení je připravené. Pokud jste vybrali Facebook, přidejte příspěvek přímo v aplikaci Facebook."
+            );
+            return;
+          }
+        }
 
         openFacebookShare(facebookTargetUrl);
 
@@ -1176,6 +1223,21 @@ function App() {
         }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
+
+        if (isMobileDevice && shareImageBlobRef.current) {
+          const fallbackFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
+          const sharedNatively = await shareViaNativeSheet(shareImageBlobRef.current, fallbackFilename, facebookTargetUrl);
+          if (sharedNatively) {
+            if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+              preopenedFacebookWindow.close();
+            }
+            setShareStatus(
+              "Sdílení je připravené. Pokud jste vybrali Facebook, přidejte příspěvek přímo v aplikaci Facebook."
+            );
+            return;
+          }
+        }
+
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
