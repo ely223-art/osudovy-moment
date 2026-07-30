@@ -566,7 +566,7 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = completionScreenRef.current || completionCardRef.current;
+      const node = completionCardRef.current || completionScreenRef.current;
       console.log("Export area found", {
         className: node.className,
       });
@@ -579,10 +579,9 @@ function App() {
       });
 
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const nodeRect = node.getBoundingClientRect();
-      const captureWidth = Math.max(1, nodeRect.width);
-      const captureHeight = Math.max(1, nodeRect.height);
-      const captureScale = Math.max(1, Math.min(3, pixelRatio));
+      const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
+      const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
+      const captureScale = Math.max(1, Math.min(2, pixelRatio));
 
       node.classList.add("capture-freeze");
 
@@ -598,8 +597,8 @@ function App() {
         blob = await htmlToImageToBlob(node, {
           cacheBust: true,
           pixelRatio: captureScale,
-          canvasWidth: Math.round(captureWidth * captureScale),
-          canvasHeight: Math.round(captureHeight * captureScale),
+          canvasWidth: captureWidth,
+          canvasHeight: captureHeight,
           quality: 1,
           type: "image/jpeg",
           backgroundColor: "#07111f",
