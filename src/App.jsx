@@ -698,50 +698,21 @@ function App() {
 
       let blob = null;
 
-      try {
-        // Primary renderer: preserves DOM transforms and layout more faithfully.
-        blob = await htmlToImageToBlob(node, {
-          cacheBust: true,
-          pixelRatio: captureScale,
-          canvasWidth: captureWidth,
-          canvasHeight: captureHeight,
-          quality: EXPORT_JPEG_QUALITY,
-          type: "image/jpeg",
-          backgroundColor: "#07111f",
-          filter: (element) => {
-            const classList = element?.classList;
-            if (!classList) {
-              return true;
-            }
-
-            return !(
-              classList.contains("leaflet-control-container") ||
-              classList.contains("completion-map-zoom")
-            );
-          },
-        });
-      } catch (primaryError) {
-        console.error("html-to-image capture failed, falling back to html2canvas", {
-          message: primaryError?.message || String(primaryError),
-          name: primaryError?.name || null,
-        });
-      }
-
-      if (!blob) {
+      const captureWithHtml2Canvas = async (foreignObjectRendering) => {
         const canvas = await html2canvas(node, {
-          backgroundColor: null,
+          backgroundColor: "#07111f",
           useCORS: true,
           allowTaint: false,
           width: captureWidth,
           height: captureHeight,
-          scrollX: 0,
-          scrollY: 0,
+          scrollX: -window.scrollX,
+          scrollY: -window.scrollY,
           imageTimeout: 15000,
           removeContainer: true,
           logging: false,
-          foreignObjectRendering: false,
-          windowWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
-          windowHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
+          foreignObjectRendering,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
@@ -756,7 +727,7 @@ function App() {
           scale: captureScale,
         });
 
-        blob = await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           canvas.toBlob(
             (result) => {
               if (!result) {
@@ -769,6 +740,53 @@ function App() {
             EXPORT_JPEG_QUALITY
           );
         });
+      };
+
+      if (isMobileCaptureDevice) {
+        try {
+          // iOS/Safari is more stable with html2canvas than html-to-image for Leaflet DOM.
+          blob = await captureWithHtml2Canvas(true);
+        } catch (mobileCanvasError) {
+          console.error("Mobile html2canvas capture failed, continuing fallback chain", {
+            message: mobileCanvasError?.message || String(mobileCanvasError),
+            name: mobileCanvasError?.name || null,
+          });
+        }
+      }
+
+      if (!blob) {
+        try {
+        // Primary renderer: preserves DOM transforms and layout more faithfully.
+          blob = await htmlToImageToBlob(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            canvasWidth: captureWidth,
+            canvasHeight: captureHeight,
+            quality: EXPORT_JPEG_QUALITY,
+            type: "image/jpeg",
+            backgroundColor: "#07111f",
+            filter: (element) => {
+              const classList = element?.classList;
+              if (!classList) {
+                return true;
+              }
+
+              return !(
+                classList.contains("leaflet-control-container") ||
+                classList.contains("completion-map-zoom")
+              );
+            },
+          });
+        } catch (primaryError) {
+          console.error("html-to-image capture failed, falling back to html2canvas", {
+            message: primaryError?.message || String(primaryError),
+            name: primaryError?.name || null,
+          });
+        }
+      }
+
+      if (!blob) {
+        blob = await captureWithHtml2Canvas(false);
       }
 
       console.log("JPG generated", {
@@ -1124,6 +1142,7 @@ function App() {
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
       detectRetina: false,
+      crossOrigin: true,
     }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
@@ -1133,6 +1152,7 @@ function App() {
       detectRetina: false,
       pane: "overlayPane",
       zIndex: 650,
+      crossOrigin: true,
     }).addTo(map);
 
     const zoomControl = document.createElement("div");
