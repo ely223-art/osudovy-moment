@@ -677,11 +677,17 @@ function App() {
       const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       let blob = shareImageBlobRef.current;
+      const isAppleMobile =
+        typeof navigator !== "undefined" &&
+        /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
       if (!blob) {
-        prepareShareImage();
-        setShareStatus("Připravuji přesný screen hotové obrazovky. Zkuste to prosím za 1-2 sekundy znovu.");
-        return;
+        setShareStatus("Připravuji JPG...");
+        blob = await prepareShareImage();
+        if (!blob) {
+          setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
+          return;
+        }
       }
 
       const file = new File([blob], filename, { type: "image/jpeg" });
@@ -728,10 +734,6 @@ function App() {
           canShareFiles = true;
         }
       }
-
-      const isAppleMobile =
-        typeof navigator !== "undefined" &&
-        /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
       if (mode === "share") {
         if (isInAppSocialBrowser) {
@@ -856,6 +858,17 @@ function App() {
           return;
         }
 
+        if (isAppleMobile) {
+          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
+          if (!opened) {
+            window.location.href = objectUrl;
+          }
+
+          setShareStatus("JPG se otevřelo. Na iPhonu podržte obrázek a zvolte Uložit do fotek.");
+          return;
+        }
+
         const downloaded = triggerDownload();
         if (!downloaded) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
@@ -899,7 +912,16 @@ function App() {
   const openGeneratedJpg = () => {
     const objectUrl = shareImageObjectUrlRef.current;
     if (!objectUrl) {
-      setShareStatus("JPG se ještě připravuje. Zkuste to prosím za chvíli.");
+      setShareStatus("Připravuji JPG...");
+      prepareShareImage().then((preparedBlob) => {
+        if (!preparedBlob || !shareImageObjectUrlRef.current) {
+          setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
+          return;
+        }
+
+        window.open(shareImageObjectUrlRef.current, "_blank", "noopener,noreferrer");
+        setShareStatus("JPG se otevřelo v nové kartě. Na mobilu podržte obrázek a zvolte Uložit.");
+      });
       return;
     }
 
@@ -1681,14 +1703,14 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
                         Prohlédnout mapu osudových momentů
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting || isPreparingShareImage || !shareImageReady}>
-                        {isExporting || isPreparingShareImage ? "Probíhá…" : shareImageReady ? "Sdílet" : "Připravuji JPG…"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting || isPreparingShareImage}>
+                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Sdílet"}
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage || !shareImageReady}>
-                        {isExporting || isPreparingShareImage ? "Probíhá…" : shareImageReady ? "Stáhnout JPG" : "Připravuji JPG…"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage}>
+                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Stáhnout JPG"}
                       </button>
-                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg} disabled={isPreparingShareImage || !shareImageReady}>
-                        {isPreparingShareImage ? "Připravuji…" : shareImageReady ? "Otevřít JPG" : "Připravuji JPG…"}
+                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg} disabled={isPreparingShareImage}>
+                        {isPreparingShareImage ? "Připravuji…" : "Otevřít JPG"}
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
