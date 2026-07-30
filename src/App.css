@@ -1174,7 +1174,19 @@ a {
 }
 
 .is-exporting .completion-card {
+  width: 840px !important;
   padding: 24px !important;
+}
+
+.is-exporting .completion-screen,
+.is-exporting .wizard-layout,
+.is-exporting .completion-layout {
+  width: 840px !important;
+  max-width: none !important;
+}
+
+.is-exporting .completion-screen {
+  overflow: visible !important;
 }
 
 .is-exporting .completion-map-wrapper {
