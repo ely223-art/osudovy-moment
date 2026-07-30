@@ -46,6 +46,8 @@ const EXPORT_VIEWPORT_HEIGHT = 1800;
 const EXPORT_CARD_WIDTH = 840;
 const EXPORT_CARD_HEIGHT = 500;
 const EXPORT_CAPTURE_SCALE = 2;
+const SHARE_CARD_WIDTH = 1080;
+const SHARE_CARD_HEIGHT = 1350;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -853,12 +855,14 @@ function App() {
 
       const captureNode = node;
 
-      const captureWidth = usesShareCard
-        ? Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width))
-        : EXPORT_CARD_WIDTH;
-      const captureHeight = usesShareCard
-        ? Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height))
-        : EXPORT_CARD_HEIGHT;
+      const captureWidth = Math.max(
+        1,
+        captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width) || (usesShareCard ? SHARE_CARD_WIDTH : EXPORT_CARD_WIDTH)
+      );
+      const captureHeight = Math.max(
+        1,
+        captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height) || (usesShareCard ? SHARE_CARD_HEIGHT : EXPORT_CARD_HEIGHT)
+      );
       const captureScale = EXPORT_CAPTURE_SCALE;
 
       captureNode.classList.add("capture-freeze");
@@ -883,8 +887,8 @@ function App() {
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: usesShareCard ? EXPORT_VIEWPORT_WIDTH : EXPORT_CARD_WIDTH,
-          windowHeight: usesShareCard ? EXPORT_VIEWPORT_HEIGHT : EXPORT_CARD_HEIGHT,
+          windowWidth: usesShareCard ? captureWidth : EXPORT_CARD_WIDTH,
+          windowHeight: usesShareCard ? captureHeight : EXPORT_CARD_HEIGHT,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
@@ -914,24 +918,9 @@ function App() {
         });
       };
 
-      if (usesShareCard) {
-        try {
-          blob = await captureWithHtml2Canvas(true);
-        } catch (shareCanvasError) {
-          console.error("Share-card html2canvas (foreignObject) failed", {
-            message: shareCanvasError?.message || String(shareCanvasError),
-            name: shareCanvasError?.name || null,
-          });
-        }
-
-        if (!blob) {
-          blob = await captureWithHtml2Canvas(false);
-        }
-      }
-
       if (!blob && usesShareCard) {
         try {
-        // Primary renderer: preserves DOM transforms and layout more faithfully.
+          // Primary renderer for share card to preserve text layout and avoid map-only crops.
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
@@ -953,10 +942,25 @@ function App() {
             },
           });
         } catch (primaryError) {
-          console.error("html-to-image capture failed, falling back to html2canvas", {
+          console.error("html-to-image capture failed for share-card", {
             message: primaryError?.message || String(primaryError),
             name: primaryError?.name || null,
           });
+        }
+      }
+
+      if (!blob && usesShareCard) {
+        try {
+          blob = await captureWithHtml2Canvas(true);
+        } catch (shareCanvasError) {
+          console.error("Share-card html2canvas (foreignObject) failed", {
+            message: shareCanvasError?.message || String(shareCanvasError),
+            name: shareCanvasError?.name || null,
+          });
+        }
+
+        if (!blob) {
+          blob = await captureWithHtml2Canvas(false);
         }
       }
 
@@ -1093,7 +1097,7 @@ function App() {
 
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: false }));
+      const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: true }));
 
       if (!blob) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
@@ -1249,7 +1253,7 @@ function App() {
       return;
     }
 
-    prepareShareImage({ preferShareCard: false }).catch((error) => {
+    prepareShareImage({ preferShareCard: true }).catch((error) => {
       console.error("Background JPG pre-generation failed", {
         message: error?.message || String(error),
         name: error?.name || null,
