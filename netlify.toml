@@ -3,6 +3,16 @@
   command = "npm run build"
 
 [[redirects]]
+  from = "/s/:id"
+  to = "/.netlify/functions/share-page?id=:id"
+  status = 200
+
+[[redirects]]
+  from = "/i/:id.jpg"
+  to = "/.netlify/functions/share-image?id=:id"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

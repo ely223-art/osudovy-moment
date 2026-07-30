@@ -482,6 +482,36 @@ function App() {
     }
   };
 
+  const waitForShareImageAvailability = async (imageUrl, timeoutMs = 4500) => {
+    if (!imageUrl) {
+      return false;
+    }
+
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+      try {
+        const probeUrl = `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}cb=${Date.now()}`;
+        const response = await fetch(probeUrl, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          return true;
+        }
+      } catch (probeError) {
+        console.error("Share image probe failed", {
+          message: probeError?.message || String(probeError),
+          name: probeError?.name || null,
+        });
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
+
+    return false;
+  };
+
   const waitForCompletionMapTiles = async (timeoutMs = 3200) => {
     const mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
     if (!mapNode) {
@@ -810,6 +840,9 @@ function App() {
       if (mode === "share") {
         setShareStatus("Připravuji Facebook sdílení...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+        if (uploadedShare?.imageUrl) {
+          await waitForShareImageAvailability(uploadedShare.imageUrl);
+        }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
 
         openFacebookShare(facebookTargetUrl);
@@ -882,6 +915,9 @@ function App() {
         const uploadedShare = hasCachedBlob
           ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev)
           : null;
+        if (uploadedShare?.imageUrl) {
+          await waitForShareImageAvailability(uploadedShare.imageUrl);
+        }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {

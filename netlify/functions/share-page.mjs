@@ -22,8 +22,8 @@ export default async (request) => {
 
     const origin = requestUrl.origin;
     const canonicalUrl = "https://osudovymoment.cz";
-    const sharePageUrl = `${origin}/.netlify/functions/share-page?id=${encodeURIComponent(safeId)}`;
-    const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
+    const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
+    const imageUrl = `${origin}/i/${encodeURIComponent(safeId)}.jpg`;
     const title = "Osudovy moment";
     const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
 

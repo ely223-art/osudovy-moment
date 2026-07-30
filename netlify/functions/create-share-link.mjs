@@ -51,8 +51,8 @@ export default async (request) => {
 
     return responseWithJson(200, {
       id,
-      shareUrl: `${origin}/.netlify/functions/share-page?id=${encodeURIComponent(id)}`,
-      imageUrl: `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(id)}`,
+      shareUrl: `${origin}/s/${encodeURIComponent(id)}`,
+      imageUrl: `${origin}/i/${encodeURIComponent(id)}.jpg`,
     });
   } catch (error) {
     console.error("create-share-link error", error);
