@@ -832,7 +832,7 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
 
         const fallbackToFacebookWithDownloadedJpg = async () => {
-          const downloaded = triggerDownload();
+          const downloaded = uploadedShare ? false : triggerDownload();
           openFacebookShare(facebookTargetUrl);
 
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -848,7 +848,7 @@ function App() {
 
           setShareStatus(
             uploadedShare
-              ? "Facebook sdílení je připravené s vaším obrázkem. Otevřel se i stažený JPG jako záloha."
+              ? "Facebook sdílení je připravené s vaším obrázkem."
               : downloaded
               ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
               : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
@@ -992,7 +992,7 @@ function App() {
 
         setShareStatus(
           uploadedShare
-            ? "Facebook sdílení je připravené s vaším obrázkem. Otevřel se i stažený JPG jako záloha."
+            ? "Facebook sdílení je připravené s vaším obrázkem."
             : downloaded
             ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
             : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."

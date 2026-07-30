@@ -3,32 +3,34 @@ import { getStore } from "@netlify/blobs";
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
 
 const jsonResponse = (statusCode, payload) => ({
-  statusCode,
+  status: statusCode,
   headers: {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
   },
-  body: JSON.stringify(payload),
 });
+
+const responseWithJson = (statusCode, payload) =>
+  new Response(JSON.stringify(payload), jsonResponse(statusCode, payload));
 
 export default async (request) => {
   if (request.method !== "POST") {
-    return jsonResponse(405, { error: "Method not allowed" });
+    return responseWithJson(405, { error: "Method not allowed" });
   }
 
   try {
     const contentType = request.headers.get("content-type") || "";
     if (!contentType.toLowerCase().includes("image/jpeg")) {
-      return jsonResponse(415, { error: "Only image/jpeg is supported" });
+      return responseWithJson(415, { error: "Only image/jpeg is supported" });
     }
 
     const imageBuffer = Buffer.from(await request.arrayBuffer());
     if (!imageBuffer.length) {
-      return jsonResponse(400, { error: "Image payload is empty" });
+      return responseWithJson(400, { error: "Image payload is empty" });
     }
 
     if (imageBuffer.length > MAX_IMAGE_SIZE) {
-      return jsonResponse(413, { error: "Image payload is too large" });
+      return responseWithJson(413, { error: "Image payload is too large" });
     }
 
     const titleHeader = request.headers.get("x-share-title") || "Osudovy moment";
@@ -47,13 +49,13 @@ export default async (request) => {
     const url = new URL(request.url);
     const origin = url.origin;
 
-    return jsonResponse(200, {
+    return responseWithJson(200, {
       id,
       shareUrl: `${origin}/.netlify/functions/share-page?id=${encodeURIComponent(id)}`,
       imageUrl: `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(id)}`,
     });
   } catch (error) {
     console.error("create-share-link error", error);
-    return jsonResponse(500, { error: "Failed to create share link" });
+    return responseWithJson(500, { error: "Failed to create share link" });
   }
 };
