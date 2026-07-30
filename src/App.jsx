@@ -42,8 +42,8 @@ const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
 const EXPORT_CAPTURE_SCALE = 2;
-const EXPORT_SHARE_WIDTH = 1080;
-const EXPORT_SHARE_HEIGHT = 1350;
+const EXPORT_SHARE_WIDTH = 1200;
+const EXPORT_SHARE_HEIGHT = 630;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
