@@ -75,10 +75,10 @@ a {
   z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 760px);
-  align-items: end;
+  align-items: center;
   gap: clamp(18px, 3vw, 32px);
-  min-height: calc(100vh - 72px);
-  padding: 92px 44px 24px;
+  min-height: min(78vh, 700px);
+  padding: 112px 44px 36px;
 }
 
 .hero-copy {
@@ -154,8 +154,8 @@ a {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  align-items: end;
-  min-height: 560px;
+  align-items: center;
+  min-height: 420px;
 }
 
 .reference-map {
