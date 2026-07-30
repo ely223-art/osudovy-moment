@@ -933,7 +933,7 @@ function App() {
       };
 
       if (mode === "share") {
-        setShareStatus("Připravuji Facebook sdílení...");
+        setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
@@ -955,8 +955,8 @@ function App() {
 
         setShareStatus(
           uploadedShare
-            ? "Facebook sdílení je připravené s vaším obrázkem a odkazem na osudovymoment.cz."
-            : "Facebook sdílení se otevřelo pouze s odkazem."
+            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+            : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
@@ -1078,8 +1078,8 @@ function App() {
 
         setShareStatus(
           uploadedShare
-            ? "Facebook sdílení je připravené s vaším obrázkem a odkazem na osudovymoment.cz."
-            : "Facebook sdílení se otevřelo pouze s odkazem."
+            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+            : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
