@@ -450,6 +450,7 @@ function App() {
     try {
       const node = completionCardRef.current;
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
+      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
       const canvas = await html2canvas(node, {
         backgroundColor: "#07111f",
@@ -463,12 +464,11 @@ function App() {
           }
 
           return (
-            classList.contains("leaflet-tile") ||
             classList.contains("leaflet-control-container") ||
             classList.contains("completion-map-zoom")
           );
         },
-        scale: isMobileViewport ? 1.25 : 1.8,
+        scale: isMobileViewport ? Math.min(1.8, Math.max(1.2, pixelRatio)) : Math.min(2, Math.max(1.4, pixelRatio)),
       });
 
       const blob = await new Promise((resolve, reject) => {
@@ -589,11 +589,8 @@ function App() {
       let blob = shareImageBlobRef.current;
 
       if (!blob) {
-        blob = await prepareShareImage();
-      }
-
-      if (!blob) {
-        setShareStatus("Nepodařilo se připravit screenshot. Zkuste to prosím znovu.");
+        prepareShareImage();
+        setShareStatus("Připravuji screenshot. Klepněte na Sdílet znovu za 1-2 sekundy.");
         return;
       }
 
@@ -638,7 +635,6 @@ function App() {
               files: [file],
               title: "Osudový moment",
               text: `${completeMoment.nazev}\n${websiteUrl}`,
-              url: websiteUrl,
             });
             setShareStatus("Kartička byla sdílená.");
           } catch (shareError) {
@@ -695,6 +691,12 @@ function App() {
             }
           }
         } else {
+          if (!blob) {
+            prepareShareImage();
+            setShareStatus("Připravuji screenshot. Klepněte na Stáhnout JPG znovu za 1-2 sekundy.");
+            return;
+          }
+
           const downloaded = triggerDownload();
           if (!downloaded) {
             const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
