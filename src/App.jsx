@@ -614,17 +614,22 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
+      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+      const isMobileCaptureDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
       const node = completionCardRef.current || completionScreenRef.current;
       console.log("Export area found", {
         className: node.className,
       });
 
-      await waitForCompletionMapTiles();
+      await waitForCompletionMapTiles(isMobileCaptureDevice ? 6500 : 3200);
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
         });
       });
+      if (isMobileCaptureDevice) {
+        await new Promise((resolve) => window.setTimeout(resolve, 260));
+      }
 
       const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
       const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
@@ -639,9 +644,8 @@ function App() {
 
       let blob = null;
 
-      try {
-        // Primary renderer: preserves DOM transforms and layout more faithfully.
-        blob = await htmlToImageToBlob(node, {
+      const captureWithHtmlToImage = async () => {
+        const renderedBlob = await htmlToImageToBlob(node, {
           cacheBust: true,
           pixelRatio: captureScale,
           canvasWidth: captureWidth,
@@ -661,14 +665,11 @@ function App() {
             );
           },
         });
-      } catch (primaryError) {
-        console.error("html-to-image capture failed, falling back to html2canvas", {
-          message: primaryError?.message || String(primaryError),
-          name: primaryError?.name || null,
-        });
-      }
 
-      if (!blob) {
+        return renderedBlob;
+      };
+
+      const captureWithHtml2Canvas = async () => {
         const canvas = await html2canvas(node, {
           backgroundColor: null,
           useCORS: true,
@@ -697,7 +698,7 @@ function App() {
           scale: captureScale,
         });
 
-        blob = await new Promise((resolve, reject) => {
+        const renderedBlob = await new Promise((resolve, reject) => {
           canvas.toBlob(
             (result) => {
               if (!result) {
@@ -710,6 +711,32 @@ function App() {
             EXPORT_JPEG_QUALITY
           );
         });
+
+        return renderedBlob;
+      };
+
+      const renderers = isMobileCaptureDevice
+        ? [captureWithHtml2Canvas, captureWithHtmlToImage]
+        : [captureWithHtmlToImage, captureWithHtml2Canvas];
+
+      for (const renderer of renderers) {
+        try {
+          const candidateBlob = await renderer();
+          if (candidateBlob && candidateBlob.size > 8 * 1024) {
+            blob = candidateBlob;
+            break;
+          }
+        } catch (rendererError) {
+          console.error("Capture renderer failed", {
+            renderer: renderer.name || "unknown",
+            message: rendererError?.message || String(rendererError),
+            name: rendererError?.name || null,
+          });
+        }
+      }
+
+      if (!blob) {
+        throw new Error("Nepodařilo se vytvořit použitelné JPG.");
       }
 
       console.log("JPG generated", {
