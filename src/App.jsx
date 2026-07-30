@@ -771,8 +771,6 @@ function App() {
         return;
       }
 
-      const file = new File([blob], filename, { type: "image/jpeg" });
-
       const triggerDownload = () => {
         try {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
@@ -809,95 +807,29 @@ function App() {
         }
       };
 
-      const supportsShare =
-        typeof navigator !== "undefined" &&
-        typeof navigator.share === "function";
-
-      let canShareFiles = supportsShare;
-      if (supportsShare && typeof navigator.canShare === "function") {
-        try {
-          canShareFiles = navigator.canShare({ files: [file] });
-        } catch (shareCapabilityError) {
-          console.error("canShare check failed", {
-            message: shareCapabilityError?.message || String(shareCapabilityError),
-            name: shareCapabilityError?.name || null,
-          });
-          canShareFiles = false;
-        }
-      }
-
       if (mode === "share") {
         setShareStatus("Připravuji Facebook sdílení...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
 
-        const fallbackToFacebookWithDownloadedJpg = async () => {
-          const downloaded = uploadedShare ? false : triggerDownload();
-          openFacebookShare(facebookTargetUrl);
+        openFacebookShare(facebookTargetUrl);
 
-          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-            try {
-              await navigator.clipboard.writeText(websiteUrl);
-            } catch (clipboardError) {
-              console.error("Clipboard write failed", {
-                message: clipboardError?.message || String(clipboardError),
-                name: clipboardError?.name || null,
-              });
-            }
-          }
-
-          setShareStatus(
-            uploadedShare
-              ? "Facebook sdílení je připravené s vaším obrázkem."
-              : downloaded
-              ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
-              : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
-          );
-        };
-
-        if (canShareFiles) {
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            console.log("Share started", {
-              type: "file",
-              mode,
-              filename,
-              size: file.size,
-              mime: file.type,
+            await navigator.clipboard.writeText(websiteUrl);
+          } catch (clipboardError) {
+            console.error("Clipboard write failed", {
+              message: clipboardError?.message || String(clipboardError),
+              name: clipboardError?.name || null,
             });
-
-            await navigator.share({
-              files: [file],
-              title: "Osudový moment - Facebook",
-              text: `${completeMoment.nazev}\n${websiteUrl}`,
-              url: websiteUrl,
-            });
-
-            if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-              preopenedFacebookWindow.close();
-            }
-
-            setShareStatus("JPG obrazovky bylo sdíleno.");
-          } catch (shareError) {
-            console.error("Share error", {
-              mode,
-              message: shareError?.message || String(shareError),
-              name: shareError?.name || null,
-              stack: shareError?.stack || null,
-            });
-
-            if (shareError?.name === "AbortError") {
-              if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-                preopenedFacebookWindow.close();
-              }
-              setShareStatus("Sdílení bylo zrušeno.");
-              return;
-            }
-
-            await fallbackToFacebookWithDownloadedJpg();
           }
-        } else {
-          await fallbackToFacebookWithDownloadedJpg();
         }
+
+        setShareStatus(
+          uploadedShare
+            ? "Facebook sdílení je připravené s vaším obrázkem a odkazem na osudovymoment.cz."
+            : "Facebook sdílení se otevřelo pouze s odkazem."
+        );
       } else {
         if (isInAppSocialBrowser) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
@@ -947,24 +879,6 @@ function App() {
 
       if (mode === "share") {
         const hasCachedBlob = !!shareImageBlobRef.current;
-        const downloaded = hasCachedBlob
-          ? (() => {
-              try {
-                const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(shareImageBlobRef.current);
-                const link = document.createElement("a");
-                link.href = objectUrl;
-                link.download = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-                link.rel = "noopener";
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                return true;
-              } catch {
-                return false;
-              }
-            })()
-          : false;
-
         const uploadedShare = hasCachedBlob
           ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev)
           : null;
@@ -992,10 +906,8 @@ function App() {
 
         setShareStatus(
           uploadedShare
-            ? "Facebook sdílení je připravené s vaším obrázkem."
-            : downloaded
-            ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
-            : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
+            ? "Facebook sdílení je připravené s vaším obrázkem a odkazem na osudovymoment.cz."
+            : "Facebook sdílení se otevřelo pouze s odkazem."
         );
       } else {
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
