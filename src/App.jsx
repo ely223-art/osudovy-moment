@@ -1092,9 +1092,6 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
-    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: true }));
@@ -1115,40 +1112,6 @@ function App() {
       };
 
       if (mode === "share") {
-        const supportsNativeFileShare =
-          typeof navigator !== "undefined" &&
-          typeof navigator.share === "function" &&
-          typeof navigator.canShare === "function";
-
-        if (isMobileDevice && supportsNativeFileShare) {
-          const jpgFile = new File([blob], filename, { type: "image/jpeg" });
-          if (!navigator.canShare({ files: [jpgFile] })) {
-            setShareStatus("Zařízení nepodporuje sdílení JPG.");
-            return;
-          }
-
-          try {
-            await navigator.share({ files: [jpgFile] });
-            return;
-          } catch (shareError) {
-            if (shareError?.name === "AbortError") {
-              return;
-            }
-
-            console.error("Native file share failed", {
-              message: shareError?.message || String(shareError),
-              name: shareError?.name || null,
-            });
-            setShareStatus("Sdílení JPG se nepodařilo.");
-            return;
-          }
-        }
-
-        if (isMobileDevice && !supportsNativeFileShare) {
-          setShareStatus("Zařízení nepodporuje sdílení JPG.");
-          return;
-        }
-
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedShare?.imageUrl) {
@@ -1161,7 +1124,7 @@ function App() {
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(websiteUrl);
+            await navigator.clipboard.writeText(facebookTargetUrl);
           } catch (clipboardError) {
             console.error("Clipboard write failed", {
               message: clipboardError?.message || String(clipboardError),
@@ -1217,7 +1180,7 @@ function App() {
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(websiteUrl);
+            await navigator.clipboard.writeText(facebookTargetUrl);
           } catch (clipboardError) {
             console.error("Clipboard write failed", {
               message: clipboardError?.message || String(clipboardError),
