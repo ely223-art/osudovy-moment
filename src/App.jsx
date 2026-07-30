@@ -719,10 +719,9 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if ((!completionScreenRef.current && !completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
+    if ((!completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
         reason: "Missing completion area or moment, or preparation already running",
-        hasCompletionScreen: !!completionScreenRef.current,
         hasCompletionCard: !!completionCardRef.current,
         hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
@@ -738,8 +737,13 @@ function App() {
     try {
       const selectedPlace = completeMoment || selectedTown;
       const node = preferShareCard
-        ? shareCardRef.current || completionCardRef.current || completionScreenRef.current
-        : completionCardRef.current || completionScreenRef.current || shareCardRef.current;
+        ? shareCardRef.current || completionCardRef.current
+        : completionCardRef.current;
+
+      if (!node) {
+        throw new Error("Nepodařilo se najít kartu pro export.");
+      }
+
       const usesShareCard = node === shareCardRef.current;
       const usesCompletionCard = !usesShareCard;
       console.log("Export area found", {
@@ -767,6 +771,37 @@ function App() {
       }
 
       if (!usesShareCard) {
+        const latitude = parseCoordinate(selectedPlace?.latitude);
+        const longitude = parseCoordinate(selectedPlace?.longitude);
+
+        if (
+          Number.isFinite(latitude) &&
+          Number.isFinite(longitude) &&
+          completionMapRef.current?.setView
+        ) {
+          await new Promise((resolve) => {
+            const map = completionMapRef.current;
+            if (!map) {
+              resolve();
+              return;
+            }
+
+            let settled = false;
+            const finish = () => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              map.off("moveend", finish);
+              resolve();
+            };
+
+            map.on("moveend", finish);
+            map.setView([latitude, longitude], 9, { animate: false });
+            window.setTimeout(finish, 450);
+          });
+        }
+
         if (completionMapRef.current?.invalidateSize) {
           completionMapRef.current.invalidateSize();
         }
@@ -820,8 +855,8 @@ function App() {
           allowTaint: false,
           width: captureWidth,
           height: captureHeight,
-          scrollX: -window.scrollX,
-          scrollY: -window.scrollY,
+          scrollX: 0,
+          scrollY: 0,
           imageTimeout: 15000,
           removeContainer: true,
           logging: false,
