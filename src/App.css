@@ -1161,45 +1161,44 @@ a {
   animation-play-state: paused !important;
 }
 
-.is-exporting .completion-actions {
+.completion-card.is-exporting .completion-actions {
   display: none !important;
 }
 
-.is-exporting .completion-share-status {
+.completion-card.is-exporting .completion-share-status {
   display: none !important;
 }
 
-.is-exporting .completion-layout {
-  padding-top: 78px !important;
-}
-
-.is-exporting .completion-card {
+.completion-card.is-exporting {
   width: 840px !important;
   padding: 24px !important;
 }
 
-.is-exporting .completion-screen,
-.is-exporting .wizard-layout,
-.is-exporting .completion-layout {
+.completion-card.is-exporting .completion-layout {
+  padding-top: 78px !important;
+}
+
+.completion-card.is-exporting .wizard-layout,
+.completion-card.is-exporting .completion-layout {
   width: 840px !important;
   max-width: none !important;
 }
 
-.is-exporting .completion-screen {
+.completion-card.is-exporting {
   overflow: visible !important;
 }
 
-.is-exporting .completion-map-wrapper {
+.completion-card.is-exporting .completion-map-wrapper {
   height: 500px !important;
   min-height: 400px !important;
 }
 
-.is-exporting .completion-map-wrapper .leaflet-container {
+.completion-card.is-exporting .completion-map-wrapper .leaflet-container {
   min-height: 400px !important;
 }
 
-.is-exporting .completion-actions .wizard-continue--secondary-mobile,
-.is-exporting .completion-actions .wizard-continue:nth-child(2) {
+.completion-card.is-exporting .completion-actions .wizard-continue--secondary-mobile,
+.completion-card.is-exporting .completion-actions .wizard-continue:nth-child(2) {
   display: inline-flex !important;
 }
 
