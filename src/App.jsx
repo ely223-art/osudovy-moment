@@ -783,15 +783,18 @@ function App() {
 
     setShareStatus("");
 
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isAppleMobile = /iPhone|iPad|iPod/i.test(userAgent);
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
     const preopenedFacebookWindow =
-      mode === "share" ? window.open("about:blank", "_blank", "noopener,noreferrer") : null;
+      mode === "share" && !isMobileDevice
+        ? window.open("about:blank", "_blank", "noopener,noreferrer")
+        : null;
 
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const blob = await prepareShareImage();
-      const isAppleMobile =
-        typeof navigator !== "undefined" &&
-        /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
       if (!blob) {
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
@@ -825,6 +828,12 @@ function App() {
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+
+        // Mobile browsers are more reliable with same-tab navigation than async popups.
+        if (isMobileDevice) {
+          window.location.href = facebookShareUrl;
+          return;
+        }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
@@ -867,10 +876,11 @@ function App() {
         const supportsNavigatorShare =
           typeof navigator !== "undefined" &&
           typeof navigator.share === "function";
+        const sharedFile = new File([blob], filename, { type: "image/jpeg" });
         let canShareFileDirectly = supportsNavigatorShare;
         if (supportsNavigatorShare && typeof navigator.canShare === "function") {
           try {
-            canShareFileDirectly = navigator.canShare({ files: [new File([blob], filename, { type: "image/jpeg" })] });
+            canShareFileDirectly = navigator.canShare({ files: [sharedFile] });
           } catch {
             canShareFileDirectly = false;
           }
@@ -886,12 +896,38 @@ function App() {
           return;
         }
 
+        if (isMobileDevice && canShareFileDirectly) {
+          try {
+            await navigator.share({
+              files: [sharedFile],
+              title: "Osudový moment JPG",
+            });
+            setShareStatus("Otevřelo se sdílení souboru. Pro stažení zvolte Uložit obrázek / Uložit do souborů.");
+            return;
+          } catch (shareError) {
+            console.error("Mobile file share failed", {
+              message: shareError?.message || String(shareError),
+              name: shareError?.name || null,
+            });
+          }
+        }
+
+        if (isMobileDevice) {
+          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
+          if (!opened) {
+            window.location.href = objectUrl;
+          }
+          setShareStatus("JPG se otevřelo. Pro uložení použijte dlouhý stisk na obrázek.");
+          return;
+        }
+
         const downloaded = triggerDownload();
 
         if (isAppleMobile && !downloaded && canShareFileDirectly) {
           try {
             await navigator.share({
-              files: [new File([blob], filename, { type: "image/jpeg" })],
+              files: [sharedFile],
               title: "Osudový moment JPG",
             });
             setShareStatus("Otevřelo se sdílení souboru. Pro stejný JPG jako na PC zvolte Uložit obrázek / Uložit do souborů.");
