@@ -711,7 +711,7 @@ function App() {
     return results.every(Boolean);
   };
 
-  const prepareShareImage = async () => {
+  const prepareShareImage = async ({ preferShareCard = false } = {}) => {
     console.log("Export started", {
       screen,
       completeMomentId: completeMoment?.id || null,
@@ -733,7 +733,9 @@ function App() {
     let shareCardWasActivated = false;
 
     try {
-      const node = shareCardRef.current || completionCardRef.current || completionScreenRef.current;
+      const node = preferShareCard
+        ? shareCardRef.current || completionCardRef.current || completionScreenRef.current
+        : completionCardRef.current || completionScreenRef.current || shareCardRef.current;
       const usesShareCard = node === shareCardRef.current;
       console.log("Export area found", {
         className: node.className,
@@ -852,7 +854,7 @@ function App() {
         }
       }
 
-      if (!blob) {
+      if (!blob && usesShareCard) {
         try {
         // Primary renderer: preserves DOM transforms and layout more faithfully.
           blob = await htmlToImageToBlob(node, {
@@ -1021,7 +1023,7 @@ function App() {
 
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = await prepareShareImage();
+      const blob = await prepareShareImage({ preferShareCard: mode === "share" });
 
       if (!blob) {
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
@@ -1165,7 +1167,7 @@ function App() {
     }
 
     setShareStatus("");
-    prepareShareImage().then((preparedBlob) => {
+    prepareShareImage({ preferShareCard: false }).then((preparedBlob) => {
       if (!preparedBlob || !shareImageObjectUrlRef.current) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
         return;
