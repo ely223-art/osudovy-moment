@@ -139,6 +139,9 @@ function App() {
   const publicMapRef = useRef(null);
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
+  const exportCardRef = useRef(null);
+  const exportMapContainerRef = useRef(null);
+  const exportMapRef = useRef(null);
   const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
@@ -732,13 +735,12 @@ function App() {
 
     setIsPreparingShareImage(true);
     let shareCardWasActivated = false;
-    let exportClone = null;
 
     try {
-      const selectedPlace = completeMoment || selectedTown;
+      const selectedPlace = completeMoment;
       const node = preferShareCard
         ? shareCardRef.current || completionCardRef.current
-        : completionCardRef.current;
+        : exportCardRef.current || completionCardRef.current;
 
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
@@ -746,6 +748,7 @@ function App() {
 
       const usesShareCard = node === shareCardRef.current;
       const usesCompletionCard = !usesShareCard;
+      const usesLiveCompletionCard = node === completionCardRef.current;
       console.log("Export area found", {
         className: node.className,
         usesShareCard,
@@ -765,7 +768,7 @@ function App() {
             sources: shareCardImageSources,
           });
         }
-      } else {
+      } else if (usesLiveCompletionCard) {
         completionScreenRef.current?.classList.add("is-exporting");
         completionCardRef.current?.classList.add("is-exporting");
       }
@@ -777,10 +780,10 @@ function App() {
         if (
           Number.isFinite(latitude) &&
           Number.isFinite(longitude) &&
-          completionMapRef.current?.setView
+          (exportMapRef.current?.setView || completionMapRef.current?.setView)
         ) {
           await new Promise((resolve) => {
-            const map = completionMapRef.current;
+            const map = exportMapRef.current || completionMapRef.current;
             if (!map) {
               resolve();
               return;
@@ -802,8 +805,9 @@ function App() {
           });
         }
 
-        if (completionMapRef.current?.invalidateSize) {
-          completionMapRef.current.invalidateSize();
+        const map = exportMapRef.current || completionMapRef.current;
+        if (map?.invalidateSize) {
+          map.invalidateSize();
         }
 
         await new Promise((resolve) => {
@@ -812,7 +816,10 @@ function App() {
           });
         });
 
-        await waitForCompletionMapTiles();
+        await waitForCompletionMapTiles(
+          node.querySelector(".completion-map-wrapper"),
+          5000
+        );
       }
 
       await waitForNodeImages(node, 9000);
@@ -833,7 +840,7 @@ function App() {
         });
       });
 
-      let captureNode = node;
+      const captureNode = node;
 
       const captureWidth = Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width));
       const captureHeight = Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height));
@@ -974,12 +981,12 @@ function App() {
       if (shareCardWasActivated) {
         shareCardRef.current?.classList.remove("is-capturing");
       }
-      completionScreenRef.current?.classList.remove("is-exporting");
-      completionCardRef.current?.classList.remove("is-exporting");
-      if (exportClone?.parentNode) {
-        exportClone.parentNode.removeChild(exportClone);
+      if (completionCardRef.current?.classList.contains("is-exporting")) {
+        completionScreenRef.current?.classList.remove("is-exporting");
+        completionCardRef.current?.classList.remove("is-exporting");
       }
       shareCardRef.current?.classList.remove("capture-freeze");
+      exportCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
@@ -1421,6 +1428,101 @@ function App() {
       animationStartedRef.current = false;
     };
   }, [screen, completeMoment?.latitude, completeMoment?.longitude, completeMoment?.symbolImage, selectedTown?.latitude, selectedTown?.longitude, selectedSymbol?.id]);
+
+  useEffect(() => {
+    const place = completeMoment;
+    const container = exportMapContainerRef.current;
+
+    if (!place || !container) {
+      if (exportMapRef.current) {
+        exportMapRef.current.remove();
+        exportMapRef.current = null;
+      }
+      return undefined;
+    }
+
+    const latitude = parseCoordinate(place.latitude);
+    const longitude = parseCoordinate(place.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return undefined;
+    }
+
+    if (container.firstChild) {
+      container.replaceChildren();
+    }
+
+    const map = L.map(container, {
+      zoomControl: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      dragging: false,
+      attributionControl: false,
+      worldCopyJump: true,
+      zoomSnap: 1,
+      zoomDelta: 1,
+      preferCanvas: true,
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+      inertia: false,
+    }).setView([latitude, longitude], 9, { animate: false });
+
+    exportMapRef.current = map;
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      minZoom: 3,
+      subdomains: ["a", "b", "c", "d"],
+      detectRetina: false,
+      crossOrigin: true,
+    }).addTo(map);
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      minZoom: 3,
+      subdomains: ["a", "b", "c", "d"],
+      detectRetina: false,
+      pane: "overlayPane",
+      zIndex: 650,
+      crossOrigin: true,
+    }).addTo(map);
+
+    const markerLayer = L.DomUtil.create("div", "completion-map-overlay");
+    map.getPane("overlayPane").appendChild(markerLayer);
+    markerLayer.style.zIndex = "560";
+
+    const markerElement = L.DomUtil.create("div", "completion-map-marker is-final");
+    markerElement.setAttribute("data-stage", "ready");
+    markerElement.innerHTML = renderMomentMarkerBody(place.symbolImage);
+    markerLayer.appendChild(markerElement);
+
+    const updateMarkerPosition = () => {
+      const point = map.latLngToContainerPoint([latitude, longitude]);
+      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x));
+      const boundedY = Math.max(24, Math.min(container.clientHeight - 24, point.y));
+      markerElement.style.left = `${boundedX}px`;
+      markerElement.style.top = `${boundedY}px`;
+    };
+
+    map.whenReady(() => {
+      map.invalidateSize();
+      updateMarkerPosition();
+    });
+
+    map.on("move zoom viewreset resize", updateMarkerPosition);
+
+    return () => {
+      map.off("move zoom viewreset resize", updateMarkerPosition);
+      map.remove();
+      if (exportMapRef.current === map) {
+        exportMapRef.current = null;
+      }
+      if (container.firstChild) {
+        container.replaceChildren();
+      }
+    };
+  }, [completeMoment?.id, completeMoment?.latitude, completeMoment?.longitude, completeMoment?.symbolImage]);
 
   useEffect(() => {
     const selectedPlace = completeMoment || selectedTown;
@@ -2036,6 +2138,50 @@ function App() {
                 )}
                 </section>
               </main>
+            </div>
+
+            <div className="export-render-surface" aria-hidden="true">
+              <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
+                <div className="completion-map-shell">
+                  <div className="map-animated-surface is-ready">
+                    {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
+                      <div className="completion-map-wrapper" ref={exportMapContainerRef} />
+                    ) : (
+                      <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="completion-content">
+                  <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
+                  <p className="completion-subtitle">
+                    {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
+                  </p>
+
+                  <div className="completion-summary">
+                    <div className="completion-summary__row">
+                      <span className="completion-label">Symbol</span>
+                      <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
+                    </div>
+                    <div className="completion-summary__row">
+                      <span className="completion-label">Název</span>
+                      <span className="completion-value">{completeMoment.nazev}</span>
+                    </div>
+                    {completeMoment.datum ? (
+                      <div className="completion-summary__row">
+                        <span className="completion-label">Datum</span>
+                        <span className="completion-value">{completeMoment.datum}</span>
+                      </div>
+                    ) : null}
+                    {completeMoment.prikaz ? (
+                      <div className="completion-summary__row">
+                        <span className="completion-label">Poznámka</span>
+                        <span className="completion-value">{completeMoment.prikaz}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
             </div>
 
             <div className="share-card" ref={shareCardRef} aria-hidden="true">

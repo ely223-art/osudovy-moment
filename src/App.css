@@ -1214,6 +1214,17 @@ a {
   font-size: 0.95rem;
 }
 
+.export-render-surface {
+  position: fixed;
+  left: -200vw;
+  top: 0;
+  z-index: -1;
+  width: 840px;
+  pointer-events: none;
+  opacity: 1;
+  visibility: visible;
+}
+
 .share-card {
   position: absolute;
   left: -200vw;
