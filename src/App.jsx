@@ -5,6 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
 import "./App.css";
+import { buildServerDownloadUrl } from "./utils/downloadUrls";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -527,36 +528,6 @@ function App() {
     directDownloadRef.current = { url: "", isObjectUrl: false };
     setDirectDownloadUrl("");
     setDirectDownloadFilename("");
-  };
-
-  const buildServerDownloadUrl = (imageUrl, filename) => {
-    if (!imageUrl) {
-      return "";
-    }
-
-    try {
-      const parsedUrl = new URL(imageUrl, window.location.origin);
-      const imageId = parsedUrl.searchParams.get("id") || parsedUrl.pathname.match(/\/i\/([^/.]+)\.jpg$/i)?.[1] || "";
-
-      if (imageId) {
-        const directFunctionUrl = new URL("/.netlify/functions/share-image", parsedUrl.origin);
-        directFunctionUrl.searchParams.set("id", imageId);
-        directFunctionUrl.searchParams.set("download", "1");
-        directFunctionUrl.searchParams.set("filename", filename || "osudovy-moment.jpg");
-        return directFunctionUrl.toString();
-      }
-
-      const fallbackUrl = new URL(imageUrl, window.location.origin);
-      fallbackUrl.searchParams.set("download", "1");
-      fallbackUrl.searchParams.set("filename", filename || "osudovy-moment.jpg");
-      return fallbackUrl.toString();
-    } catch (error) {
-      console.error("Failed to build server download URL", {
-        message: error?.message || String(error),
-        name: error?.name || null,
-      });
-      return "";
-    }
   };
 
   const triggerServerDownload = (downloadUrl, options = {}) => {
