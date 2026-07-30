@@ -41,6 +41,8 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
+const EXPORT_VIEWPORT_WIDTH = 1440;
+const EXPORT_VIEWPORT_HEIGHT = 1800;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -819,8 +821,8 @@ function App() {
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: captureWidth,
-          windowHeight: captureHeight,
+          windowWidth: EXPORT_VIEWPORT_WIDTH,
+          windowHeight: EXPORT_VIEWPORT_HEIGHT,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
