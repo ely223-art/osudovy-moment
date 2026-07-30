@@ -524,7 +524,7 @@ function App() {
     }
   };
 
-  const waitForShareImageAvailability = async (imageUrl, timeoutMs = 4500) => {
+  const waitForShareImageAvailability = async (imageUrl, timeoutMs = 9000) => {
     if (!imageUrl) {
       return false;
     }
@@ -825,35 +825,42 @@ function App() {
       let blob = null;
 
       try {
-        blob = await htmlToImageToBlob(node, {
-          cacheBust: true,
-          pixelRatio: captureScale,
-          canvasWidth: captureWidth,
-          canvasHeight: captureHeight,
-          quality: EXPORT_JPEG_QUALITY,
-          type: "image/jpeg",
-          backgroundColor: "#07111f",
-        });
-      } catch (primaryError) {
-        console.error("html-to-image capture failed, falling back to html2canvas", {
-          message: primaryError?.message || String(primaryError),
-          name: primaryError?.name || null,
+        blob = await captureWithHtml2Canvas(false);
+      } catch (shareCanvasError) {
+        console.error("Share-card html2canvas failed, trying foreignObject", {
+          message: shareCanvasError?.message || String(shareCanvasError),
+          name: shareCanvasError?.name || null,
         });
       }
 
       if (!blob) {
         try {
           blob = await captureWithHtml2Canvas(true);
-        } catch (shareCanvasError) {
-          console.error("Share-card html2canvas (foreignObject) failed", {
-            message: shareCanvasError?.message || String(shareCanvasError),
-            name: shareCanvasError?.name || null,
+        } catch (foreignObjectError) {
+          console.error("Share-card html2canvas (foreignObject) failed, trying html-to-image", {
+            message: foreignObjectError?.message || String(foreignObjectError),
+            name: foreignObjectError?.name || null,
           });
         }
       }
 
       if (!blob) {
-        blob = await captureWithHtml2Canvas(false);
+        try {
+          blob = await htmlToImageToBlob(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            canvasWidth: captureWidth,
+            canvasHeight: captureHeight,
+            quality: EXPORT_JPEG_QUALITY,
+            type: "image/jpeg",
+            backgroundColor: "#07111f",
+          });
+        } catch (primaryError) {
+          console.error("html-to-image capture failed", {
+            message: primaryError?.message || String(primaryError),
+            name: primaryError?.name || null,
+          });
+        }
       }
 
       if (!blob) {
@@ -982,7 +989,10 @@ function App() {
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
     const openFacebookShare = (targetUrl = websiteUrl) => {
       const shareQuote = encodeURIComponent("Můj osudový moment");
-      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
+      const facebookBaseUrl = isMobileDevice
+        ? "https://m.facebook.com/sharer.php"
+        : "https://www.facebook.com/sharer/sharer.php";
+      const facebookShareUrl = `${facebookBaseUrl}?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
 
       if (isMobileDevice) {
         window.location.assign(facebookShareUrl);
@@ -1014,10 +1024,14 @@ function App() {
       if (mode === "share") {
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
+        if (!uploadedShare?.shareUrl) {
+          setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+          return;
+        }
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
-        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+        const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
@@ -1034,9 +1048,7 @@ function App() {
         }
 
         setShareStatus(
-          uploadedShare
-            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
-            : "Facebook sdílení se otevřelo jako odkaz."
+          "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
         );
       } else {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
@@ -1070,10 +1082,14 @@ function App() {
         const uploadedShare = hasCachedBlob
           ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev, activeShareId)
           : null;
+        if (!uploadedShare?.shareUrl) {
+          setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+          return;
+        }
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
-        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+        const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
@@ -1090,9 +1106,7 @@ function App() {
         }
 
         setShareStatus(
-          uploadedShare
-            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
-            : "Facebook sdílení se otevřelo jako odkaz."
+          "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
         );
       } else {
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
