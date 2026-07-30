@@ -821,6 +821,17 @@ function App() {
 
       await waitForNodeImages(node, 9000);
 
+      if (typeof document !== "undefined" && document.fonts?.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (fontError) {
+          console.error("Font readiness wait failed", {
+            message: fontError?.message || String(fontError),
+            name: fontError?.name || null,
+          });
+        }
+      }
+
       if (usesShareCard) {
         const hasMissingImage = Array.from(node.querySelectorAll("img")).some(
           (image) => !(image.complete && image.naturalWidth > 0)
@@ -1116,7 +1127,7 @@ function App() {
             try {
               const jpgFile = new File([blob], filename, { type: "image/jpeg" });
               const canShareFiles =
-                typeof navigator.canShare === "function" &&
+                typeof navigator.canShare !== "function" ||
                 navigator.canShare({ files: [jpgFile] });
 
               if (canShareFiles) {
@@ -1143,6 +1154,14 @@ function App() {
               });
             }
           }
+
+          setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
+          const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+          if (uploadedShare?.imageUrl) {
+            await waitForShareImageAvailability(uploadedShare.imageUrl);
+          }
+          const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+          openFacebookShare(facebookTargetUrl, { sameTab: true });
           return;
         }
 
