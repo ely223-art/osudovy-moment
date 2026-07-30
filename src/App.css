@@ -1172,7 +1172,26 @@ a {
 .completion-card.is-exporting {
   width: 840px !important;
   min-width: 840px !important;
+  max-width: 840px !important;
   padding: 24px !important;
+}
+
+.export-render-surface .completion-card.is-exporting .wizard-title {
+  font-size: clamp(2rem, 3vw, 2.45rem) !important;
+  line-height: 1.08 !important;
+}
+
+.export-render-surface .completion-card.is-exporting .completion-subtitle {
+  font-size: 1rem !important;
+}
+
+.export-render-surface .completion-card.is-exporting .completion-label {
+  font-size: 0.8rem !important;
+}
+
+.export-render-surface .completion-card.is-exporting .completion-value {
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
 }
 
 .completion-card.is-exporting .completion-layout {

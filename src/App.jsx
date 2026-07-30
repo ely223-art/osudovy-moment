@@ -575,6 +575,28 @@ function App() {
     setDirectDownloadFilename("");
   };
 
+  const handleCopyShareLink = async () => {
+    if (!shareLinkUrl) {
+      return;
+    }
+
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      setShareStatus("Kopírování odkazu není v tomto prohlížeči dostupné.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareLinkUrl);
+      setShareStatus("Odkaz na moment byl zkopírován.");
+    } catch (clipboardError) {
+      console.error("Clipboard write failed", {
+        message: clipboardError?.message || String(clipboardError),
+        name: clipboardError?.name || null,
+      });
+      setShareStatus("Kopírování odkazu se nepodařilo.");
+    }
+  };
+
   const triggerServerDownload = (downloadUrl, options = {}) => {
     const { sameTab = false } = options;
 
@@ -741,7 +763,7 @@ function App() {
       const selectedPlace = completeMoment;
       const node = preferShareCard
         ? shareCardRef.current || completionCardRef.current
-        : exportCardRef.current || completionCardRef.current;
+        : exportCardRef.current;
 
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
@@ -749,7 +771,6 @@ function App() {
 
       const usesShareCard = node === shareCardRef.current;
       const usesCompletionCard = !usesShareCard;
-      const usesLiveCompletionCard = node === completionCardRef.current;
       console.log("Export area found", {
         className: node.className,
         usesShareCard,
@@ -769,9 +790,6 @@ function App() {
             sources: shareCardImageSources,
           });
         }
-      } else if (usesLiveCompletionCard) {
-        completionScreenRef.current?.classList.add("is-exporting");
-        completionCardRef.current?.classList.add("is-exporting");
       }
 
       if (!usesShareCard) {
@@ -982,10 +1000,6 @@ function App() {
       if (shareCardWasActivated) {
         shareCardRef.current?.classList.remove("is-capturing");
       }
-      if (completionCardRef.current?.classList.contains("is-exporting")) {
-        completionScreenRef.current?.classList.remove("is-exporting");
-        completionCardRef.current?.classList.remove("is-exporting");
-      }
       shareCardRef.current?.classList.remove("capture-freeze");
       exportCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
@@ -1118,6 +1132,25 @@ function App() {
         }
       };
 
+      const prepareMobileFallbackDownload = (targetBlob, uploadedShare, targetFilename) => {
+        if (uploadedShare?.imageUrl) {
+          const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedShare.id || Date.now()}.jpg`;
+          const serverDownloadUrl = buildServerDownloadUrl(uploadedShare.imageUrl, uniqueFilename);
+          setDirectDownloadLink(serverDownloadUrl, targetFilename, false);
+          return;
+        }
+
+        if (shareImageObjectUrlRef.current) {
+          setDirectDownloadLink(shareImageObjectUrlRef.current, targetFilename, true);
+          return;
+        }
+
+        if (targetBlob) {
+          const objectUrl = URL.createObjectURL(targetBlob);
+          setDirectDownloadLink(objectUrl, targetFilename, true);
+        }
+      };
+
       if (mode === "share") {
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
@@ -1127,7 +1160,56 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl, { sameTab: isMobileDevice });
+        if (isMobileDevice) {
+          let fileShareSupported = false;
+
+          if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+            try {
+              const jpgFile = new File([blob], filename, { type: "image/jpeg" });
+              if (typeof navigator.canShare === "function") {
+                fileShareSupported = navigator.canShare({ files: [jpgFile] });
+              }
+
+              if (fileShareSupported) {
+                await navigator.share({
+                  title: "Osudový moment",
+                  files: [jpgFile],
+                });
+                if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+                  preopenedFacebookWindow.close();
+                }
+                setShareStatus(
+                  "JPG byl předán do sdílení. Pro text příspěvku použijte tlačítko Kopírovat odkaz na moment."
+                );
+                return;
+              }
+            } catch (shareError) {
+              if (shareError?.name === "AbortError") {
+                if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+                  preopenedFacebookWindow.close();
+                }
+                setShareStatus("Sdílení bylo zrušeno.");
+                return;
+              }
+
+              console.error("Native file share failed", {
+                message: shareError?.message || String(shareError),
+                name: shareError?.name || null,
+              });
+            }
+          }
+
+          prepareMobileFallbackDownload(blob, uploadedShare, filename);
+          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+            preopenedFacebookWindow.close();
+          }
+          setShareStatus(
+            "Facebook na tomto zařízení nepřijal JPG přes systémové sdílení. Použijte Uložit JPG a Kopírovat odkaz na moment."
+          );
+          return;
+        }
+
+        openFacebookShare(facebookTargetUrl, { sameTab: false });
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1183,7 +1265,18 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl, { sameTab: isMobileDevice });
+        if (isMobileDevice) {
+          prepareMobileFallbackDownload(shareImageBlobRef.current, uploadedShare, `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`);
+          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+            preopenedFacebookWindow.close();
+          }
+          setShareStatus(
+            "Facebook na tomto zařízení nepřijal JPG přes systémové sdílení. Použijte Uložit JPG a Kopírovat odkaz na moment."
+          );
+          return;
+        }
+
+        openFacebookShare(facebookTargetUrl, { sameTab: false });
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -2126,6 +2219,11 @@ function App() {
                         Odkaz pro sdílení: <a href={shareLinkUrl} target="_blank" rel="noopener noreferrer">{shareLinkUrl}</a>
                       </p>
                     ) : null}
+                    {shareLinkUrl ? (
+                      <button className="wizard-continue" type="button" onClick={handleCopyShareLink}>
+                        Kopírovat odkaz na moment
+                      </button>
+                    ) : null}
                     {directDownloadUrl ? (
                       <a
                         className="wizard-continue"
@@ -2134,7 +2232,7 @@ function App() {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        Přímé stažení JPG
+                        Uložit JPG
                       </a>
                     ) : null}
                   </div>
