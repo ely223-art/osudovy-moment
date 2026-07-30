@@ -800,7 +800,15 @@ function App() {
       });
 
       let mapSnapshotDataUrl = "";
+      let exportViewportWidth = EXPORT_VIEWPORT_WIDTH;
+      let exportViewportHeight = EXPORT_VIEWPORT_HEIGHT;
       if (usesCompletionCard) {
+        const liveCardRect = completionCardRef.current?.getBoundingClientRect();
+        if (liveCardRect) {
+          exportViewportWidth = Math.max(320, Math.round(liveCardRect.width));
+          exportViewportHeight = Math.max(640, Math.round(liveCardRect.height));
+        }
+
         const liveMapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
         if (liveMapNode) {
           try {
@@ -816,8 +824,8 @@ function App() {
               removeContainer: true,
               logging: false,
               foreignObjectRendering: false,
-              windowWidth: EXPORT_VIEWPORT_WIDTH,
-              windowHeight: EXPORT_VIEWPORT_HEIGHT,
+              windowWidth: exportViewportWidth,
+              windowHeight: exportViewportHeight,
               ignoreElements: (element) => {
                 const classList = element?.classList;
                 if (!classList) {
@@ -847,11 +855,13 @@ function App() {
         exportClone.style.position = "fixed";
         exportClone.style.left = "0";
         exportClone.style.top = "0";
-        exportClone.style.width = "390px";
-        exportClone.style.minWidth = "390px";
+        exportClone.style.width = `${exportViewportWidth}px`;
+        exportClone.style.minWidth = `${exportViewportWidth}px`;
         exportClone.style.maxWidth = "none";
-        exportClone.style.height = "844px";
-        exportClone.style.minHeight = "844px";
+        exportClone.style.height = `${exportViewportHeight}px`;
+        exportClone.style.minHeight = `${exportViewportHeight}px`;
+        exportClone.style.setProperty("--export-card-width", `${exportViewportWidth}px`);
+        exportClone.style.setProperty("--export-card-height", `${exportViewportHeight}px`);
         exportClone.style.zIndex = "-1";
         exportClone.style.margin = "0";
         exportClone.style.transform = "none";
@@ -874,7 +884,7 @@ function App() {
           snapshotImage.style.width = "100%";
           snapshotImage.style.height = "100%";
           snapshotImage.style.display = "block";
-          snapshotImage.style.objectFit = "cover";
+          snapshotImage.style.objectFit = "contain";
           exportMapWrapper.appendChild(snapshotImage);
         }
         captureNode = exportClone;
@@ -906,8 +916,8 @@ function App() {
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: EXPORT_VIEWPORT_WIDTH,
-          windowHeight: EXPORT_VIEWPORT_HEIGHT,
+          windowWidth: exportViewportWidth,
+          windowHeight: exportViewportHeight,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
