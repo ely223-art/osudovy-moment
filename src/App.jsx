@@ -103,6 +103,7 @@ function App() {
   const completionCardRef = useRef(null);
   const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
+  const shareImageObjectUrlRef = useRef("");
   const animationStartedRef = useRef(false);
   const animationTimersRef = useRef([]);
   const [screen, setScreen] = useState("home");
@@ -473,6 +474,12 @@ function App() {
       });
 
       shareImageBlobRef.current = blob;
+
+      if (shareImageObjectUrlRef.current) {
+        URL.revokeObjectURL(shareImageObjectUrlRef.current);
+      }
+
+      shareImageObjectUrlRef.current = URL.createObjectURL(blob);
       return blob;
     } catch (error) {
       console.error("Nepodařilo se připravit kartičku pro sdílení:", error);
@@ -578,7 +585,7 @@ function App() {
 
       const triggerDownload = () => {
         try {
-          const objectUrl = URL.createObjectURL(blob);
+          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = objectUrl;
           link.download = filename;
@@ -586,7 +593,11 @@ function App() {
           document.body.appendChild(link);
           link.click();
           link.remove();
-          window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+
+          if (!shareImageObjectUrlRef.current) {
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+          }
+
           return true;
         } catch (downloadError) {
           console.error("Nepodařilo se spustit stažení:", downloadError);
@@ -626,7 +637,7 @@ function App() {
                 text: `${completeMoment.nazev}\n${websiteUrl}`,
                 url: websiteUrl,
               });
-              setShareStatus("Odkaz na web byl sdílený.");
+              setShareStatus("Odkaz na web byl sdílený. Pro sdílení JPG použijte Stáhnout JPG nebo Otevřít JPG.");
             } else {
               throw shareError;
             }
@@ -645,7 +656,7 @@ function App() {
             setShareStatus(
               downloaded
                 ? "Obrázek byl stažen a odkaz byl zkopírován do schránky."
-                : "Odkaz na web byl zkopírován do schránky."
+                : "Odkaz na web byl zkopírován do schránky. Pokud obrázek nevidíte, použijte Otevřít JPG."
             );
           } else {
             setShareStatus(`Odkaz pro sdílení: ${websiteUrl}`);
@@ -670,12 +681,16 @@ function App() {
         } else {
           const downloaded = triggerDownload();
           if (!downloaded) {
-            const objectUrl = URL.createObjectURL(blob);
+            const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
             window.open(objectUrl, "_blank", "noopener,noreferrer");
-            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+
+            if (!shareImageObjectUrlRef.current) {
+              window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+            }
+
             setShareStatus("Obrázek se otevřel v nové kartě. Podržením uložte JPG.");
           } else if (isAppleMobile) {
-            setShareStatus("Pokud Safari JPG neuloží přímo, použijte tlačítko Sdílet.");
+            setShareStatus("Pokud Safari JPG neuloží přímo, použijte Otevřít JPG a pak dlouhý stisk na obrázek.");
           } else {
             setShareStatus("Kartička byla stažena jako JPG.");
           }
@@ -692,7 +707,23 @@ function App() {
 
   useEffect(() => {
     shareImageBlobRef.current = null;
+
+    if (shareImageObjectUrlRef.current) {
+      URL.revokeObjectURL(shareImageObjectUrlRef.current);
+      shareImageObjectUrlRef.current = "";
+    }
   }, [completeMoment?.id]);
+
+  const openGeneratedJpg = () => {
+    const objectUrl = shareImageObjectUrlRef.current;
+    if (!objectUrl) {
+      setShareStatus("JPG se ještě připravuje. Zkuste to prosím za chvíli.");
+      return;
+    }
+
+    window.open(objectUrl, "_blank", "noopener,noreferrer");
+    setShareStatus("JPG se otevřelo v nové kartě. Na mobilu podržte obrázek a zvolte Uložit.");
+  };
 
   useEffect(() => {
     if (screen === "complete" && completeMoment && animationComplete) {
@@ -1473,6 +1504,9 @@ function App() {
                       </button>
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage}>
                         {isExporting || isPreparingShareImage ? "Probíhá…" : "Stáhnout JPG"}
+                      </button>
+                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg} disabled={isPreparingShareImage}>
+                        {isPreparingShareImage ? "Připravuji…" : "Otevřít JPG"}
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
