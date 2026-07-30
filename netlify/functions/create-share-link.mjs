@@ -1,6 +1,7 @@
 import { getStore } from "@netlify/blobs";
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
+const SHARE_ID_PATTERN = /^[a-zA-Z0-9-]{8,120}$/;
 
 const jsonResponse = (statusCode, payload) => ({
   status: statusCode,
@@ -36,7 +37,9 @@ export default async (request) => {
     const titleHeader = request.headers.get("x-share-title") || "Osudovy moment";
     const title = decodeURIComponent(titleHeader).slice(0, 120);
 
-    const id = crypto.randomUUID();
+    const requestedShareIdHeader = request.headers.get("x-share-id") || "";
+    const requestedShareId = decodeURIComponent(requestedShareIdHeader).trim();
+    const id = SHARE_ID_PATTERN.test(requestedShareId) ? requestedShareId : crypto.randomUUID();
     const store = getStore({ name: "moment-share-images" });
 
     await store.set(`${id}.jpg`, imageBuffer, {

@@ -172,6 +172,7 @@ function App() {
   const [townsError, setTownsError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [shareLinkUrl, setShareLinkUrl] = useState("");
+  const [exportShareId, setExportShareId] = useState("");
   const [directDownloadUrl, setDirectDownloadUrl] = useState("");
   const [directDownloadFilename, setDirectDownloadFilename] = useState("");
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
@@ -493,14 +494,20 @@ function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
-  const uploadShareImageForFacebook = async (blob, title) => {
+  const uploadShareImageForFacebook = async (blob, title, forcedShareId = "") => {
     try {
+      const headers = {
+        "content-type": "image/jpeg",
+        "x-share-title": encodeURIComponent(title || "Osudovy moment"),
+      };
+
+      if (forcedShareId) {
+        headers["x-share-id"] = encodeURIComponent(forcedShareId);
+      }
+
       const response = await fetch("/.netlify/functions/create-share-link", {
         method: "POST",
-        headers: {
-          "content-type": "image/jpeg",
-          "x-share-title": encodeURIComponent(title || "Osudovy moment"),
-        },
+        headers,
         body: blob,
       });
 
@@ -1024,8 +1031,12 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
-    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+    let activeShareId = exportShareId;
+    if (!activeShareId && typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      activeShareId = crypto.randomUUID();
+      setExportShareId(activeShareId);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
 
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
@@ -1048,7 +1059,7 @@ function App() {
 
       if (mode === "share") {
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
-        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
@@ -1074,7 +1085,7 @@ function App() {
             : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
-        const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+        const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
           const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
@@ -1103,7 +1114,7 @@ function App() {
       if (mode === "share") {
         const hasCachedBlob = !!shareImageBlobRef.current;
         const uploadedShare = hasCachedBlob
-          ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev)
+          ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev, activeShareId)
           : null;
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
@@ -1138,6 +1149,11 @@ function App() {
   useEffect(() => {
     shareImageBlobRef.current = null;
     setShareImageReady(false);
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      setExportShareId(crypto.randomUUID());
+    } else {
+      setExportShareId("");
+    }
     clearDirectDownloadLink();
 
     if (shareImageObjectUrlRef.current) {
@@ -1151,21 +1167,25 @@ function App() {
       return;
     }
 
+    if (!exportShareId) {
+      return;
+    }
+
     prepareShareImage().catch((error) => {
       console.error("Background JPG pre-generation failed", {
         message: error?.message || String(error),
         name: error?.name || null,
       });
     });
-  }, [screen, completeMoment?.id, animationComplete, isPreparingShareImage, shareImageReady]);
+  }, [screen, completeMoment?.id, animationComplete, isPreparingShareImage, shareImageReady, exportShareId]);
 
   const exportMomentUrl = useMemo(() => {
-    if (!completeMoment?.id) {
+    if (!exportShareId) {
       return websiteUrl;
     }
 
-    return `${websiteUrl}/s/${encodeURIComponent(completeMoment.id)}`;
-  }, [completeMoment?.id]);
+    return `${websiteUrl}/s/${encodeURIComponent(exportShareId)}`;
+  }, [exportShareId]);
 
   useEffect(() => {
     if (screen !== "complete") {
