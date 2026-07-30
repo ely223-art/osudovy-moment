@@ -96,7 +96,6 @@ function IconSymbol({ type, x, y }) {
 }
 
 function App() {
-  const screenCaptureRef = useRef(null);
   const mapContainerRef = useRef(null);
   const markerRef = useRef(null);
   const publicMapContainerRef = useRef(null);
@@ -457,18 +456,21 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = screenCaptureRef.current || completionCardRef.current;
+      const node = completionCardRef.current;
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      const bounds = node.getBoundingClientRect();
+      const captureWidth = Math.max(1, Math.round(bounds.width));
+      const captureHeight = Math.max(1, Math.round(bounds.height));
 
       const canvas = await html2canvas(node, {
         backgroundColor: "#07111f",
         useCORS: true,
         allowTaint: false,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
-        windowHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
+        width: captureWidth,
+        height: captureHeight,
+        scrollX: typeof window !== "undefined" ? -window.scrollX : 0,
+        scrollY: typeof window !== "undefined" ? -window.scrollY : 0,
         logging: false,
         ignoreElements: (element) => {
           const classList = element?.classList;
@@ -697,43 +699,20 @@ function App() {
           }
         }
       } else {
-        if (canShareFiles) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: "Osudový moment",
-              text: "Vyberte Uložit obrázek / Uložit do souborů.",
-            });
-            setShareStatus("Otevřelo se systémové menu. Pro stažení vyberte Uložit obrázek / Uložit do souborů.");
-          } catch (shareError) {
-            if (shareError?.name === "AbortError") {
-              setShareStatus("Stahování bylo zrušeno.");
-            } else {
-              throw shareError;
-            }
+        const downloaded = triggerDownload();
+        if (!downloaded) {
+          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          window.open(objectUrl, "_blank", "noopener,noreferrer");
+
+          if (!shareImageObjectUrlRef.current) {
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
           }
+
+          setShareStatus("Obrázek se otevřel v nové kartě. Podržením uložte JPG.");
+        } else if (isAppleMobile) {
+          setShareStatus("Pokud Safari JPG neuloží přímo, použijte Otevřít JPG a pak dlouhý stisk na obrázek.");
         } else {
-          if (!blob) {
-            prepareShareImage();
-            setShareStatus("Připravuji screenshot. Klepněte na Stáhnout JPG znovu za 1-2 sekundy.");
-            return;
-          }
-
-          const downloaded = triggerDownload();
-          if (!downloaded) {
-            const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-            window.open(objectUrl, "_blank", "noopener,noreferrer");
-
-            if (!shareImageObjectUrlRef.current) {
-              window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
-            }
-
-            setShareStatus("Obrázek se otevřel v nové kartě. Podržením uložte JPG.");
-          } else if (isAppleMobile) {
-            setShareStatus("Pokud Safari JPG neuloží přímo, použijte Otevřít JPG a pak dlouhý stisk na obrázek.");
-          } else {
-            setShareStatus("Kartička byla stažena jako JPG.");
-          }
+          setShareStatus("Kartička byla stažena jako JPG.");
         }
       }
     } catch (error) {
@@ -1111,7 +1090,7 @@ function App() {
 
   return (
     <div className="page-shell">
-      <div className="hero-surface" ref={screenCaptureRef}>
+      <div className="hero-surface">
         <div className="landscape" />
 
         {screen === "home" && (
