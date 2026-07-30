@@ -731,10 +731,10 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if (!shareCardRef.current || !completeMoment || isPreparingShareImage) {
+    if (!exportCardRef.current || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
-        reason: "Missing share-card area or moment, or preparation already running",
-        hasShareCard: !!shareCardRef.current,
+        reason: "Missing export-card area or moment, or preparation already running",
+        hasExportCard: !!exportCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -745,7 +745,7 @@ function App() {
     let shareCardWasActivated = false;
 
     try {
-      const node = shareCardRef.current;
+      const node = exportCardRef.current;
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
       }
@@ -753,14 +753,14 @@ function App() {
       node.classList.add("is-capturing");
       shareCardWasActivated = true;
 
-      const shareCardImageElements = Array.from(node.querySelectorAll("img"));
-      const shareCardImageSources = shareCardImageElements
+      const exportCardImageElements = Array.from(node.querySelectorAll("img"));
+      const exportCardImageSources = exportCardImageElements
         .map((image) => image.currentSrc || image.src)
         .filter(Boolean);
-      const preloadOk = await preloadImageSources(shareCardImageSources, 9000);
+      const preloadOk = await preloadImageSources(exportCardImageSources, 9000);
       if (!preloadOk) {
         console.warn("Some share-card images did not preload before capture", {
-          sources: shareCardImageSources,
+          sources: exportCardImageSources,
         });
       }
 
@@ -2077,7 +2077,7 @@ function App() {
                     ) : null}
                     <div className="completion-summary__row">
                       <span className="completion-label">Web</span>
-                      <span className="completion-value">{websiteUrl}</span>
+                      <span className="completion-value">{exportMomentUrl}</span>
                     </div>
                   </div>
                 </div>
