@@ -1569,22 +1569,57 @@ a {
   }
 
   .top-left {
-    top: 18px;
-    left: 18px;
+    top: 16px;
+    left: 16px;
   }
 
   .brand-logo {
-    width: 240px;
-    height: 240px;
+    width: min(40vw, 156px);
+    max-height: 156px;
   }
 
   .hero-layout {
     min-height: auto;
-    padding: 20px 18px 28px;
+    gap: 20px;
+    padding: 164px 18px 28px;
   }
 
   .hero-title {
     font-size: clamp(2.7rem, 11vw, 3.7rem);
+  }
+
+  .hero-subtitle {
+    margin-top: 14px;
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+
+  .hero-description {
+    margin-top: 14px;
+    font-size: 0.98rem;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .hero-button,
+  .hero-button--secondary {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .hero-visual {
+    min-height: 260px;
+    justify-content: center;
+  }
+
+  .reference-map {
+    width: min(100%, 360px);
+    margin: 0 auto;
   }
 
   .wizard-layout {
@@ -1593,6 +1628,20 @@ a {
 
   .wizard-card {
     padding: 24px 20px 22px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-layout {
+    padding-top: 148px;
+  }
+
+  .hero-title {
+    font-size: clamp(2.3rem, 12vw, 3rem);
+  }
+
+  .hero-description {
+    font-size: 0.95rem;
   }
 }
 
