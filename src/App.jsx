@@ -715,9 +715,7 @@ function App() {
         return renderedBlob;
       };
 
-      const renderers = isMobileCaptureDevice
-        ? [captureWithHtml2Canvas, captureWithHtmlToImage]
-        : [captureWithHtmlToImage, captureWithHtml2Canvas];
+      const renderers = [captureWithHtmlToImage, captureWithHtml2Canvas];
 
       for (const renderer of renderers) {
         try {
@@ -1088,6 +1086,7 @@ function App() {
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
       detectRetina: false,
+      crossOrigin: true,
     }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
@@ -1097,6 +1096,7 @@ function App() {
       detectRetina: false,
       pane: "overlayPane",
       zIndex: 650,
+      crossOrigin: true,
     }).addTo(map);
 
     const zoomControl = document.createElement("div");
@@ -1252,6 +1252,7 @@ function App() {
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
       detectRetina: true,
+      crossOrigin: true,
     }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
@@ -1261,6 +1262,7 @@ function App() {
       detectRetina: true,
       pane: "overlayPane",
       zIndex: 650,
+      crossOrigin: true,
     }).addTo(map);
 
     const validMoments = publicMapMoments.filter((moment) => {
