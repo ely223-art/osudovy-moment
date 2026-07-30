@@ -137,15 +137,6 @@ function App() {
   const [shareImageReady, setShareImageReady] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
 
-  const isInAppSocialBrowser = useMemo(() => {
-    if (typeof navigator === "undefined") {
-      return false;
-    }
-
-    const userAgent = navigator.userAgent || "";
-    return /FBAN|FBAV|FB_IAB|Instagram|Line\//i.test(userAgent);
-  }, []);
-
   useEffect(() => {
     let isCancelled = false;
     const controller = new AbortController();
@@ -870,7 +861,6 @@ function App() {
     clearDirectDownloadLink();
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isAppleMobile = /iPhone|iPad|iPod/i.test(userAgent);
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
     const preopenedFacebookWindow =
@@ -889,28 +879,6 @@ function App() {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
         return;
       }
-
-      const triggerDownload = () => {
-        try {
-          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = objectUrl;
-          link.download = filename;
-          link.rel = "noopener";
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-
-          if (!shareImageObjectUrlRef.current) {
-            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-          }
-
-          return true;
-        } catch (downloadError) {
-          console.error("Nepodařilo se spustit stažení:", downloadError);
-          return false;
-        }
-      };
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
@@ -964,78 +932,16 @@ function App() {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
           const serverDownloadUrl = buildServerDownloadUrl(uploadedDownload.imageUrl, filename);
           setDirectDownloadLink(serverDownloadUrl, filename, false);
-
-          // On mobile, always use same-tab navigation to avoid popup/auto-download blocking.
           const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
-            sameTab: isMobileDevice,
+            sameTab: true,
           });
           if (downloadedFromServer) {
-            setShareStatus(
-              isMobileDevice
-                ? "Otevírám serverový JPG soubor pro stažení (stejná verze jako na PC). Pokud se nic nestane, použijte Přímé stažení JPG."
-                : "JPG se stahuje ze serveru ve stejné verzi pro mobil i PC."
-            );
+            setShareStatus("Otevírám stejné serverové JPG pro všechna zařízení. Pokud se stahování nespustí, použijte Přímé stažení JPG.");
             return;
           }
         }
 
-        if (isMobileDevice) {
-          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
-          window.location.href = objectUrl;
-          setShareStatus("Automatické stažení mobil zablokoval. Klikněte na Přímé stažení JPG.");
-          return;
-        }
-
-        if (isInAppSocialBrowser) {
-          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
-          const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
-          if (!opened) {
-            window.location.href = objectUrl;
-          }
-          setShareStatus("V interním prohlížeči se JPG otevřelo. Uložte ho a pak nahrajte na Facebook ručně.");
-          return;
-        }
-
-        const downloaded = triggerDownload();
-
-        if (!downloaded && isMobileDevice) {
-          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
-          window.location.href = objectUrl;
-
-          setShareStatus("JPG se otevřelo ze stejného souboru jako na PC. Uložte ho dlouhým stiskem na obrázek, nebo použijte Přímé stažení JPG.");
-          return;
-        }
-
-        if (isAppleMobile && !downloaded) {
-          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
-          const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
-          if (!opened) {
-            window.location.href = objectUrl;
-          }
-
-          setShareStatus("JPG se otevřelo. Pokud se nestáhlo přímo, podržte obrázek a uložte ho ručně.");
-          return;
-        }
-
-        if (!downloaded) {
-          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
-          window.open(objectUrl, "_blank", "noopener,noreferrer");
-
-          if (!shareImageObjectUrlRef.current) {
-            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
-          }
-
-          setShareStatus("Obrázek se otevřel v nové kartě. Podržením uložte JPG.");
-        } else if (isAppleMobile) {
-          setShareStatus("Pokud Safari JPG neuloží přímo, použijte Otevřít JPG a pak dlouhý stisk na obrázek.");
-        } else {
-          setShareStatus("Kartička byla stažena jako JPG.");
-        }
+        setShareStatus("Nepodařilo se připravit serverové JPG pro stažení. Zkuste to prosím znovu.");
       }
     } catch (error) {
       console.error("Nepodařilo se vytvořit JPG kartičku:", error);
