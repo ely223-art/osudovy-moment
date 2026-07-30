@@ -105,6 +105,7 @@ function App() {
   const completionCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
+  const directDownloadRef = useRef({ url: "", isObjectUrl: false });
   const animationStartedRef = useRef(false);
   const animationTimersRef = useRef([]);
   const [screen, setScreen] = useState("home");
@@ -129,6 +130,8 @@ function App() {
   const [townsLoading, setTownsLoading] = useState(false);
   const [townsError, setTownsError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [directDownloadUrl, setDirectDownloadUrl] = useState("");
+  const [directDownloadFilename, setDirectDownloadFilename] = useState("");
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
   const [shareImageReady, setShareImageReady] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
@@ -512,16 +515,44 @@ function App() {
     return false;
   };
 
-  const triggerServerDownload = (imageUrl, filename, options = {}) => {
+  const setDirectDownloadLink = (url, filename, isObjectUrl = false) => {
+    const previous = directDownloadRef.current;
+    if (previous.isObjectUrl && previous.url && previous.url !== url) {
+      URL.revokeObjectURL(previous.url);
+    }
+
+    directDownloadRef.current = { url: url || "", isObjectUrl };
+    setDirectDownloadUrl(url || "");
+    setDirectDownloadFilename(filename || "");
+  };
+
+  const clearDirectDownloadLink = () => {
+    const previous = directDownloadRef.current;
+    if (previous.isObjectUrl && previous.url) {
+      URL.revokeObjectURL(previous.url);
+    }
+
+    directDownloadRef.current = { url: "", isObjectUrl: false };
+    setDirectDownloadUrl("");
+    setDirectDownloadFilename("");
+  };
+
+  const buildServerDownloadUrl = (imageUrl, filename) => {
+    if (!imageUrl) {
+      return "";
+    }
+
+    return `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}download=1&filename=${encodeURIComponent(filename)}`;
+  };
+
+  const triggerServerDownload = (downloadUrl, options = {}) => {
     const { sameTab = false } = options;
 
-    if (!imageUrl) {
+    if (!downloadUrl) {
       return false;
     }
 
     try {
-      const downloadUrl = `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}download=1&filename=${encodeURIComponent(filename)}`;
-
       if (sameTab) {
         window.location.assign(downloadUrl);
         return true;
@@ -529,7 +560,7 @@ function App() {
 
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = filename;
+      link.download = "";
       link.rel = "noopener";
       document.body.appendChild(link);
       link.click();
@@ -821,6 +852,7 @@ function App() {
     }
 
     setShareStatus("");
+    clearDirectDownloadLink();
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isAppleMobile = /iPhone|iPad|iPod/i.test(userAgent);
@@ -915,13 +947,16 @@ function App() {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
-          const downloadedFromServer = triggerServerDownload(uploadedDownload.imageUrl, filename, {
+          const serverDownloadUrl = buildServerDownloadUrl(uploadedDownload.imageUrl, filename);
+          setDirectDownloadLink(serverDownloadUrl, filename, false);
+
+          const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
             sameTab: isMobileDevice,
           });
           if (downloadedFromServer) {
             setShareStatus(
               isMobileDevice
-                ? "Otevírám serverový JPG soubor pro stažení (stejná verze jako na PC)."
+                ? "Otevírám serverový JPG soubor pro stažení (stejná verze jako na PC). Pokud se nic nestane, použijte Přímé stažení JPG."
                 : "JPG se stahuje ze serveru ve stejné verzi pro mobil i PC."
             );
             return;
@@ -930,6 +965,7 @@ function App() {
 
         if (isInAppSocialBrowser) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
           const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
           if (!opened) {
             window.location.href = objectUrl;
@@ -942,14 +978,16 @@ function App() {
 
         if (!downloaded && isMobileDevice) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
           window.location.href = objectUrl;
 
-          setShareStatus("JPG se otevřelo ze stejného souboru jako na PC. Uložte ho dlouhým stiskem na obrázek.");
+          setShareStatus("JPG se otevřelo ze stejného souboru jako na PC. Uložte ho dlouhým stiskem na obrázek, nebo použijte Přímé stažení JPG.");
           return;
         }
 
         if (isAppleMobile && !downloaded) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
           const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
           if (!opened) {
             window.location.href = objectUrl;
@@ -961,6 +999,7 @@ function App() {
 
         if (!downloaded) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
           window.open(objectUrl, "_blank", "noopener,noreferrer");
 
           if (!shareImageObjectUrlRef.current) {
@@ -1030,6 +1069,7 @@ function App() {
   useEffect(() => {
     shareImageBlobRef.current = null;
     setShareImageReady(false);
+    clearDirectDownloadLink();
 
     if (shareImageObjectUrlRef.current) {
       URL.revokeObjectURL(shareImageObjectUrlRef.current);
@@ -1834,6 +1874,17 @@ function App() {
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
+                    {directDownloadUrl ? (
+                      <a
+                        className="wizard-continue"
+                        href={directDownloadUrl}
+                        download={directDownloadFilename || undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Přímé stažení JPG
+                      </a>
+                    ) : null}
                   </div>
                 )}
                 </section>
