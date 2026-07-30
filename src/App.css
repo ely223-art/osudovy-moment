@@ -1219,6 +1219,8 @@ a {
 .share-card__logo {
   width: 120px;
   height: 120px;
+  display: block;
+  object-fit: contain;
   filter: drop-shadow(0 0 18px rgba(214, 170, 100, 0.24));
 }
 
@@ -1243,6 +1245,7 @@ a {
   inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: contain;
 }
 
@@ -1299,6 +1302,7 @@ a {
 .share-map__symbol img {
   width: 76%;
   height: 76%;
+  display: block;
   object-fit: contain;
 }
 
