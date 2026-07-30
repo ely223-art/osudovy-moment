@@ -579,10 +579,22 @@ function App() {
       });
 
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
+      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+      const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
+      if (isMobileDevice) {
+        node.classList.add("capture-desktop-export");
+        window.dispatchEvent(new Event("resize"));
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+          });
+        });
+      }
+
       const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
       const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
-      const captureScale = isMobileViewport ? 1 : Math.max(1, Math.min(2, pixelRatio));
+      const captureScale = Math.max(1, Math.min(2, pixelRatio));
 
       node.classList.add("capture-freeze");
 
@@ -695,6 +707,7 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
+      completionCardRef.current?.classList.remove("capture-desktop-export");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);

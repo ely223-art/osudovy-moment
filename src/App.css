@@ -1161,6 +1161,21 @@ a {
   animation-play-state: paused !important;
 }
 
+.completion-card.capture-desktop-export {
+  width: 840px !important;
+  max-width: 840px !important;
+  padding: 24px 24px 24px !important;
+}
+
+.completion-card.capture-desktop-export .completion-map-wrapper {
+  height: 500px !important;
+  min-height: 400px !important;
+}
+
+.completion-card.capture-desktop-export .completion-map-marker {
+  transform: translate(14%, -50%) !important;
+}
+
 .is-exporting .completion-actions {
   display: none !important;
 }
