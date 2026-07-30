@@ -49,6 +49,30 @@ const buildPublicAssetUrl = (assetPath = "") => {
   return `${normalizedBase}${normalizedPath}`;
 };
 
+const resolveImageUrl = (source = "", fallback = "") => {
+  const input = (source || fallback || "").trim();
+  if (!input) {
+    return "";
+  }
+
+  if (/^(data:|blob:|https?:)/i.test(input)) {
+    return input;
+  }
+
+  const normalized = input.startsWith("/") ? input.slice(1) : input;
+  const relativeUrl = buildPublicAssetUrl(normalized);
+
+  if (typeof window === "undefined") {
+    return relativeUrl;
+  }
+
+  try {
+    return new URL(relativeUrl, window.location.origin).toString();
+  } catch {
+    return relativeUrl;
+  }
+};
+
 function renderMomentMarkerBody(symbolImage) {
   return `
     <span class="completion-map-marker__glow"></span>
@@ -145,7 +169,12 @@ function App() {
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
   const [shareImageReady, setShareImageReady] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
-  const shareMapImageUrl = useMemo(() => buildPublicAssetUrl("mapa.png"), []);
+  const shareMapImageUrl = useMemo(() => resolveImageUrl("mapa.png"), []);
+  const shareLogoImageUrl = useMemo(() => resolveImageUrl(logo), []);
+  const shareSymbolImageUrl = useMemo(
+    () => resolveImageUrl(completeMoment?.symbolImage || "", "ostatni.png"),
+    [completeMoment?.symbolImage]
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -955,7 +984,7 @@ function App() {
       latitude,
       longitude,
       symbolType: selectedSymbol?.id || "",
-      symbolImage: selectedSymbol?.image || "",
+      symbolImage: resolveImageUrl(selectedSymbol?.image || "", "ostatni.png"),
       symbolLabel: selectedSymbol?.label || "",
       nazev: momentTitle.trim(),
       prikaz: momentStory.trim(),
@@ -1949,17 +1978,17 @@ function App() {
             <div className="share-card" ref={shareCardRef} aria-hidden="true">
               <div className="share-card__inner">
                 <div className="share-card__header">
-                  <img className="share-card__logo" src={logo} alt="Logo Osudový moment" />
+                  <img className="share-card__logo" src={shareLogoImageUrl} alt="Logo Osudový moment" loading="eager" crossOrigin="anonymous" />
                   <span className="share-card__title">Osudový moment</span>
                 </div>
 
                 <div className="share-card__map">
-                  <img className="share-card__map-image" src={shareMapImageUrl} alt="Mapa" loading="eager" />
+                  <img className="share-card__map-image" src={shareMapImageUrl} alt="Mapa" loading="eager" crossOrigin="anonymous" />
                   <div className="share-card__map-overlay">
                     <span className="share-map__line" />
                     <span className="share-map__point" />
                     <span className="share-map__symbol">
-                      <img src={completeMoment.symbolImage || buildPublicAssetUrl("ostatni.png")} alt={completeMoment.symbolLabel || "Symbol"} loading="eager" />
+                      <img src={shareSymbolImageUrl} alt={completeMoment.symbolLabel || "Symbol"} loading="eager" crossOrigin="anonymous" />
                     </span>
                   </div>
                 </div>
