@@ -521,6 +521,7 @@ function App() {
     try {
       const node = completionCardRef.current;
       const shareUrl = `${window.location.origin}/moment/${completeMoment.id}`;
+      const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
 
       const dataUrl = await toJpeg(node, {
@@ -530,33 +531,88 @@ function App() {
         quality: 0.95,
       });
 
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = filename;
-      link.click();
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], filename, { type: "image/jpeg" });
+
+      const triggerDownload = () => {
+        try {
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = filename;
+          link.rel = "noopener";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+          return true;
+        } catch (downloadError) {
+          console.error("Nepodařilo se spustit stažení:", downloadError);
+          return false;
+        }
+      };
+
+      const canShareFiles =
+        typeof navigator !== "undefined" &&
+        typeof navigator.share === "function" &&
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] });
+
+      const isAppleMobile =
+        typeof navigator !== "undefined" &&
+        /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+
+      if (mode === "facebook") {
+        const downloaded = triggerDownload();
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}&quote=${encodeURIComponent(`${completeMoment.nazev} · ${shareUrl}`)}`;
+        window.open(facebookUrl, "_blank", "noopener,noreferrer");
+
+        if (downloaded) {
+          setShareStatus("JPG byl stažen a otevřelo se sdílení na Facebook s odkazem na web.");
+        } else {
+          setShareStatus("Otevřelo se sdílení na Facebook s odkazem na web.");
+        }
+        return;
+      }
 
       if (mode === "share") {
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
-        const file = new File([blob], filename, { type: "image/jpeg" });
-
-        if (typeof navigator !== "undefined" && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (canShareFiles) {
           await navigator.share({
             files: [file],
             title: "Osudový moment",
-            text: `${completeMoment.nazev}\n${shareUrl}`,
+            text: `${completeMoment.nazev}\n${websiteUrl}`,
+            url: websiteUrl,
           });
           setShareStatus("Kartička byla sdílená.");
         } else {
+          const downloaded = triggerDownload();
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(shareUrl);
-            setShareStatus("Obrázek byl stažen a odkaz byl zkopírován do schránky.");
+            await navigator.clipboard.writeText(websiteUrl);
+            setShareStatus(
+              downloaded
+                ? "Obrázek byl stažen a odkaz byl zkopírován do schránky."
+                : "Odkaz na web byl zkopírován do schránky."
+            );
           } else {
-            setShareStatus(`Odkaz pro sdílení: ${shareUrl}`);
+            setShareStatus(`Odkaz pro sdílení: ${websiteUrl}`);
           }
         }
       } else {
-        setShareStatus("Kartička byla stažena jako JPG.");
+        const downloaded = triggerDownload();
+
+        if (!downloaded && canShareFiles) {
+          await navigator.share({
+            files: [file],
+            title: "Osudový moment",
+            text: "Vyberte Uložit do souborů nebo Fotek.",
+          });
+          setShareStatus("Otevřelo se sdílení. Pro uložení vyberte Uložit do souborů/Fotek.");
+        } else if (isAppleMobile && canShareFiles) {
+          setShareStatus("Pokud Safari neuloží JPG přímo, použijte tlačítko Sdílet a uložte obrázek přes systémové menu.");
+        } else {
+          setShareStatus("Kartička byla stažena jako JPG.");
+        }
       }
     } catch (error) {
       console.error("Nepodařilo se vytvořit JPG kartičku:", error);
@@ -1340,6 +1396,9 @@ function App() {
                       </button>
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting}>
                         {isExporting ? "Probíhá…" : "Stáhnout JPG"}
+                      </button>
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("facebook")} disabled={isExporting}>
+                        {isExporting ? "Probíhá…" : "Sdílet na Facebook"}
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}

@@ -1623,11 +1623,111 @@ a {
   }
 
   .wizard-layout {
-    padding: 78px 14px 28px;
+    min-height: auto;
+    padding: 102px 14px 24px;
   }
 
   .wizard-card {
     padding: 24px 20px 22px;
+  }
+
+  .wizard-back {
+    top: 14px;
+    right: 14px;
+    left: auto;
+  }
+
+  .wizard-title {
+    font-size: clamp(1.7rem, 7.2vw, 2.1rem);
+    line-height: 1.06;
+  }
+
+  .wizard-text {
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .wizard-list {
+    max-height: 240px;
+  }
+
+  .public-map-card {
+    padding: 20px 14px 16px;
+  }
+
+  .public-map-container {
+    min-height: 320px;
+    height: 56vh;
+  }
+
+  .public-map-detail {
+    padding: 14px;
+  }
+
+  .public-map-detail__card {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .symbol-card {
+    padding: 22px 14px 18px;
+  }
+
+  .symbol-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+
+  .symbol-button {
+    width: clamp(84px, 28vw, 110px);
+  }
+
+  .symbol-button__label {
+    font-size: 0.77rem;
+  }
+
+  .details-card {
+    padding: 22px 14px 18px;
+  }
+
+  .summary-item {
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .summary-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.92rem;
+  }
+
+  .completion-layout {
+    padding-top: 102px;
+  }
+
+  .completion-card {
+    padding: 18px 12px 18px;
+  }
+
+  .completion-map-wrapper {
+    height: 380px;
+    min-height: 330px;
+  }
+
+  .completion-map-marker {
+    transform: translate(6%, -50%);
+  }
+
+  .completion-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .completion-actions .wizard-continue {
+    width: 100%;
+    margin-top: 0;
   }
 }
 
@@ -1642,6 +1742,30 @@ a {
 
   .hero-description {
     font-size: 0.95rem;
+  }
+
+  .wizard-layout {
+    padding-top: 94px;
+  }
+
+  .brand-logo {
+    width: min(38vw, 132px);
+    max-height: 132px;
+  }
+
+  .public-map-container {
+    min-height: 290px;
+    height: 52vh;
+  }
+
+  .completion-map-wrapper {
+    height: 340px;
+    min-height: 300px;
+  }
+
+  .completion-map-zoom {
+    top: 10px;
+    right: 10px;
   }
 }
 
