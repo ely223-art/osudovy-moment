@@ -105,7 +105,6 @@ function App() {
   const publicMapRef = useRef(null);
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
-  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const directDownloadRef = useRef({ url: "", isObjectUrl: false });
@@ -601,12 +600,11 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if ((!completionScreenRef.current && !completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
+    if ((!completionScreenRef.current && !completionCardRef.current) || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
         reason: "Missing completion area or moment, or preparation already running",
         hasCompletionScreen: !!completionScreenRef.current,
         hasCompletionCard: !!completionCardRef.current,
-        hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -614,34 +612,19 @@ function App() {
     }
 
     setIsPreparingShareImage(true);
-    let shareCardWasActivated = false;
 
     try {
-      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-      const isMobileCaptureDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-      const node = shareCardRef.current || completionCardRef.current || completionScreenRef.current;
-      const usesShareCard = node === shareCardRef.current;
+      const node = completionCardRef.current || completionScreenRef.current;
       console.log("Export area found", {
         className: node.className,
-        usesShareCard,
       });
 
-      if (usesShareCard) {
-        node.classList.add("is-capturing");
-        shareCardWasActivated = true;
-      }
-
-      if (!usesShareCard) {
-        await waitForCompletionMapTiles(isMobileCaptureDevice ? 6500 : 3200);
-      }
+      await waitForCompletionMapTiles();
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
         });
       });
-      if (isMobileCaptureDevice) {
-        await new Promise((resolve) => window.setTimeout(resolve, 260));
-      }
 
       const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
       const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
@@ -656,8 +639,9 @@ function App() {
 
       let blob = null;
 
-      const captureWithHtmlToImage = async () => {
-        const renderedBlob = await htmlToImageToBlob(node, {
+      try {
+        // Primary renderer: preserves DOM transforms and layout more faithfully.
+        blob = await htmlToImageToBlob(node, {
           cacheBust: true,
           pixelRatio: captureScale,
           canvasWidth: captureWidth,
@@ -677,11 +661,14 @@ function App() {
             );
           },
         });
+      } catch (primaryError) {
+        console.error("html-to-image capture failed, falling back to html2canvas", {
+          message: primaryError?.message || String(primaryError),
+          name: primaryError?.name || null,
+        });
+      }
 
-        return renderedBlob;
-      };
-
-      const captureWithHtml2Canvas = async () => {
+      if (!blob) {
         const canvas = await html2canvas(node, {
           backgroundColor: null,
           useCORS: true,
@@ -710,7 +697,7 @@ function App() {
           scale: captureScale,
         });
 
-        const renderedBlob = await new Promise((resolve, reject) => {
+        blob = await new Promise((resolve, reject) => {
           canvas.toBlob(
             (result) => {
               if (!result) {
@@ -723,30 +710,6 @@ function App() {
             EXPORT_JPEG_QUALITY
           );
         });
-
-        return renderedBlob;
-      };
-
-      const renderers = [captureWithHtmlToImage, captureWithHtml2Canvas];
-
-      for (const renderer of renderers) {
-        try {
-          const candidateBlob = await renderer();
-          if (candidateBlob && candidateBlob.size > 8 * 1024) {
-            blob = candidateBlob;
-            break;
-          }
-        } catch (rendererError) {
-          console.error("Capture renderer failed", {
-            renderer: renderer.name || "unknown",
-            message: rendererError?.message || String(rendererError),
-            name: rendererError?.name || null,
-          });
-        }
-      }
-
-      if (!blob) {
-        throw new Error("Nepodařilo se vytvořit použitelné JPG.");
       }
 
       console.log("JPG generated", {
@@ -778,10 +741,6 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
-      if (shareCardWasActivated) {
-        shareCardRef.current?.classList.remove("is-capturing");
-      }
-      shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
@@ -892,23 +851,22 @@ function App() {
       }
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
-        const desktopShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
-        const mobileShareUrl = `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
         // Mobile browsers are more reliable with same-tab navigation than async popups.
         if (isMobileDevice) {
-          window.location.href = mobileShareUrl;
+          window.location.href = facebookShareUrl;
           return;
         }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = desktopShareUrl;
+          preopenedFacebookWindow.location.href = facebookShareUrl;
           return;
         }
 
-        const facebookWindow = window.open(desktopShareUrl, "_blank", "noopener,noreferrer");
+        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
         if (!facebookWindow) {
-          window.location.href = desktopShareUrl;
+          window.location.href = facebookShareUrl;
         }
       };
 
@@ -973,14 +931,13 @@ function App() {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
-        const desktopShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
-        const mobileShareUrl = `https://m.facebook.com/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = desktopShareUrl;
+          preopenedFacebookWindow.location.href = facebookShareUrl;
         } else {
-          const facebookWindow = window.open(desktopShareUrl, "_blank", "noopener,noreferrer");
+          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
           if (!facebookWindow) {
-            window.location.href = isMobileDevice ? mobileShareUrl : desktopShareUrl;
+            window.location.href = facebookShareUrl;
           }
         }
 
@@ -1102,7 +1059,6 @@ function App() {
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
       detectRetina: false,
-      crossOrigin: true,
     }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
@@ -1112,7 +1068,6 @@ function App() {
       detectRetina: false,
       pane: "overlayPane",
       zIndex: 650,
-      crossOrigin: true,
     }).addTo(map);
 
     const zoomControl = document.createElement("div");
@@ -1268,7 +1223,6 @@ function App() {
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
       detectRetina: true,
-      crossOrigin: true,
     }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
@@ -1278,7 +1232,6 @@ function App() {
       detectRetina: true,
       pane: "overlayPane",
       zIndex: 650,
-      crossOrigin: true,
     }).addTo(map);
 
     const validMoments = publicMapMoments.filter((moment) => {
@@ -1836,35 +1789,6 @@ function App() {
                 )}
                 </section>
               </main>
-            </div>
-
-            <div className="share-card" ref={shareCardRef} aria-hidden="true">
-              <div className="share-card__inner">
-                <div className="share-card__header">
-                  <img className="share-card__logo" src={logo} alt="Logo Osudový moment" />
-                  <span className="share-card__title">Osudový moment</span>
-                </div>
-
-                <div className="share-card__map">
-                  <img className="share-card__map-image" src="/mapa.png" alt="Mapa" />
-                  <div className="share-card__map-overlay">
-                    <span className="share-map__line" />
-                    <span className="share-map__point" />
-                    <span className="share-map__symbol">
-                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt={completeMoment.symbolLabel || "Symbol"} />
-                    </span>
-                  </div>
-                </div>
-
-                <div className="share-card__body">
-                  <span className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</span>
-                  <strong className="share-card__name">{completeMoment.nazev || "Osudový moment"}</strong>
-                  {completeMoment.datum ? <span className="share-card__date">Datum: {completeMoment.datum}</span> : null}
-                  {completeMoment.prikaz ? <span className="share-card__note">{completeMoment.prikaz}</span> : null}
-                </div>
-
-                <span className="share-card__footer">osudovymoment.cz</span>
-              </div>
             </div>
           </>
         )}
