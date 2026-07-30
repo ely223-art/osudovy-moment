@@ -657,9 +657,7 @@ function App() {
     let shareCardWasActivated = false;
 
     try {
-      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-      const isMobileCaptureDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-      const node = completionCardRef.current || completionScreenRef.current || shareCardRef.current;
+      const node = shareCardRef.current || completionCardRef.current || completionScreenRef.current;
       const usesShareCard = node === shareCardRef.current;
       console.log("Export area found", {
         className: node.className,
@@ -677,7 +675,7 @@ function App() {
         await waitForCompletionMapTiles();
       }
 
-      await waitForNodeImages(node, isMobileCaptureDevice ? 9000 : 6000);
+      await waitForNodeImages(node, 9000);
 
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
@@ -741,18 +739,6 @@ function App() {
           );
         });
       };
-
-      if (isMobileCaptureDevice) {
-        try {
-          // iOS/Safari is more stable with html2canvas than html-to-image for Leaflet DOM.
-          blob = await captureWithHtml2Canvas(true);
-        } catch (mobileCanvasError) {
-          console.error("Mobile html2canvas capture failed, continuing fallback chain", {
-            message: mobileCanvasError?.message || String(mobileCanvasError),
-            name: mobileCanvasError?.name || null,
-          });
-        }
-      }
 
       if (!blob) {
         try {
