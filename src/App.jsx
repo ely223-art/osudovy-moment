@@ -740,6 +740,21 @@ function App() {
         });
       };
 
+      if (usesShareCard) {
+        try {
+          blob = await captureWithHtml2Canvas(true);
+        } catch (shareCanvasError) {
+          console.error("Share-card html2canvas (foreignObject) failed", {
+            message: shareCanvasError?.message || String(shareCanvasError),
+            name: shareCanvasError?.name || null,
+          });
+        }
+
+        if (!blob) {
+          blob = await captureWithHtml2Canvas(false);
+        }
+      }
+
       if (!blob) {
         try {
         // Primary renderer: preserves DOM transforms and layout more faithfully.
