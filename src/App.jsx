@@ -494,12 +494,11 @@ function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
-  const uploadShareImageForFacebook = async (blob, title, forcedShareId = "", description = "") => {
+  const uploadShareImageForFacebook = async (blob, title, forcedShareId = "") => {
     try {
       const headers = {
         "content-type": "image/jpeg",
         "x-share-title": encodeURIComponent(title || "Osudovy moment"),
-        "x-share-description": encodeURIComponent(description || ""),
       };
 
       if (forcedShareId) {
@@ -1021,32 +1020,13 @@ function App() {
         }
       };
 
-      const shareDescription = [
-        completeMoment.obec ? `Místo: ${completeMoment.obec}` : "",
-        completeMoment.symbolLabel ? `Symbol: ${completeMoment.symbolLabel}` : "",
-        completeMoment.datum ? `Datum: ${completeMoment.datum}` : "",
-        completeMoment.prikaz ? `${completeMoment.prikaz}` : "",
-      ]
-        .filter(Boolean)
-        .join(" | ")
-        .slice(0, 220);
-
       if (mode === "share") {
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
-        const uploadedShare = await uploadShareImageForFacebook(
-          blob,
-          completeMoment.nazev,
-          activeShareId,
-          shareDescription
-        );
-        if (!uploadedShare?.shareUrl) {
-          setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
-          return;
-        }
+        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
-        const facebookTargetUrl = uploadedShare.shareUrl;
+        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
@@ -1068,12 +1048,7 @@ function App() {
             : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
-        const uploadedDownload = await uploadShareImageForFacebook(
-          blob,
-          completeMoment.nazev,
-          activeShareId,
-          shareDescription
-        );
+        const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
           const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
@@ -1102,29 +1077,12 @@ function App() {
       if (mode === "share") {
         const hasCachedBlob = !!shareImageBlobRef.current;
         const uploadedShare = hasCachedBlob
-          ? await uploadShareImageForFacebook(
-              shareImageBlobRef.current,
-              completeMoment.nazev,
-              activeShareId,
-              [
-                completeMoment.obec ? `Místo: ${completeMoment.obec}` : "",
-                completeMoment.symbolLabel ? `Symbol: ${completeMoment.symbolLabel}` : "",
-                completeMoment.datum ? `Datum: ${completeMoment.datum}` : "",
-                completeMoment.prikaz ? `${completeMoment.prikaz}` : "",
-              ]
-                .filter(Boolean)
-                .join(" | ")
-                .slice(0, 220)
-            )
+          ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev, activeShareId)
           : null;
-        if (!uploadedShare?.shareUrl) {
-          setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
-          return;
-        }
         if (uploadedShare?.imageUrl) {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
-        const facebookTargetUrl = uploadedShare.shareUrl;
+        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
@@ -1140,7 +1098,11 @@ function App() {
           }
         }
 
-        setShareStatus("Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu.");
+        setShareStatus(
+          uploadedShare
+            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+            : "Facebook sdílení se otevřelo jako odkaz."
+        );
       } else {
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
       }
