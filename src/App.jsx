@@ -143,7 +143,6 @@ function App() {
   const exportCardRef = useRef(null);
   const exportMapContainerRef = useRef(null);
   const exportMapRef = useRef(null);
-  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const directDownloadRef = useRef({ url: "", isObjectUrl: false });
@@ -178,12 +177,6 @@ function App() {
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
   const [shareImageReady, setShareImageReady] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
-  const shareMapImageUrl = useMemo(() => resolveImageUrl("mapa.png"), []);
-  const shareLogoImageUrl = useMemo(() => resolveImageUrl(logo), []);
-  const shareSymbolImageUrl = useMemo(
-    () => resolveImageUrl(completeMoment?.symbolImage || "", "ostatni.png"),
-    [completeMoment?.symbolImage]
-  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -742,7 +735,7 @@ function App() {
     }
 
     setIsPreparingShareImage(true);
-    let shareCardWasActivated = false;
+    let captureNode = null;
 
     try {
       const node = exportCardRef.current;
@@ -750,8 +743,8 @@ function App() {
         throw new Error("Nepodařilo se najít kartu pro export.");
       }
 
+      captureNode = node;
       node.classList.add("is-capturing");
-      shareCardWasActivated = true;
 
       const exportCardImageElements = Array.from(node.querySelectorAll("img"));
       const exportCardImageSources = exportCardImageElements
@@ -891,10 +884,9 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
-      if (shareCardWasActivated) {
-        shareCardRef.current?.classList.remove("is-capturing");
+      if (captureNode) {
+        captureNode.classList.remove("is-capturing");
       }
-      shareCardRef.current?.classList.remove("capture-freeze");
       exportCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
@@ -988,6 +980,20 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+    const openFacebookShare = (targetUrl = websiteUrl) => {
+      const shareQuote = encodeURIComponent("Můj osudový moment");
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
+
+      if (isMobileDevice) {
+        window.location.assign(facebookShareUrl);
+        return;
+      }
+
+      const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+      if (!facebookWindow) {
+        window.location.href = facebookShareUrl;
+      }
+    };
 
     let activeShareId = exportShareId;
     if (!activeShareId && typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -1004,21 +1010,6 @@ function App() {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
         return;
       }
-
-      const openFacebookShare = (targetUrl = websiteUrl) => {
-        const shareQuote = encodeURIComponent("Můj osudový moment");
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
-
-        if (isMobileDevice) {
-          window.location.assign(facebookShareUrl);
-          return;
-        }
-
-        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-        if (!facebookWindow) {
-          window.location.href = facebookShareUrl;
-        }
-      };
 
       if (mode === "share") {
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
@@ -1149,6 +1140,73 @@ function App() {
 
     return `${websiteUrl}/s/${encodeURIComponent(exportShareId)}`;
   }, [exportShareId]);
+
+  const renderCompletionCardContent = ({ showActions = false, mapRef = mapContainerRef } = {}) => (
+    <>
+      <div className="completion-map-shell">
+        <div className={`map-animated-surface ${animationComplete ? "is-ready" : ""}`}>
+          {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
+            <div className="completion-map-wrapper" ref={mapRef} />
+          ) : (
+            <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="completion-content">
+        <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
+        <p className="completion-subtitle">
+          {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
+        </p>
+
+        <div className="completion-summary">
+          <div className="completion-summary__row">
+            <span className="completion-label">Symbol</span>
+            <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
+          </div>
+          <div className="completion-summary__row">
+            <span className="completion-label">Název</span>
+            <span className="completion-value">{completeMoment.nazev}</span>
+          </div>
+          {completeMoment.datum ? (
+            <div className="completion-summary__row">
+              <span className="completion-label">Datum</span>
+              <span className="completion-value">{completeMoment.datum}</span>
+            </div>
+          ) : null}
+          {completeMoment.prikaz ? (
+            <div className="completion-summary__row">
+              <span className="completion-label">Poznámka</span>
+              <span className="completion-value">{completeMoment.prikaz}</span>
+            </div>
+          ) : null}
+          <div className="completion-summary__row">
+            <span className="completion-label">Web</span>
+            <span className="completion-value">{exportMomentUrl}</span>
+          </div>
+        </div>
+
+        {showActions ? (
+          <div className="completion-actions">
+            <button className="wizard-continue" type="button" onClick={handleAddAnotherMoment}>
+              Přidat další symbol
+            </button>
+            <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
+              Prohlédnout mapu osudových momentů
+            </button>
+            <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
+              Sdílet na Facebook
+            </button>
+            <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")}>
+              Stáhnout JPG
+            </button>
+          </div>
+        ) : null}
+
+        {showActions && shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
+      </div>
+    </>
+  );
 
   useEffect(() => {
     if (screen !== "complete") {
@@ -1975,143 +2033,15 @@ function App() {
 
               <main className="wizard-layout completion-layout">
                 <section className="wizard-card completion-card" ref={completionCardRef}>
-                <div className="completion-map-shell">
-                  <div className={`map-animated-surface ${animationComplete ? "is-ready" : ""}`}>
-                    {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
-                      <div className="completion-map-wrapper" ref={mapContainerRef} />
-                    ) : (
-                      <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
-                    )}
-                  </div>
-                </div>
-
-                {animationComplete && (
-                  <div className="completion-content">
-                    <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
-                    <p className="completion-subtitle">
-                      {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
-                    </p>
-
-                    <div className="completion-summary">
-                      <div className="completion-summary__row">
-                        <span className="completion-label">Symbol</span>
-                        <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
-                      </div>
-                      <div className="completion-summary__row">
-                        <span className="completion-label">Název</span>
-                        <span className="completion-value">{completeMoment.nazev}</span>
-                      </div>
-                      {completeMoment.datum ? (
-                        <div className="completion-summary__row">
-                          <span className="completion-label">Datum</span>
-                          <span className="completion-value">{completeMoment.datum}</span>
-                        </div>
-                      ) : null}
-                      {completeMoment.prikaz ? (
-                        <div className="completion-summary__row">
-                          <span className="completion-label">Poznámka</span>
-                          <span className="completion-value">{completeMoment.prikaz}</span>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="completion-actions">
-                      <button className="wizard-continue" type="button" onClick={handleAddAnotherMoment}>
-                        Přidat další symbol
-                      </button>
-                      <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
-                        Prohlédnout mapu osudových momentů
-                      </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
-                        Sdílet na Facebook
-                      </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")}>
-                        Stáhnout JPG
-                      </button>
-                    </div>
-                    {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
-                  </div>
-                )}
+                  {animationComplete ? renderCompletionCardContent({ showActions: true, mapRef: mapContainerRef }) : null}
                 </section>
               </main>
             </div>
 
             <div className="export-render-surface" aria-hidden="true">
               <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
-                <div className="completion-map-shell">
-                  <div className="map-animated-surface is-ready">
-                    {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
-                      <div className="completion-map-wrapper" ref={exportMapContainerRef} />
-                    ) : (
-                      <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="completion-content">
-                  <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
-                  <p className="completion-subtitle">
-                    {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
-                  </p>
-
-                  <div className="completion-summary">
-                    <div className="completion-summary__row">
-                      <span className="completion-label">Symbol</span>
-                      <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
-                    </div>
-                    <div className="completion-summary__row">
-                      <span className="completion-label">Název</span>
-                      <span className="completion-value">{completeMoment.nazev}</span>
-                    </div>
-                    {completeMoment.datum ? (
-                      <div className="completion-summary__row">
-                        <span className="completion-label">Datum</span>
-                        <span className="completion-value">{completeMoment.datum}</span>
-                      </div>
-                    ) : null}
-                    {completeMoment.prikaz ? (
-                      <div className="completion-summary__row">
-                        <span className="completion-label">Poznámka</span>
-                        <span className="completion-value">{completeMoment.prikaz}</span>
-                      </div>
-                    ) : null}
-                    <div className="completion-summary__row">
-                      <span className="completion-label">Web</span>
-                      <span className="completion-value">{exportMomentUrl}</span>
-                    </div>
-                  </div>
-                </div>
+                {renderCompletionCardContent({ showActions: false, mapRef: exportMapContainerRef })}
               </section>
-            </div>
-
-            <div className="share-card" ref={shareCardRef} aria-hidden="true">
-              <div className="share-card__inner">
-                <div className="share-card__header">
-                  <img className="share-card__logo" src={shareLogoImageUrl} alt="Logo Osudový moment" loading="eager" crossOrigin="anonymous" />
-                  <span className="share-card__title">Osudový moment</span>
-                </div>
-
-                <div className="share-card__map">
-                  <img className="share-card__map-image" src={shareMapImageUrl} alt="Mapa" loading="eager" crossOrigin="anonymous" />
-                  <div className="share-card__map-overlay">
-                    <span className="share-map__line" />
-                    <span className="share-map__point" />
-                    <span className="share-map__symbol">
-                      <img src={shareSymbolImageUrl} alt={completeMoment.symbolLabel || "Symbol"} loading="eager" crossOrigin="anonymous" />
-                    </span>
-                  </div>
-                </div>
-
-                <div className="share-card__body">
-                  <span className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</span>
-                  <span className="share-card__type">Symbol: {completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
-                  <strong className="share-card__name">{completeMoment.nazev || "Osudový moment"}</strong>
-                  {completeMoment.datum ? <span className="share-card__date">Datum: {completeMoment.datum}</span> : null}
-                  {completeMoment.prikaz ? <span className="share-card__note">{completeMoment.prikaz}</span> : null}
-                </div>
-
-                <span className="share-card__footer">{exportMomentUrl}</span>
-              </div>
             </div>
           </>
         )}
