@@ -171,7 +171,6 @@ function App() {
   const [townsError, setTownsError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [shareLinkUrl, setShareLinkUrl] = useState("");
-  const [facebookShareIntentUrl, setFacebookShareIntentUrl] = useState("");
   const [directDownloadUrl, setDirectDownloadUrl] = useState("");
   const [directDownloadFilename, setDirectDownloadFilename] = useState("");
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
@@ -1077,7 +1076,6 @@ function App() {
 
     setShareStatus("");
     setShareLinkUrl("");
-    setFacebookShareIntentUrl("");
     clearDirectDownloadLink();
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
@@ -1102,14 +1100,6 @@ function App() {
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
-        setFacebookShareIntentUrl(facebookShareUrl);
-
-        if (isMobileDevice) {
-          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-            preopenedFacebookWindow.close();
-          }
-          return;
-        }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
@@ -1145,11 +1135,9 @@ function App() {
         }
 
         setShareStatus(
-          isMobileDevice
-            ? "Sdílecí odkaz je připravený. Níže klepněte na Otevřít Facebook sdílení."
-            : uploadedShare
-              ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
-              : "Facebook sdílení se otevřelo jako odkaz."
+          uploadedShare
+            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+            : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
@@ -1210,11 +1198,9 @@ function App() {
         }
 
         setShareStatus(
-          isMobileDevice
-            ? "Sdílecí odkaz je připravený. Níže klepněte na Otevřít Facebook sdílení."
-            : uploadedShare
-              ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
-              : "Facebook sdílení se otevřelo jako odkaz."
+          uploadedShare
+            ? "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+            : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
@@ -2140,16 +2126,6 @@ function App() {
                       <p className="completion-share-status">
                         Odkaz pro sdílení: <a href={shareLinkUrl} target="_blank" rel="noopener noreferrer">{shareLinkUrl}</a>
                       </p>
-                    ) : null}
-                    {facebookShareIntentUrl ? (
-                      <a
-                        className="wizard-continue"
-                        href={facebookShareIntentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Otevřít Facebook sdílení
-                      </a>
                     ) : null}
                     {directDownloadUrl ? (
                       <a
