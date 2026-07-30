@@ -101,6 +101,7 @@ function App() {
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
   const completionCardRef = useRef(null);
+  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const animationStartedRef = useRef(false);
@@ -129,6 +130,7 @@ function App() {
   const [shareStatus, setShareStatus] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
+  const [shareImageReady, setShareImageReady] = useState(false);
 
   const isInAppSocialBrowser = useMemo(() => {
     if (typeof navigator === "undefined") {
@@ -454,10 +456,11 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if (!completionCardRef.current || !completeMoment || isPreparingShareImage) {
+    if ((!completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
         reason: "Missing export area or moment, or preparation already running",
         hasCompletionCard: !!completionCardRef.current,
+        hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -467,16 +470,15 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = completionCardRef.current;
+      const node = shareCardRef.current || completionCardRef.current;
       console.log("Export area found", {
         className: node.className,
       });
 
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const bounds = node.getBoundingClientRect();
-      const captureWidth = Math.max(1, Math.round(bounds.width));
-      const captureHeight = Math.max(1, Math.round(bounds.height));
+      const captureWidth = shareCardRef.current ? 1080 : Math.max(1, Math.round(node.getBoundingClientRect().width));
+      const captureHeight = shareCardRef.current ? 1350 : Math.max(1, Math.round(node.getBoundingClientRect().height));
 
       console.log("Map ready", {
         mapReady,
@@ -530,7 +532,8 @@ function App() {
         type: blob?.type || null,
       });
 
-      shareImageBlobRef.current = blob;
+        shareImageBlobRef.current = blob;
+        setShareImageReady(true);
 
       if (shareImageObjectUrlRef.current) {
         URL.revokeObjectURL(shareImageObjectUrlRef.current);
@@ -545,6 +548,7 @@ function App() {
         name: error?.name || null,
         stack: error?.stack || null,
       });
+      setShareImageReady(false);
       return null;
     } finally {
       setIsPreparingShareImage(false);
@@ -637,7 +641,7 @@ function App() {
 
       if (!blob) {
         prepareShareImage();
-        setShareStatus("Připravuji screenshot. Klepněte na Sdílet znovu za 1-2 sekundy.");
+        setShareStatus("Připravuji hezký JPG obrázek. Zkuste to prosím za 1-2 sekundy znovu.");
         return;
       }
 
@@ -665,11 +669,22 @@ function App() {
         }
       };
 
-      const canShareFiles =
+      const supportsShare =
         typeof navigator !== "undefined" &&
-        typeof navigator.share === "function" &&
-        typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] });
+        typeof navigator.share === "function";
+
+      let canShareFiles = supportsShare;
+      if (supportsShare && typeof navigator.canShare === "function") {
+        try {
+          canShareFiles = navigator.canShare({ files: [file] });
+        } catch (shareCapabilityError) {
+          console.error("canShare check failed", {
+            message: shareCapabilityError?.message || String(shareCapabilityError),
+            name: shareCapabilityError?.name || null,
+          });
+          canShareFiles = false;
+        }
+      }
 
       const isAppleMobile =
         typeof navigator !== "undefined" &&
@@ -680,7 +695,14 @@ function App() {
           const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
 
           if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(websiteUrl);
+            try {
+              await navigator.clipboard.writeText(websiteUrl);
+            } catch (clipboardError) {
+              console.error("Clipboard write failed", {
+                message: clipboardError?.message || String(clipboardError),
+                name: clipboardError?.name || null,
+              });
+            }
           }
 
           window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
@@ -733,7 +755,7 @@ function App() {
               throw shareError;
             }
           }
-        } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        } else if (supportsShare) {
           console.log("Share started", {
             type: "url",
             mode,
@@ -809,6 +831,7 @@ function App() {
 
   useEffect(() => {
     shareImageBlobRef.current = null;
+    setShareImageReady(false);
 
     if (shareImageObjectUrlRef.current) {
       URL.revokeObjectURL(shareImageObjectUrlRef.current);
@@ -1601,14 +1624,14 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
                         Prohlédnout mapu osudových momentů
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting || isPreparingShareImage}>
-                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Sdílet"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting || isPreparingShareImage || !shareImageReady}>
+                        {isExporting || isPreparingShareImage ? "Probíhá…" : shareImageReady ? "Sdílet" : "Připravuji JPG…"}
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage}>
-                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Stáhnout JPG"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage || !shareImageReady}>
+                        {isExporting || isPreparingShareImage ? "Probíhá…" : shareImageReady ? "Stáhnout JPG" : "Připravuji JPG…"}
                       </button>
-                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg} disabled={isPreparingShareImage}>
-                        {isPreparingShareImage ? "Připravuji…" : "Otevřít JPG"}
+                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg} disabled={isPreparingShareImage || !shareImageReady}>
+                        {isPreparingShareImage ? "Připravuji…" : shareImageReady ? "Otevřít JPG" : "Připravuji JPG…"}
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
@@ -1616,6 +1639,35 @@ function App() {
                 )}
               </section>
             </main>
+
+            <div className="share-card" ref={shareCardRef} aria-hidden="true">
+              <div className="share-card__inner">
+                <div className="share-card__header">
+                  <img className="share-card__logo" src={logo} alt="" />
+                  <div className="share-card__title">Osudovy moment</div>
+                </div>
+
+                <div className="share-card__map">
+                  <img className="share-card__map-image" src="/mapa.png" alt="" />
+                  <div className="share-card__map-overlay">
+                    <div className="share-map__line" />
+                    <div className="share-map__point" />
+                    <div className="share-map__symbol">
+                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt="" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="share-card__body">
+                  <div className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</div>
+                  <div className="share-card__name">{completeMoment.nazev}</div>
+                  {completeMoment.datum ? <div className="share-card__date">{completeMoment.datum}</div> : null}
+                  {completeMoment.prikaz ? <div className="share-card__note">{completeMoment.prikaz}</div> : null}
+                </div>
+
+                <div className="share-card__footer">osudovymoment.cz</div>
+              </div>
+            </div>
 
           </>
         )}
