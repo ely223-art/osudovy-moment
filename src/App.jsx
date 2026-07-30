@@ -657,6 +657,8 @@ function App() {
     let shareCardWasActivated = false;
 
     try {
+      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+      const isMobileCaptureDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
       const node = shareCardRef.current || completionCardRef.current || completionScreenRef.current;
       const usesShareCard = node === shareCardRef.current;
       console.log("Export area found", {
