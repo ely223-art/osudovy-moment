@@ -105,6 +105,7 @@ function App() {
   const publicMapRef = useRef(null);
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
+  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const directDownloadRef = useRef({ url: "", isObjectUrl: false });
@@ -600,11 +601,12 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if ((!completionScreenRef.current && !completionCardRef.current) || !completeMoment || isPreparingShareImage) {
+    if ((!completionScreenRef.current && !completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
         reason: "Missing completion area or moment, or preparation already running",
         hasCompletionScreen: !!completionScreenRef.current,
         hasCompletionCard: !!completionCardRef.current,
+        hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -616,12 +618,16 @@ function App() {
     try {
       const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
       const isMobileCaptureDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-      const node = completionCardRef.current || completionScreenRef.current;
+      const node = shareCardRef.current || completionCardRef.current || completionScreenRef.current;
+      const usesShareCard = node === shareCardRef.current;
       console.log("Export area found", {
         className: node.className,
+        usesShareCard,
       });
 
-      await waitForCompletionMapTiles(isMobileCaptureDevice ? 6500 : 3200);
+      if (!usesShareCard) {
+        await waitForCompletionMapTiles(isMobileCaptureDevice ? 6500 : 3200);
+      }
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
@@ -766,6 +772,7 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
+      shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
@@ -1820,6 +1827,35 @@ function App() {
                 )}
                 </section>
               </main>
+            </div>
+
+            <div className="share-card" ref={shareCardRef} aria-hidden="true">
+              <div className="share-card__inner">
+                <div className="share-card__header">
+                  <img className="share-card__logo" src={logo} alt="Logo Osudový moment" />
+                  <span className="share-card__title">Osudový moment</span>
+                </div>
+
+                <div className="share-card__map">
+                  <img className="share-card__map-image" src="/mapa.png" alt="Mapa" />
+                  <div className="share-card__map-overlay">
+                    <span className="share-map__line" />
+                    <span className="share-map__point" />
+                    <span className="share-map__symbol">
+                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt={completeMoment.symbolLabel || "Symbol"} />
+                    </span>
+                  </div>
+                </div>
+
+                <div className="share-card__body">
+                  <span className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</span>
+                  <strong className="share-card__name">{completeMoment.nazev || "Osudový moment"}</strong>
+                  {completeMoment.datum ? <span className="share-card__date">Datum: {completeMoment.datum}</span> : null}
+                  {completeMoment.prikaz ? <span className="share-card__note">{completeMoment.prikaz}</span> : null}
+                </div>
+
+                <span className="share-card__footer">osudovymoment.cz</span>
+              </div>
             </div>
           </>
         )}
