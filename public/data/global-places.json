@@ -1,0 +1,2342 @@
+[
+  {
+    "kod": "global-001",
+    "nazev": "Praha",
+    "okres": "Hlavní město Praha",
+    "kraj": "Česko",
+    "latitude": 50.0755,
+    "longitude": 14.4378,
+    "type": "city"
+  },
+  {
+    "kod": "global-002",
+    "nazev": "Brno",
+    "okres": "Jihomoravský kraj",
+    "kraj": "Česko",
+    "latitude": 49.1951,
+    "longitude": 16.6068,
+    "type": "city"
+  },
+  {
+    "kod": "global-003",
+    "nazev": "Ostrava",
+    "okres": "Moravskoslezský kraj",
+    "kraj": "Česko",
+    "latitude": 49.8209,
+    "longitude": 18.2625,
+    "type": "city"
+  },
+  {
+    "kod": "global-004",
+    "nazev": "Plzeň",
+    "okres": "Plzeňský kraj",
+    "kraj": "Česko",
+    "latitude": 49.7384,
+    "longitude": 13.3736,
+    "type": "city"
+  },
+  {
+    "kod": "global-005",
+    "nazev": "Liberec",
+    "okres": "Liberecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.7671,
+    "longitude": 15.0562,
+    "type": "city"
+  },
+  {
+    "kod": "global-006",
+    "nazev": "Berlín",
+    "okres": "Berlin",
+    "kraj": "Německo",
+    "latitude": 52.52,
+    "longitude": 13.405,
+    "type": "city"
+  },
+  {
+    "kod": "global-007",
+    "nazev": "Mnichov",
+    "okres": "Bavorsko",
+    "kraj": "Německo",
+    "latitude": 48.1351,
+    "longitude": 11.582,
+    "type": "city"
+  },
+  {
+    "kod": "global-008",
+    "nazev": "Hamburk",
+    "okres": "Hamburk",
+    "kraj": "Německo",
+    "latitude": 53.5511,
+    "longitude": 9.9937,
+    "type": "city"
+  },
+  {
+    "kod": "global-009",
+    "nazev": "Vídeň",
+    "okres": "Vídeň",
+    "kraj": "Rakousko",
+    "latitude": 48.2082,
+    "longitude": 16.3738,
+    "type": "city"
+  },
+  {
+    "kod": "global-010",
+    "nazev": "Štýrský Hradec",
+    "okres": "Štýrsko",
+    "kraj": "Rakousko",
+    "latitude": 47.0707,
+    "longitude": 15.4386,
+    "type": "city"
+  },
+  {
+    "kod": "global-011",
+    "nazev": "Londýn",
+    "okres": "Greater London",
+    "kraj": "Spojené království",
+    "latitude": 51.5074,
+    "longitude": -0.1278,
+    "type": "city"
+  },
+  {
+    "kod": "global-012",
+    "nazev": "Manchester",
+    "okres": "Greater Manchester",
+    "kraj": "Spojené království",
+    "latitude": 53.4808,
+    "longitude": -2.2426,
+    "type": "city"
+  },
+  {
+    "kod": "global-013",
+    "nazev": "Paříž",
+    "okres": "Île-de-France",
+    "kraj": "Francie",
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "type": "city"
+  },
+  {
+    "kod": "global-014",
+    "nazev": "Lyon",
+    "okres": "Auvergne-Rhône-Alpes",
+    "kraj": "Francie",
+    "latitude": 45.764,
+    "longitude": 4.8357,
+    "type": "city"
+  },
+  {
+    "kod": "global-015",
+    "nazev": "Milán",
+    "okres": "Lombardie",
+    "kraj": "Itálie",
+    "latitude": 45.4642,
+    "longitude": 9.19,
+    "type": "city"
+  },
+  {
+    "kod": "global-016",
+    "nazev": "Řím",
+    "okres": "Lazio",
+    "kraj": "Itálie",
+    "latitude": 41.9028,
+    "longitude": 12.4964,
+    "type": "city"
+  },
+  {
+    "kod": "global-017",
+    "nazev": "Madrid",
+    "okres": "Madrid",
+    "kraj": "Španělsko",
+    "latitude": 40.4168,
+    "longitude": -3.7038,
+    "type": "city"
+  },
+  {
+    "kod": "global-018",
+    "nazev": "Barcelona",
+    "okres": "Katalánsko",
+    "kraj": "Španělsko",
+    "latitude": 41.3851,
+    "longitude": 2.1734,
+    "type": "city"
+  },
+  {
+    "kod": "global-019",
+    "nazev": "Amsterdam",
+    "okres": "North Holland",
+    "kraj": "Nizozemsko",
+    "latitude": 52.3676,
+    "longitude": 4.9041,
+    "type": "city"
+  },
+  {
+    "kod": "global-020",
+    "nazev": "Brusel",
+    "okres": "Brussels",
+    "kraj": "Belgie",
+    "latitude": 50.8503,
+    "longitude": 4.3517,
+    "type": "city"
+  },
+  {
+    "kod": "global-021",
+    "nazev": "Stockholm",
+    "okres": "Stockholm County",
+    "kraj": "Švédsko",
+    "latitude": 59.3293,
+    "longitude": 18.0686,
+    "type": "city"
+  },
+  {
+    "kod": "global-022",
+    "nazev": "Oslo",
+    "okres": "Oslo",
+    "kraj": "Norsko",
+    "latitude": 59.9139,
+    "longitude": 10.7522,
+    "type": "city"
+  },
+  {
+    "kod": "global-023",
+    "nazev": "Kodaň",
+    "okres": "Hovedstaden",
+    "kraj": "Dánsko",
+    "latitude": 55.6761,
+    "longitude": 12.5683,
+    "type": "city"
+  },
+  {
+    "kod": "global-024",
+    "nazev": "Helsinky",
+    "okres": "Uusimaa",
+    "kraj": "Finsko",
+    "latitude": 60.1699,
+    "longitude": 24.9384,
+    "type": "city"
+  },
+  {
+    "kod": "global-025",
+    "nazev": "Lisabon",
+    "okres": "Lisboa",
+    "kraj": "Portugalsko",
+    "latitude": 38.7223,
+    "longitude": -9.1393,
+    "type": "city"
+  },
+  {
+    "kod": "global-026",
+    "nazev": "Dublin",
+    "okres": "Leinster",
+    "kraj": "Irsko",
+    "latitude": 53.3498,
+    "longitude": -6.2603,
+    "type": "city"
+  },
+  {
+    "kod": "global-027",
+    "nazev": "Athény",
+    "okres": "Attica",
+    "kraj": "Řecko",
+    "latitude": 37.9838,
+    "longitude": 23.7275,
+    "type": "city"
+  },
+  {
+    "kod": "global-028",
+    "nazev": "Budapešť",
+    "okres": "Budapešť",
+    "kraj": "Maďarsko",
+    "latitude": 47.4979,
+    "longitude": 19.0402,
+    "type": "city"
+  },
+  {
+    "kod": "global-029",
+    "nazev": "Záhřeb",
+    "okres": "Záhřeb",
+    "kraj": "Chorvatsko",
+    "latitude": 45.815,
+    "longitude": 15.978,
+    "type": "city"
+  },
+  {
+    "kod": "global-030",
+    "nazev": "Ljubljana",
+    "okres": "Osrednjeslovenska",
+    "kraj": "Slovinsko",
+    "latitude": 46.0569,
+    "longitude": 14.5058,
+    "type": "city"
+  },
+  {
+    "kod": "global-031",
+    "nazev": "Bukurešť",
+    "okres": "Bucharest",
+    "kraj": "Rumunsko",
+    "latitude": 44.4268,
+    "longitude": 26.1025,
+    "type": "city"
+  },
+  {
+    "kod": "global-032",
+    "nazev": "Sofie",
+    "okres": "Sofia City",
+    "kraj": "Bulharsko",
+    "latitude": 42.6977,
+    "longitude": 23.3219,
+    "type": "city"
+  },
+  {
+    "kod": "global-033",
+    "nazev": "Bělehrad",
+    "okres": "Belgrade",
+    "kraj": "Srbsko",
+    "latitude": 44.7866,
+    "longitude": 20.4489,
+    "type": "city"
+  },
+  {
+    "kod": "global-034",
+    "nazev": "Kyjev",
+    "okres": "Kyiv City",
+    "kraj": "Ukrajina",
+    "latitude": 50.4501,
+    "longitude": 30.5234,
+    "type": "city"
+  },
+  {
+    "kod": "global-035",
+    "nazev": "Minsk",
+    "okres": "Minsk City",
+    "kraj": "Bělorusko",
+    "latitude": 53.9045,
+    "longitude": 27.5615,
+    "type": "city"
+  },
+  {
+    "kod": "global-036",
+    "nazev": "Vilnius",
+    "okres": "Vilniaus",
+    "kraj": "Litva",
+    "latitude": 54.6872,
+    "longitude": 25.2797,
+    "type": "city"
+  },
+  {
+    "kod": "global-037",
+    "nazev": "Riga",
+    "okres": "Rīga",
+    "kraj": "Lotyšsko",
+    "latitude": 56.9496,
+    "longitude": 24.1052,
+    "type": "city"
+  },
+  {
+    "kod": "global-038",
+    "nazev": "Tallinn",
+    "okres": "Harju",
+    "kraj": "Estonsko",
+    "latitude": 59.437,
+    "longitude": 24.7536,
+    "type": "city"
+  },
+  {
+    "kod": "global-039",
+    "nazev": "Varšava",
+    "okres": "Mazowieckie",
+    "kraj": "Polsko",
+    "latitude": 52.2297,
+    "longitude": 21.0122,
+    "type": "city"
+  },
+  {
+    "kod": "global-040",
+    "nazev": "Krakov",
+    "okres": "Małopolskie",
+    "kraj": "Polsko",
+    "latitude": 50.0647,
+    "longitude": 19.945,
+    "type": "city"
+  },
+  {
+    "kod": "global-041",
+    "nazev": "Praha",
+    "okres": "Praha",
+    "kraj": "Česko",
+    "latitude": 50.0755,
+    "longitude": 14.4378,
+    "type": "city"
+  },
+  {
+    "kod": "global-042",
+    "nazev": "Bratislava",
+    "okres": "Bratislavský kraj",
+    "kraj": "Slovensko",
+    "latitude": 48.1486,
+    "longitude": 17.1077,
+    "type": "city"
+  },
+  {
+    "kod": "global-043",
+    "nazev": "Moskva",
+    "okres": "Moscow",
+    "kraj": "Rusko",
+    "latitude": 55.7558,
+    "longitude": 37.6173,
+    "type": "city"
+  },
+  {
+    "kod": "global-044",
+    "nazev": "Petrohrad",
+    "okres": "Saint Petersburg",
+    "kraj": "Rusko",
+    "latitude": 59.9343,
+    "longitude": 30.3351,
+    "type": "city"
+  },
+  {
+    "kod": "global-045",
+    "nazev": "Istanbul",
+    "okres": "Istanbul",
+    "kraj": "Turecko",
+    "latitude": 41.0082,
+    "longitude": 28.9784,
+    "type": "city"
+  },
+  {
+    "kod": "global-046",
+    "nazev": "Ankara",
+    "okres": "Ankara",
+    "kraj": "Turecko",
+    "latitude": 39.9334,
+    "longitude": 32.8597,
+    "type": "city"
+  },
+  {
+    "kod": "global-047",
+    "nazev": "Teherán",
+    "okres": "Tehran",
+    "kraj": "Írán",
+    "latitude": 35.6892,
+    "longitude": 51.389,
+    "type": "city"
+  },
+  {
+    "kod": "global-048",
+    "nazev": "Isfahán",
+    "okres": "Isfahan",
+    "kraj": "Írán",
+    "latitude": 32.6546,
+    "longitude": 51.668,
+    "type": "city"
+  },
+  {
+    "kod": "global-049",
+    "nazev": "Dauhá",
+    "okres": "Doha",
+    "kraj": "Katar",
+    "latitude": 25.2854,
+    "longitude": 51.531,
+    "type": "city"
+  },
+  {
+    "kod": "global-050",
+    "nazev": "Abú Zabí",
+    "okres": "Abu Dhabi",
+    "kraj": "Spojené arabské emiráty",
+    "latitude": 24.4539,
+    "longitude": 54.3773,
+    "type": "city"
+  },
+  {
+    "kod": "global-051",
+    "nazev": "Dubaj",
+    "okres": "Dubai",
+    "kraj": "Spojené arabské emiráty",
+    "latitude": 25.2048,
+    "longitude": 55.2708,
+    "type": "city"
+  },
+  {
+    "kod": "global-052",
+    "nazev": "Mumbaj",
+    "okres": "Maharashtra",
+    "kraj": "Indie",
+    "latitude": 19.076,
+    "longitude": 72.8777,
+    "type": "city"
+  },
+  {
+    "kod": "global-053",
+    "nazev": "Dillí",
+    "okres": "Delhi",
+    "kraj": "Indie",
+    "latitude": 28.6139,
+    "longitude": 77.209,
+    "type": "city"
+  },
+  {
+    "kod": "global-054",
+    "nazev": "Bengalúr",
+    "okres": "Karnataka",
+    "kraj": "Indie",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "type": "city"
+  },
+  {
+    "kod": "global-055",
+    "nazev": "Karáčí",
+    "okres": "Sindh",
+    "kraj": "Pakistan",
+    "latitude": 24.8607,
+    "longitude": 67.0011,
+    "type": "city"
+  },
+  {
+    "kod": "global-056",
+    "nazev": "Láhaur",
+    "okres": "Punjab",
+    "kraj": "Pakistan",
+    "latitude": 31.5204,
+    "longitude": 74.3587,
+    "type": "city"
+  },
+  {
+    "kod": "global-057",
+    "nazev": "Bangkok",
+    "okres": "Bangkok",
+    "kraj": "Thajsko",
+    "latitude": 13.7563,
+    "longitude": 100.5018,
+    "type": "city"
+  },
+  {
+    "kod": "global-058",
+    "nazev": "Phuket",
+    "okres": "Phuket",
+    "kraj": "Thajsko",
+    "latitude": 7.8804,
+    "longitude": 98.3923,
+    "type": "city"
+  },
+  {
+    "kod": "global-059",
+    "nazev": "Singapur",
+    "okres": "Central Singapore",
+    "kraj": "Singapur",
+    "latitude": 1.3521,
+    "longitude": 103.8198,
+    "type": "city"
+  },
+  {
+    "kod": "global-060",
+    "nazev": "Kuala Lumpur",
+    "okres": "Kuala Lumpur",
+    "kraj": "Malajsie",
+    "latitude": 3.139,
+    "longitude": 101.6869,
+    "type": "city"
+  },
+  {
+    "kod": "global-061",
+    "nazev": "Tokio",
+    "okres": "Tokyo",
+    "kraj": "Japonsko",
+    "latitude": 35.6762,
+    "longitude": 139.6503,
+    "type": "city"
+  },
+  {
+    "kod": "global-062",
+    "nazev": "Ósaka",
+    "okres": "Osaka",
+    "kraj": "Japonsko",
+    "latitude": 34.6937,
+    "longitude": 135.5023,
+    "type": "city"
+  },
+  {
+    "kod": "global-063",
+    "nazev": "Soul",
+    "okres": "Seoul",
+    "kraj": "Jižní Korea",
+    "latitude": 37.5665,
+    "longitude": 126.978,
+    "type": "city"
+  },
+  {
+    "kod": "global-064",
+    "nazev": "Pusan",
+    "okres": "Busan",
+    "kraj": "Jižní Korea",
+    "latitude": 35.1796,
+    "longitude": 129.0756,
+    "type": "city"
+  },
+  {
+    "kod": "global-065",
+    "nazev": "Peking",
+    "okres": "Beijing",
+    "kraj": "Čína",
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "type": "city"
+  },
+  {
+    "kod": "global-066",
+    "nazev": "Šanghaj",
+    "okres": "Shanghai",
+    "kraj": "Čína",
+    "latitude": 31.2304,
+    "longitude": 121.4737,
+    "type": "city"
+  },
+  {
+    "kod": "global-067",
+    "nazev": "Hongkong",
+    "okres": "Hong Kong",
+    "kraj": "Čína",
+    "latitude": 22.3193,
+    "longitude": 114.1694,
+    "type": "city"
+  },
+  {
+    "kod": "global-068",
+    "nazev": "Tchaj-pej",
+    "okres": "Taipei",
+    "kraj": "Tchaj-wan",
+    "latitude": 25.03297,
+    "longitude": 121.5654,
+    "type": "city"
+  },
+  {
+    "kod": "global-069",
+    "nazev": "Jakarta",
+    "okres": "Jakarta",
+    "kraj": "Indonésie",
+    "latitude": -6.2088,
+    "longitude": 106.8456,
+    "type": "city"
+  },
+  {
+    "kod": "global-070",
+    "nazev": "Bali",
+    "okres": "Bali",
+    "kraj": "Indonésie",
+    "latitude": -8.4095,
+    "longitude": 115.1889,
+    "type": "city"
+  },
+  {
+    "kod": "global-071",
+    "nazev": "Sydney",
+    "okres": "New South Wales",
+    "kraj": "Austrálie",
+    "latitude": -33.8688,
+    "longitude": 151.2093,
+    "type": "city"
+  },
+  {
+    "kod": "global-072",
+    "nazev": "Melbourne",
+    "okres": "Victoria",
+    "kraj": "Austrálie",
+    "latitude": -37.8136,
+    "longitude": 144.9631,
+    "type": "city"
+  },
+  {
+    "kod": "global-073",
+    "nazev": "Perth",
+    "okres": "Western Australia",
+    "kraj": "Austrálie",
+    "latitude": -31.9505,
+    "longitude": 115.8605,
+    "type": "city"
+  },
+  {
+    "kod": "global-074",
+    "nazev": "Auckland",
+    "okres": "Auckland",
+    "kraj": "Nový Zéland",
+    "latitude": -36.8485,
+    "longitude": 174.7633,
+    "type": "city"
+  },
+  {
+    "kod": "global-075",
+    "nazev": "Wellington",
+    "okres": "Wellington",
+    "kraj": "Nový Zéland",
+    "latitude": -41.2865,
+    "longitude": 174.7762,
+    "type": "city"
+  },
+  {
+    "kod": "global-076",
+    "nazev": "Káhira",
+    "okres": "Cairo",
+    "kraj": "Egypt",
+    "latitude": 30.0444,
+    "longitude": 31.2357,
+    "type": "city"
+  },
+  {
+    "kod": "global-077",
+    "nazev": "Lusaka",
+    "okres": "Lusaka",
+    "kraj": "Zambie",
+    "latitude": -15.3875,
+    "longitude": 28.3228,
+    "type": "city"
+  },
+  {
+    "kod": "global-078",
+    "nazev": "Nairobi",
+    "okres": "Nairobi",
+    "kraj": "Keňa",
+    "latitude": -1.2864,
+    "longitude": 36.8172,
+    "type": "city"
+  },
+  {
+    "kod": "global-079",
+    "nazev": "Johannesburg",
+    "okres": "Gauteng",
+    "kraj": "Jihoafrická republika",
+    "latitude": -26.2041,
+    "longitude": 28.0473,
+    "type": "city"
+  },
+  {
+    "kod": "global-080",
+    "nazev": "Kapské Město",
+    "okres": "Western Cape",
+    "kraj": "Jihoafrická republika",
+    "latitude": -33.9249,
+    "longitude": 18.4241,
+    "type": "city"
+  },
+  {
+    "kod": "global-081",
+    "nazev": "New York",
+    "okres": "New York",
+    "kraj": "Spojené státy",
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "type": "city"
+  },
+  {
+    "kod": "global-082",
+    "nazev": "Los Angeles",
+    "okres": "California",
+    "kraj": "Spojené státy",
+    "latitude": 34.0522,
+    "longitude": -118.2437,
+    "type": "city"
+  },
+  {
+    "kod": "global-083",
+    "nazev": "Chicago",
+    "okres": "Illinois",
+    "kraj": "Spojené státy",
+    "latitude": 41.8781,
+    "longitude": -87.6298,
+    "type": "city"
+  },
+  {
+    "kod": "global-084",
+    "nazev": "Toronto",
+    "okres": "Ontario",
+    "kraj": "Kanada",
+    "latitude": 43.6532,
+    "longitude": -79.3832,
+    "type": "city"
+  },
+  {
+    "kod": "global-085",
+    "nazev": "Vancouver",
+    "okres": "British Columbia",
+    "kraj": "Kanada",
+    "latitude": 49.2827,
+    "longitude": -123.1207,
+    "type": "city"
+  },
+  {
+    "kod": "global-086",
+    "nazev": "Mexico City",
+    "okres": "Mexico City",
+    "kraj": "Mexiko",
+    "latitude": 19.4326,
+    "longitude": -99.1332,
+    "type": "city"
+  },
+  {
+    "kod": "global-087",
+    "nazev": "Guadalajara",
+    "okres": "Jalisco",
+    "kraj": "Mexiko",
+    "latitude": 20.6597,
+    "longitude": -103.3496,
+    "type": "city"
+  },
+  {
+    "kod": "global-088",
+    "nazev": "Buenos Aires",
+    "okres": "Buenos Aires",
+    "kraj": "Argentina",
+    "latitude": -34.6037,
+    "longitude": -58.3816,
+    "type": "city"
+  },
+  {
+    "kod": "global-089",
+    "nazev": "São Paulo",
+    "okres": "São Paulo",
+    "kraj": "Brazílie",
+    "latitude": -23.5505,
+    "longitude": -46.6333,
+    "type": "city"
+  },
+  {
+    "kod": "global-090",
+    "nazev": "Rio de Janeiro",
+    "okres": "Rio de Janeiro",
+    "kraj": "Brazílie",
+    "latitude": -22.9068,
+    "longitude": -43.1729,
+    "type": "city"
+  },
+  {
+    "kod": "global-091",
+    "nazev": "Lima",
+    "okres": "Lima",
+    "kraj": "Peru",
+    "latitude": -12.0464,
+    "longitude": -77.0428,
+    "type": "city"
+  },
+  {
+    "kod": "global-092",
+    "nazev": "Santiago",
+    "okres": "Santiago",
+    "kraj": "Chile",
+    "latitude": -33.4489,
+    "longitude": -70.6693,
+    "type": "city"
+  },
+  {
+    "kod": "global-093",
+    "nazev": "Moskva",
+    "okres": "Moscow",
+    "kraj": "Rusko",
+    "latitude": 55.7558,
+    "longitude": 37.6173,
+    "type": "city"
+  },
+  {
+    "kod": "global-094",
+    "nazev": "Novosibirsk",
+    "okres": "Novosibirsk",
+    "kraj": "Rusko",
+    "latitude": 55.0084,
+    "longitude": 82.9357,
+    "type": "city"
+  },
+  {
+    "kod": "global-095",
+    "nazev": "Marrákéš",
+    "okres": "Marrakech-Safi",
+    "kraj": "Maroko",
+    "latitude": 31.6295,
+    "longitude": -7.9811,
+    "type": "city"
+  },
+  {
+    "kod": "global-096",
+    "nazev": "Casablanca",
+    "okres": "Casablanca-Settat",
+    "kraj": "Maroko",
+    "latitude": 33.5731,
+    "longitude": -7.5898,
+    "type": "city"
+  },
+  {
+    "kod": "global-097",
+    "nazev": "Addis Abeba",
+    "okres": "Addis Ababa",
+    "kraj": "Etiopie",
+    "latitude": 8.9806,
+    "longitude": 38.7578,
+    "type": "city"
+  },
+  {
+    "kod": "global-098",
+    "nazev": "Lagos",
+    "okres": "Lagos",
+    "kraj": "Nigérie",
+    "latitude": 6.5244,
+    "longitude": 3.3792,
+    "type": "city"
+  },
+  {
+    "kod": "global-099",
+    "nazev": "Abidžan",
+    "okres": "Abidjan",
+    "kraj": "Pobřeží slonoviny",
+    "latitude": 5.3600,
+    "longitude": -4.0083,
+    "type": "city"
+  },
+  {
+    "kod": "global-100",
+    "nazev": "Kapské Město",
+    "okres": "Western Cape",
+    "kraj": "Jihoafrická republika",
+    "latitude": -33.9249,
+    "longitude": 18.4241,
+    "type": "city"
+  },
+  {
+    "kod": "global-101",
+    "nazev": "České Budějovice",
+    "okres": "Jihočeský kraj",
+    "kraj": "Česko",
+    "latitude": 48.9745,
+    "longitude": 14.4748,
+    "type": "city"
+  },
+  {
+    "kod": "global-102",
+    "nazev": "Jihlava",
+    "okres": "Kraj Vysočina",
+    "kraj": "Česko",
+    "latitude": 49.3963,
+    "longitude": 15.5905,
+    "type": "city"
+  },
+  {
+    "kod": "global-103",
+    "nazev": "Pardubice",
+    "okres": "Pardubický kraj",
+    "kraj": "Česko",
+    "latitude": 50.0393,
+    "longitude": 15.7794,
+    "type": "city"
+  },
+  {
+    "kod": "global-104",
+    "nazev": "Hradec Králové",
+    "okres": "Královéhradecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.2092,
+    "longitude": 15.8328,
+    "type": "city"
+  },
+  {
+    "kod": "global-105",
+    "nazev": "Olomouc",
+    "okres": "Olomoucký kraj",
+    "kraj": "Česko",
+    "latitude": 49.5938,
+    "longitude": 17.2509,
+    "type": "city"
+  },
+  {
+    "kod": "global-106",
+    "nazev": "Zlín",
+    "okres": "Zlínský kraj",
+    "kraj": "Česko",
+    "latitude": 49.2268,
+    "longitude": 17.6669,
+    "type": "city"
+  },
+  {
+    "kod": "global-107",
+    "nazev": "Ústí nad Labem",
+    "okres": "Ústecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.6607,
+    "longitude": 14.0323,
+    "type": "city"
+  },
+  {
+    "kod": "global-108",
+    "nazev": "Most",
+    "okres": "Ústecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.503,
+    "longitude": 13.6367,
+    "type": "city"
+  },
+  {
+    "kod": "global-109",
+    "nazev": "Teplice",
+    "okres": "Ústecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.6404,
+    "longitude": 13.825,
+    "type": "city"
+  },
+  {
+    "kod": "global-110",
+    "nazev": "Karviná",
+    "okres": "Moravskoslezský kraj",
+    "kraj": "Česko",
+    "latitude": 49.854,
+    "longitude": 18.5414,
+    "type": "city"
+  },
+  {
+    "kod": "global-111",
+    "nazev": "Frýdek-Místek",
+    "okres": "Moravskoslezský kraj",
+    "kraj": "Česko",
+    "latitude": 49.6807,
+    "longitude": 18.3507,
+    "type": "city"
+  },
+  {
+    "kod": "global-112",
+    "nazev": "Vsetín",
+    "okres": "Zlínský kraj",
+    "kraj": "Česko",
+    "latitude": 49.3382,
+    "longitude": 17.993,
+    "type": "city"
+  },
+  {
+    "kod": "global-113",
+    "nazev": "Kroměříž",
+    "okres": "Zlínský kraj",
+    "kraj": "Česko",
+    "latitude": 49.2971,
+    "longitude": 17.3936,
+    "type": "city"
+  },
+  {
+    "kod": "global-114",
+    "nazev": "Benešov",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 49.7817,
+    "longitude": 14.6887,
+    "type": "city"
+  },
+  {
+    "kod": "global-115",
+    "nazev": "Pelhřimov",
+    "okres": "Kraj Vysočina",
+    "kraj": "Česko",
+    "latitude": 49.4307,
+    "longitude": 15.2231,
+    "type": "city"
+  },
+  {
+    "kod": "global-116",
+    "nazev": "Náchod",
+    "okres": "Královéhradecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.4166,
+    "longitude": 16.1629,
+    "type": "city"
+  },
+  {
+    "kod": "global-117",
+    "nazev": "Kdyně",
+    "okres": "Plzeňský kraj",
+    "kraj": "Česko",
+    "latitude": 49.3958,
+    "longitude": 13.0402,
+    "type": "city"
+  },
+  {
+    "kod": "global-118",
+    "nazev": "Bílovec",
+    "okres": "Moravskoslezský kraj",
+    "kraj": "Česko",
+    "latitude": 49.7609,
+    "longitude": 18.0231,
+    "type": "city"
+  },
+  {
+    "kod": "global-119",
+    "nazev": "Mělník",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 50.3504,
+    "longitude": 14.4749,
+    "type": "city"
+  },
+  {
+    "kod": "global-120",
+    "nazev": "Zürich",
+    "okres": "Zürich",
+    "kraj": "Švýcarsko",
+    "latitude": 47.3769,
+    "longitude": 8.5417,
+    "type": "city"
+  },
+  {
+    "kod": "global-121",
+    "nazev": "Genf",
+    "okres": "Genève",
+    "kraj": "Švýcarsko",
+    "latitude": 46.2044,
+    "longitude": 6.1432,
+    "type": "city"
+  },
+  {
+    "kod": "global-122",
+    "nazev": "Lutych",
+    "okres": "Liège",
+    "kraj": "Belgie",
+    "latitude": 50.6326,
+    "longitude": 5.5797,
+    "type": "city"
+  },
+  {
+    "kod": "global-123",
+    "nazev": "Gdaňsk",
+    "okres": "Pomorskie",
+    "kraj": "Polsko",
+    "latitude": 54.352,
+    "longitude": 18.6466,
+    "type": "city"
+  },
+  {
+    "kod": "global-124",
+    "nazev": "Lodž",
+    "okres": "Łódzkie",
+    "kraj": "Polsko",
+    "latitude": 51.7592,
+    "longitude": 19.456,
+    "type": "city"
+  },
+  {
+    "kod": "global-125",
+    "nazev": "Toulouse",
+    "okres": "Occitanie",
+    "kraj": "Francie",
+    "latitude": 43.6043,
+    "longitude": 1.4437,
+    "type": "city"
+  },
+  {
+    "kod": "global-126",
+    "nazev": "Nice",
+    "okres": "Provence-Alpes-Côte d'Azur",
+    "kraj": "Francie",
+    "latitude": 43.7102,
+    "longitude": 7.262,
+    "type": "city"
+  },
+  {
+    "kod": "global-127",
+    "nazev": "Barcelona",
+    "okres": "Catalonia",
+    "kraj": "Španělsko",
+    "latitude": 41.3851,
+    "longitude": 2.1734,
+    "type": "city"
+  },
+  {
+    "kod": "global-128",
+    "nazev": "Valencie",
+    "okres": "Valencia",
+    "kraj": "Španělsko",
+    "latitude": 39.4699,
+    "longitude": -0.3763,
+    "type": "city"
+  },
+  {
+    "kod": "global-129",
+    "nazev": "Porto",
+    "okres": "Porto",
+    "kraj": "Portugalsko",
+    "latitude": 41.1579,
+    "longitude": -8.6291,
+    "type": "city"
+  },
+  {
+    "kod": "global-130",
+    "nazev": "Coimbra",
+    "okres": "Coimbra",
+    "kraj": "Portugalsko",
+    "latitude": 40.2033,
+    "longitude": -8.4103,
+    "type": "city"
+  },
+  {
+    "kod": "global-131",
+    "nazev": "Birmingham",
+    "okres": "West Midlands",
+    "kraj": "Spojené království",
+    "latitude": 52.4862,
+    "longitude": -1.8904,
+    "type": "city"
+  },
+  {
+    "kod": "global-132",
+    "nazev": "Edinburgh",
+    "okres": "Edinburgh",
+    "kraj": "Spojené království",
+    "latitude": 55.9533,
+    "longitude": -3.1883,
+    "type": "city"
+  },
+  {
+    "kod": "global-133",
+    "nazev": "Riga",
+    "okres": "Rīga",
+    "kraj": "Lotyšsko",
+    "latitude": 56.9496,
+    "longitude": 24.1052,
+    "type": "city"
+  },
+  {
+    "kod": "global-134",
+    "nazev": "Daugavpils",
+    "okres": "Daugavpils",
+    "kraj": "Lotyšsko",
+    "latitude": 55.8833,
+    "longitude": 26.5333,
+    "type": "city"
+  },
+  {
+    "kod": "global-135",
+    "nazev": "Tbilisi",
+    "okres": "Tbilisi",
+    "kraj": "Gruzie",
+    "latitude": 41.7151,
+    "longitude": 44.8271,
+    "type": "city"
+  },
+  {
+    "kod": "global-136",
+    "nazev": "Batumi",
+    "okres": "Adjara",
+    "kraj": "Gruzie",
+    "latitude": 41.6458,
+    "longitude": 41.6351,
+    "type": "city"
+  },
+  {
+    "kod": "global-137",
+    "nazev": "Baku",
+    "okres": "Baku",
+    "kraj": "Ázerbájdžán",
+    "latitude": 40.4093,
+    "longitude": 49.8671,
+    "type": "city"
+  },
+  {
+    "kod": "global-138",
+    "nazev": "Gəncə",
+    "okres": "Ganja",
+    "kraj": "Ázerbájdžán",
+    "latitude": 40.6828,
+    "longitude": 46.3606,
+    "type": "city"
+  },
+  {
+    "kod": "global-139",
+    "nazev": "Jerevan",
+    "okres": "Yerevan",
+    "kraj": "Arménie",
+    "latitude": 40.1792,
+    "longitude": 44.4991,
+    "type": "city"
+  },
+  {
+    "kod": "global-140",
+    "nazev": "Gyumri",
+    "okres": "Shirak",
+    "kraj": "Arménie",
+    "latitude": 40.7872,
+    "longitude": 43.8533,
+    "type": "city"
+  },
+  {
+    "kod": "global-141",
+    "nazev": "Hanoi",
+    "okres": "Hanoi",
+    "kraj": "Vietnam",
+    "latitude": 21.0285,
+    "longitude": 105.8542,
+    "type": "city"
+  },
+  {
+    "kod": "global-142",
+    "nazev": "Ho Či Minovo Město",
+    "okres": "Ho Chi Minh City",
+    "kraj": "Vietnam",
+    "latitude": 10.8231,
+    "longitude": 106.6297,
+    "type": "city"
+  },
+  {
+    "kod": "global-143",
+    "nazev": "Kuala Lumpur",
+    "okres": "Kuala Lumpur",
+    "kraj": "Malajsie",
+    "latitude": 3.139,
+    "longitude": 101.6869,
+    "type": "city"
+  },
+  {
+    "kod": "global-144",
+    "nazev": "Penang",
+    "okres": "Penang",
+    "kraj": "Malajsie",
+    "latitude": 5.4141,
+    "longitude": 100.3288,
+    "type": "city"
+  },
+  {
+    "kod": "global-145",
+    "nazev": "Kathmandu",
+    "okres": "Bagmati",
+    "kraj": "Nepál",
+    "latitude": 27.7172,
+    "longitude": 85.324,
+    "type": "city"
+  },
+  {
+    "kod": "global-146",
+    "nazev": "Pokhara",
+    "okres": "Gandaki",
+    "kraj": "Nepál",
+    "latitude": 28.2096,
+    "longitude": 83.9856,
+    "type": "city"
+  },
+  {
+    "kod": "global-147",
+    "nazev": "Ulanbátar",
+    "okres": "Ulaanbaatar",
+    "kraj": "Mongolsko",
+    "latitude": 47.8864,
+    "longitude": 106.9057,
+    "type": "city"
+  },
+  {
+    "kod": "global-148",
+    "nazev": "Erdenet",
+    "okres": "Orkhon",
+    "kraj": "Mongolsko",
+    "latitude": 49.0333,
+    "longitude": 104.0833,
+    "type": "city"
+  },
+  {
+    "kod": "global-149",
+    "nazev": "Colombo",
+    "okres": "Western Province",
+    "kraj": "Srí Lanka",
+    "latitude": 6.9271,
+    "longitude": 79.8612,
+    "type": "city"
+  },
+  {
+    "kod": "global-150",
+    "nazev": "Kandy",
+    "okres": "Central Province",
+    "kraj": "Srí Lanka",
+    "latitude": 7.2906,
+    "longitude": 80.6337,
+    "type": "city"
+  },
+  {
+    "kod": "global-151",
+    "nazev": "Alžír",
+    "okres": "Algiers",
+    "kraj": "Alžírsko",
+    "latitude": 36.7538,
+    "longitude": 3.0588,
+    "type": "city"
+  },
+  {
+    "kod": "global-152",
+    "nazev": "Oran",
+    "okres": "Oran",
+    "kraj": "Alžírsko",
+    "latitude": 35.6977,
+    "longitude": -0.6333,
+    "type": "city"
+  },
+  {
+    "kod": "global-153",
+    "nazev": "Tunis",
+    "okres": "Tunis",
+    "kraj": "Tunisko",
+    "latitude": 36.8065,
+    "longitude": 10.1815,
+    "type": "city"
+  },
+  {
+    "kod": "global-154",
+    "nazev": "Sfax",
+    "okres": "Sfax",
+    "kraj": "Tunisko",
+    "latitude": 34.7406,
+    "longitude": 10.7603,
+    "type": "city"
+  },
+  {
+    "kod": "global-155",
+    "nazev": "Rabat",
+    "okres": "Rabat-Salé-Kénitra",
+    "kraj": "Maroko",
+    "latitude": 34.0209,
+    "longitude": -6.8416,
+    "type": "city"
+  },
+  {
+    "kod": "global-156",
+    "nazev": "Fes",
+    "okres": "Fès-Meknès",
+    "kraj": "Maroko",
+    "latitude": 34.0181,
+    "longitude": -5.0078,
+    "type": "city"
+  },
+  {
+    "kod": "global-157",
+    "nazev": "Accra",
+    "okres": "Greater Accra",
+    "kraj": "Ghana",
+    "latitude": 5.6037,
+    "longitude": -0.187,
+    "type": "city"
+  },
+  {
+    "kod": "global-158",
+    "nazev": "Kumasi",
+    "okres": "Ashanti",
+    "kraj": "Ghana",
+    "latitude": 6.6885,
+    "longitude": -1.6244,
+    "type": "city"
+  },
+  {
+    "kod": "global-159",
+    "nazev": "Lagos",
+    "okres": "Lagos",
+    "kraj": "Nigérie",
+    "latitude": 6.5244,
+    "longitude": 3.3792,
+    "type": "city"
+  },
+  {
+    "kod": "global-160",
+    "nazev": "Abuja",
+    "okres": "Abuja",
+    "kraj": "Nigérie",
+    "latitude": 9.0765,
+    "longitude": 7.3986,
+    "type": "city"
+  },
+  {
+    "kod": "global-161",
+    "nazev": "Bogotá",
+    "okres": "Bogotá",
+    "kraj": "Kolumbie",
+    "latitude": 4.711,
+    "longitude": -74.0721,
+    "type": "city"
+  },
+  {
+    "kod": "global-162",
+    "nazev": "Medellín",
+    "okres": "Antioquia",
+    "kraj": "Kolumbie",
+    "latitude": 6.2442,
+    "longitude": -75.5812,
+    "type": "city"
+  },
+  {
+    "kod": "global-163",
+    "nazev": "Quito",
+    "okres": "Pichincha",
+    "kraj": "Ekvádor",
+    "latitude": -0.1807,
+    "longitude": -78.4678,
+    "type": "city"
+  },
+  {
+    "kod": "global-164",
+    "nazev": "Guayaquil",
+    "okres": "Guayas",
+    "kraj": "Ekvádor",
+    "latitude": -2.1709,
+    "longitude": -79.9224,
+    "type": "city"
+  },
+  {
+    "kod": "global-165",
+    "nazev": "Montevideo",
+    "okres": "Montevideo",
+    "kraj": "Uruguay",
+    "latitude": -34.9011,
+    "longitude": -56.1645,
+    "type": "city"
+  },
+  {
+    "kod": "global-166",
+    "nazev": "Punta del Este",
+    "okres": "Maldonado",
+    "kraj": "Uruguay",
+    "latitude": -34.9676,
+    "longitude": -54.9481,
+    "type": "city"
+  },
+  {
+    "kod": "global-167",
+    "nazev": "Cairns",
+    "okres": "Queensland",
+    "kraj": "Austrálie",
+    "latitude": -16.9186,
+    "longitude": 145.7781,
+    "type": "city"
+  },
+  {
+    "kod": "global-168",
+    "nazev": "Hobart",
+    "okres": "Tasmania",
+    "kraj": "Austrálie",
+    "latitude": -42.8821,
+    "longitude": 147.3272,
+    "type": "city"
+  },
+  {
+    "kod": "global-169",
+    "nazev": "Christchurch",
+    "okres": "Canterbury",
+    "kraj": "Nový Zéland",
+    "latitude": -43.5321,
+    "longitude": 172.6362,
+    "type": "city"
+  },
+  {
+    "kod": "global-170",
+    "nazev": "Dunedin",
+    "okres": "Otago",
+    "kraj": "Nový Zéland",
+    "latitude": -45.8788,
+    "longitude": 170.5028,
+    "type": "city"
+  },
+  {
+    "kod": "global-171",
+    "nazev": "Miláno",
+    "okres": "Lombardie",
+    "kraj": "Itálie",
+    "latitude": 45.4642,
+    "longitude": 9.19,
+    "type": "city"
+  },
+  {
+    "kod": "global-172",
+    "nazev": "Zadar",
+    "okres": "Zadarská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 44.1197,
+    "longitude": 15.2314,
+    "type": "city"
+  },
+  {
+    "kod": "global-173",
+    "nazev": "Split",
+    "okres": "Splitsko-dalmatinská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 43.5081,
+    "longitude": 16.4402,
+    "type": "city"
+  },
+  {
+    "kod": "global-174",
+    "nazev": "Dubrovnik",
+    "okres": "Dubrovnicko-neretvanská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 42.6507,
+    "longitude": 18.0944,
+    "type": "city"
+  },
+  {
+    "kod": "global-175",
+    "nazev": "Rijeka",
+    "okres": "Primorsko-goranská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 45.3271,
+    "longitude": 14.4422,
+    "type": "city"
+  },
+  {
+    "kod": "global-176",
+    "nazev": "Šibenik",
+    "okres": "Šibensko-kninská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 43.735,
+    "longitude": 15.8945,
+    "type": "city"
+  },
+  {
+    "kod": "global-177",
+    "nazev": "Pula",
+    "okres": "Istrijská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 44.8666,
+    "longitude": 13.8496,
+    "type": "city"
+  },
+  {
+    "kod": "global-178",
+    "nazev": "Osijek",
+    "okres": "Osijecko-baranjská župa",
+    "kraj": "Chorvatsko",
+    "latitude": 45.5549,
+    "longitude": 18.6955,
+    "type": "city"
+  },
+  {
+    "kod": "global-179",
+    "nazev": "Poděbrady",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 50.1428,
+    "longitude": 15.1188,
+    "type": "town"
+  },
+  {
+    "kod": "global-172",
+    "nazev": "Svitavy",
+    "okres": "Pardubický kraj",
+    "kraj": "Česko",
+    "latitude": 49.7552,
+    "longitude": 16.4687,
+    "type": "town"
+  },
+  {
+    "kod": "global-173",
+    "nazev": "Rožnov pod Radhoštěm",
+    "okres": "Zlínský kraj",
+    "kraj": "Česko",
+    "latitude": 49.4594,
+    "longitude": 18.1438,
+    "type": "town"
+  },
+  {
+    "kod": "global-174",
+    "nazev": "Žďár nad Sázavou",
+    "okres": "Kraj Vysočina",
+    "kraj": "Česko",
+    "latitude": 49.5602,
+    "longitude": 15.9395,
+    "type": "town"
+  },
+  {
+    "kod": "global-175",
+    "nazev": "Bystřice nad Pernštejnem",
+    "okres": "Kraj Vysočina",
+    "kraj": "Česko",
+    "latitude": 49.5226,
+    "longitude": 16.2617,
+    "type": "town"
+  },
+  {
+    "kod": "global-176",
+    "nazev": "Mikulov",
+    "okres": "Jihomoravský kraj",
+    "kraj": "Česko",
+    "latitude": 48.8057,
+    "longitude": 16.6377,
+    "type": "town"
+  },
+  {
+    "kod": "global-177",
+    "nazev": "Kralupy nad Vltavou",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 50.2417,
+    "longitude": 14.3115,
+    "type": "town"
+  },
+  {
+    "kod": "global-178",
+    "nazev": "Třebíč",
+    "okres": "Kraj Vysočina",
+    "kraj": "Česko",
+    "latitude": 49.2147,
+    "longitude": 15.881,
+    "type": "town"
+  },
+  {
+    "kod": "global-179",
+    "nazev": "Karlovy Vary",
+    "okres": "Karlovarský kraj",
+    "kraj": "Česko",
+    "latitude": 50.2328,
+    "longitude": 12.8733,
+    "type": "town"
+  },
+  {
+    "kod": "global-180",
+    "nazev": "Mariánské Lázně",
+    "okres": "Karlovarský kraj",
+    "kraj": "Česko",
+    "latitude": 49.964,
+    "longitude": 12.701,
+    "type": "town"
+  },
+  {
+    "kod": "global-181",
+    "nazev": "Příbram",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 49.6896,
+    "longitude": 14.0105,
+    "type": "town"
+  },
+  {
+    "kod": "global-182",
+    "nazev": "Tábor",
+    "okres": "Jihočeský kraj",
+    "kraj": "Česko",
+    "latitude": 49.4144,
+    "longitude": 14.6578,
+    "type": "town"
+  },
+  {
+    "kod": "global-183",
+    "nazev": "Beroun",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 49.963,
+    "longitude": 14.072,
+    "type": "town"
+  },
+  {
+    "kod": "global-184",
+    "nazev": "Kutná Hora",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 49.9484,
+    "longitude": 15.2682,
+    "type": "town"
+  },
+  {
+    "kod": "global-185",
+    "nazev": "Jablonec nad Nisou",
+    "okres": "Liberecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.7243,
+    "longitude": 15.1711,
+    "type": "town"
+  },
+  {
+    "kod": "global-186",
+    "nazev": "Trutnov",
+    "okres": "Královéhradecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.5615,
+    "longitude": 15.9129,
+    "type": "town"
+  },
+  {
+    "kod": "global-187",
+    "nazev": "Kladno",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 50.1473,
+    "longitude": 14.1028,
+    "type": "town"
+  },
+  {
+    "kod": "global-188",
+    "nazev": "Kolín",
+    "okres": "Středočeský kraj",
+    "kraj": "Česko",
+    "latitude": 50.0281,
+    "longitude": 15.2007,
+    "type": "town"
+  },
+  {
+    "kod": "global-189",
+    "nazev": "Nový Jičín",
+    "okres": "Moravskoslezský kraj",
+    "kraj": "Česko",
+    "latitude": 49.5895,
+    "longitude": 18.0099,
+    "type": "town"
+  },
+  {
+    "kod": "global-190",
+    "nazev": "Rumburk",
+    "okres": "Ústecký kraj",
+    "kraj": "Česko",
+    "latitude": 50.9539,
+    "longitude": 14.556,
+    "type": "town"
+  },
+  {
+    "kod": "global-191",
+    "nazev": "Liptovský Mikuláš",
+    "okres": "Žilinský kraj",
+    "kraj": "Slovensko",
+    "latitude": 49.0806,
+    "longitude": 19.6222,
+    "type": "town"
+  },
+  {
+    "kod": "global-192",
+    "nazev": "Poprad",
+    "okres": "Prešovský kraj",
+    "kraj": "Slovensko",
+    "latitude": 49.0568,
+    "longitude": 20.2975,
+    "type": "town"
+  },
+  {
+    "kod": "global-193",
+    "nazev": "Banská Bystrica",
+    "okres": "Banskobystrický kraj",
+    "kraj": "Slovensko",
+    "latitude": 48.7364,
+    "longitude": 19.1456,
+    "type": "town"
+  },
+  {
+    "kod": "global-194",
+    "nazev": "Trnava",
+    "okres": "Trnavský kraj",
+    "kraj": "Slovensko",
+    "latitude": 48.3774,
+    "longitude": 17.5885,
+    "type": "town"
+  },
+  {
+    "kod": "global-195",
+    "nazev": "Břeclav",
+    "okres": "Jihomoravský kraj",
+    "kraj": "Česko",
+    "latitude": 48.7589,
+    "longitude": 16.8823,
+    "type": "town"
+  },
+  {
+    "kod": "global-196",
+    "nazev": "Bílsko-Bělá",
+    "okres": "Slezské vojvodství",
+    "kraj": "Polsko",
+    "latitude": 49.8225,
+    "longitude": 19.0469,
+    "type": "town"
+  },
+  {
+    "kod": "global-197",
+    "nazev": "Opole",
+    "okres": "Opolské vojvodství",
+    "kraj": "Polsko",
+    "latitude": 50.6764,
+    "longitude": 17.9213,
+    "type": "town"
+  },
+  {
+    "kod": "global-198",
+    "nazev": "Gorzów Wielkopolski",
+    "okres": "Lubuskie",
+    "kraj": "Polsko",
+    "latitude": 52.7368,
+    "longitude": 15.2288,
+    "type": "town"
+  },
+  {
+    "kod": "global-199",
+    "nazev": "Białystok",
+    "okres": "Podlaskie",
+    "kraj": "Polsko",
+    "latitude": 53.1325,
+    "longitude": 23.1688,
+    "type": "town"
+  },
+  {
+    "kod": "global-200",
+    "nazev": "Bourges",
+    "okres": "Centre-Val de Loire",
+    "kraj": "Francie",
+    "latitude": 47.081,
+    "longitude": 2.398,
+    "type": "town"
+  },
+  {
+    "kod": "global-201",
+    "nazev": "Aix-en-Provence",
+    "okres": "Provence-Alpes-Côte d'Azur",
+    "kraj": "Francie",
+    "latitude": 43.5297,
+    "longitude": 5.4474,
+    "type": "town"
+  },
+  {
+    "kod": "global-202",
+    "nazev": "Bologna",
+    "okres": "Emilia-Romagna",
+    "kraj": "Itálie",
+    "latitude": 44.4949,
+    "longitude": 11.3426,
+    "type": "town"
+  },
+  {
+    "kod": "global-203",
+    "nazev": "Florencie",
+    "okres": "Toskánsko",
+    "kraj": "Itálie",
+    "latitude": 43.7696,
+    "longitude": 11.2558,
+    "type": "town"
+  },
+  {
+    "kod": "global-204",
+    "nazev": "Sevilla",
+    "okres": "Andalusie",
+    "kraj": "Španělsko",
+    "latitude": 37.3891,
+    "longitude": -5.9845,
+    "type": "town"
+  },
+  {
+    "kod": "global-205",
+    "nazev": "Bilbao",
+    "okres": "País Vasco",
+    "kraj": "Španělsko",
+    "latitude": 43.263,
+    "longitude": -2.935,
+    "type": "town"
+  },
+  {
+    "kod": "global-206",
+    "nazev": "Aarhus",
+    "okres": "Midtjylland",
+    "kraj": "Dánsko",
+    "latitude": 56.1629,
+    "longitude": 10.2039,
+    "type": "town"
+  },
+  {
+    "kod": "global-207",
+    "nazev": "Turku",
+    "okres": "Varsinais-Suomi",
+    "kraj": "Finsko",
+    "latitude": 60.4518,
+    "longitude": 22.2666,
+    "type": "town"
+  },
+  {
+    "kod": "global-208",
+    "nazev": "Ljubljana",
+    "okres": "Osrednjeslovenska",
+    "kraj": "Slovinsko",
+    "latitude": 46.0569,
+    "longitude": 14.5058,
+    "type": "town"
+  },
+  {
+    "kod": "global-209",
+    "nazev": "Maribor",
+    "okres": "Podravska",
+    "kraj": "Slovinsko",
+    "latitude": 46.5547,
+    "longitude": 15.6467,
+    "type": "town"
+  },
+  {
+    "kod": "global-210",
+    "nazev": "Novi Sad",
+    "okres": "Vojvodina",
+    "kraj": "Srbsko",
+    "latitude": 45.2671,
+    "longitude": 19.8335,
+    "type": "town"
+  },
+  {
+    "kod": "global-211",
+    "nazev": "Subotica",
+    "okres": "Vojvodina",
+    "kraj": "Srbsko",
+    "latitude": 46.1008,
+    "longitude": 19.6677,
+    "type": "town"
+  },
+  {
+    "kod": "global-212",
+    "nazev": "Miskolc",
+    "okres": "Borsod-Abaúj-Zemplén",
+    "kraj": "Maďarsko",
+    "latitude": 48.1035,
+    "longitude": 20.7782,
+    "type": "town"
+  },
+  {
+    "kod": "global-213",
+    "nazev": "Pécs",
+    "okres": "Baranya",
+    "kraj": "Maďarsko",
+    "latitude": 46.0727,
+    "longitude": 18.2323,
+    "type": "town"
+  },
+  {
+    "kod": "global-214",
+    "nazev": "Sibiu",
+    "okres": "Sibiu",
+    "kraj": "Rumunsko",
+    "latitude": 45.7939,
+    "longitude": 24.1519,
+    "type": "town"
+  },
+  {
+    "kod": "global-215",
+    "nazev": "Cluj-Napoca",
+    "okres": "Cluj",
+    "kraj": "Rumunsko",
+    "latitude": 46.7712,
+    "longitude": 23.6235,
+    "type": "town"
+  },
+  {
+    "kod": "global-216",
+    "nazev": "Plovdiv",
+    "okres": "Plovdiv",
+    "kraj": "Bulharsko",
+    "latitude": 42.1354,
+    "longitude": 24.7453,
+    "type": "town"
+  },
+  {
+    "kod": "global-217",
+    "nazev": "Varna",
+    "okres": "Varna",
+    "kraj": "Bulharsko",
+    "latitude": 43.2141,
+    "longitude": 27.9147,
+    "type": "town"
+  },
+  {
+    "kod": "global-218",
+    "nazev": "Samarkand",
+    "okres": "Samarkand",
+    "kraj": "Uzbekistán",
+    "latitude": 39.6542,
+    "longitude": 66.9597,
+    "type": "town"
+  },
+  {
+    "kod": "global-219",
+    "nazev": "Bukhara",
+    "okres": "Bukhara",
+    "kraj": "Uzbekistán",
+    "latitude": 39.7747,
+    "longitude": 64.4286,
+    "type": "town"
+  },
+  {
+    "kod": "global-220",
+    "nazev": "Yerevan",
+    "okres": "Yerevan",
+    "kraj": "Arménie",
+    "latitude": 40.1792,
+    "longitude": 44.4991,
+    "type": "town"
+  },
+  {
+    "kod": "global-221",
+    "nazev": "Gyumri",
+    "okres": "Shirak",
+    "kraj": "Arménie",
+    "latitude": 40.7872,
+    "longitude": 43.8533,
+    "type": "town"
+  },
+  {
+    "kod": "global-222",
+    "nazev": "Shymkent",
+    "okres": "Turkestan",
+    "kraj": "Kazachstán",
+    "latitude": 42.3,
+    "longitude": 69.6,
+    "type": "town"
+  },
+  {
+    "kod": "global-223",
+    "nazev": "Almaty",
+    "okres": "Almaty",
+    "kraj": "Kazachstán",
+    "latitude": 43.2389,
+    "longitude": 76.8897,
+    "type": "town"
+  },
+  {
+    "kod": "global-224",
+    "nazev": "Tashkent",
+    "okres": "Tashkent",
+    "kraj": "Uzbekistán",
+    "latitude": 41.2995,
+    "longitude": 69.2401,
+    "type": "town"
+  },
+  {
+    "kod": "global-225",
+    "nazev": "Bishkek",
+    "okres": "Bishkek",
+    "kraj": "Kyrgyzstán",
+    "latitude": 42.8746,
+    "longitude": 74.5698,
+    "type": "town"
+  },
+  {
+    "kod": "global-226",
+    "nazev": "Tbilisi",
+    "okres": "Tbilisi",
+    "kraj": "Gruzie",
+    "latitude": 41.7151,
+    "longitude": 44.8271,
+    "type": "town"
+  },
+  {
+    "kod": "global-227",
+    "nazev": "Batumi",
+    "okres": "Adjara",
+    "kraj": "Gruzie",
+    "latitude": 41.6458,
+    "longitude": 41.6351,
+    "type": "town"
+  },
+  {
+    "kod": "global-228",
+    "nazev": "Kampala",
+    "okres": "Central Region",
+    "kraj": "Uganda",
+    "latitude": 0.3476,
+    "longitude": 32.5825,
+    "type": "town"
+  },
+  {
+    "kod": "global-229",
+    "nazev": "Mbarara",
+    "okres": "Western Region",
+    "kraj": "Uganda",
+    "latitude": -0.6072,
+    "longitude": 30.6545,
+    "type": "town"
+  },
+  {
+    "kod": "global-230",
+    "nazev": "Marrakesh",
+    "okres": "Marrakech-Safi",
+    "kraj": "Maroko",
+    "latitude": 31.6295,
+    "longitude": -7.9811,
+    "type": "town"
+  },
+  {
+    "kod": "global-231",
+    "nazev": "Essaouira",
+    "okres": "Marrakech-Safi",
+    "kraj": "Maroko",
+    "latitude": 31.5085,
+    "longitude": -9.7595,
+    "type": "town"
+  },
+  {
+    "kod": "global-232",
+    "nazev": "Mombasa",
+    "okres": "Coast",
+    "kraj": "Keňa",
+    "latitude": -4.0435,
+    "longitude": 39.6682,
+    "type": "town"
+  },
+  {
+    "kod": "global-233",
+    "nazev": "Kisumu",
+    "okres": "Nyanza",
+    "kraj": "Keňa",
+    "latitude": -0.1022,
+    "longitude": 34.761,
+    "type": "town"
+  },
+  {
+    "kod": "global-234",
+    "nazev": "Luanda",
+    "okres": "Luanda",
+    "kraj": "Angola",
+    "latitude": -8.8383,
+    "longitude": 13.2344,
+    "type": "town"
+  },
+  {
+    "kod": "global-235",
+    "nazev": "Lubango",
+    "okres": "Huíla",
+    "kraj": "Angola",
+    "latitude": -14.917,
+    "longitude": 13.4925,
+    "type": "town"
+  },
+  {
+    "kod": "global-236",
+    "nazev": "Salvador",
+    "okres": "Bahia",
+    "kraj": "Brazílie",
+    "latitude": -12.9777,
+    "longitude": -38.5108,
+    "type": "town"
+  },
+  {
+    "kod": "global-237",
+    "nazev": "Porto Alegre",
+    "okres": "Rio Grande do Sul",
+    "kraj": "Brazílie",
+    "latitude": -30.0346,
+    "longitude": -51.2177,
+    "type": "town"
+  },
+  {
+    "kod": "global-238",
+    "nazev": "Lima",
+    "okres": "Lima",
+    "kraj": "Peru",
+    "latitude": -12.0464,
+    "longitude": -77.0428,
+    "type": "town"
+  },
+  {
+    "kod": "global-239",
+    "nazev": "Cusco",
+    "okres": "Cusco",
+    "kraj": "Peru",
+    "latitude": -13.5319,
+    "longitude": -71.9675,
+    "type": "town"
+  },
+  {
+    "kod": "global-240",
+    "nazev": "La Paz",
+    "okres": "La Paz",
+    "kraj": "Bolívie",
+    "latitude": -16.5,
+    "longitude": -68.15,
+    "type": "town"
+  },
+  {
+    "kod": "global-241",
+    "nazev": "Sucre",
+    "okres": "Chuquisaca",
+    "kraj": "Bolívie",
+    "latitude": -19.047,
+    "longitude": -65.2592,
+    "type": "town"
+  },
+  {
+    "kod": "global-242",
+    "nazev": "Santiago de Chile",
+    "okres": "Santiago",
+    "kraj": "Chile",
+    "latitude": -33.4489,
+    "longitude": -70.6693,
+    "type": "town"
+  },
+  {
+    "kod": "global-243",
+    "nazev": "Valparaíso",
+    "okres": "Valparaíso",
+    "kraj": "Chile",
+    "latitude": -33.0458,
+    "longitude": -71.6197,
+    "type": "town"
+  },
+  {
+    "kod": "global-244",
+    "nazev": "Kingston",
+    "okres": "Kingston",
+    "kraj": "Jamajka",
+    "latitude": 17.9716,
+    "longitude": -76.7926,
+    "type": "town"
+  },
+  {
+    "kod": "global-245",
+    "nazev": "Montego Bay",
+    "okres": "Saint James",
+    "kraj": "Jamajka",
+    "latitude": 18.4712,
+    "longitude": -77.9194,
+    "type": "town"
+  },
+  {
+    "kod": "global-246",
+    "nazev": "Nadi",
+    "okres": "Ba",
+    "kraj": "Fidži",
+    "latitude": -17.7553,
+    "longitude": 177.4417,
+    "type": "town"
+  },
+  {
+    "kod": "global-247",
+    "nazev": "Suva",
+    "okres": "Central",
+    "kraj": "Fidži",
+    "latitude": -18.1248,
+    "longitude": 178.4501,
+    "type": "town"
+  },
+  {
+    "kod": "global-248",
+    "nazev": "Papeete",
+    "okres": "Tahiti",
+    "kraj": "Francouzská Polynésie",
+    "latitude": -17.6509,
+    "longitude": -149.426,
+    "type": "town"
+  },
+  {
+    "kod": "global-249",
+    "nazev": "Mo'orea",
+    "okres": "Mo'orea-Maiare",
+    "kraj": "Francouzská Polynésie",
+    "latitude": -17.532,
+    "longitude": -149.826,
+    "type": "town"
+  },
+  {
+    "kod": "global-250",
+    "nazev": "Avarua",
+    "okres": "Cook Islands",
+    "kraj": "Cookovy ostrovy",
+    "latitude": -21.2078,
+    "longitude": -159.775,
+    "type": "town"
+  },
+  {
+    "kod": "global-251",
+    "nazev": "Waldmünchen",
+    "okres": "Bavorsko",
+    "kraj": "Německo",
+    "latitude": 49.3795,
+    "longitude": 12.2951,
+    "type": "city"
+  },
+  {
+    "kod": "global-252",
+    "nazev": "München",
+    "okres": "Bavorsko",
+    "kraj": "Německo",
+    "latitude": 48.1351,
+    "longitude": 11.5820,
+    "type": "city"
+  }
+]
