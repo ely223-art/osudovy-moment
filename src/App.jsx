@@ -614,6 +614,7 @@ function App() {
     }
 
     setIsPreparingShareImage(true);
+    let shareCardWasActivated = false;
 
     try {
       const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
@@ -624,6 +625,11 @@ function App() {
         className: node.className,
         usesShareCard,
       });
+
+      if (usesShareCard) {
+        node.classList.add("is-capturing");
+        shareCardWasActivated = true;
+      }
 
       if (!usesShareCard) {
         await waitForCompletionMapTiles(isMobileCaptureDevice ? 6500 : 3200);
@@ -772,6 +778,9 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
+      if (shareCardWasActivated) {
+        shareCardRef.current?.classList.remove("is-capturing");
+      }
       shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
