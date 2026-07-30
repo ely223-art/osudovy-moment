@@ -1081,39 +1081,18 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
-    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-
-    const preopenedFacebookWindow =
-      mode === "share" && !isMobileDevice
-        ? window.open("about:blank", "_blank", "noopener,noreferrer")
-        : null;
-
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const blob = await prepareShareImage({ preferShareCard: false });
 
       if (!blob) {
-        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.close();
-        }
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
         return;
       }
 
-      const openFacebookShare = (targetUrl = websiteUrl, { sameTab = false } = {}) => {
+      const openFacebookShare = (targetUrl = websiteUrl) => {
         const shareQuote = encodeURIComponent("Můj osudový moment");
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
-
-        if (sameTab) {
-          window.location.href = facebookShareUrl;
-          return;
-        }
-
-        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = facebookShareUrl;
-          return;
-        }
 
         const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
         if (!facebookWindow) {
@@ -1122,47 +1101,33 @@ function App() {
       };
 
       if (mode === "share") {
-        if (isMobileDevice) {
-          if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-            try {
-              const jpgFile = new File([blob], filename, { type: "image/jpeg" });
-              const canShareFiles =
-                typeof navigator.canShare !== "function" ||
-                navigator.canShare({ files: [jpgFile] });
+        const supportsNativeFileShare =
+          typeof navigator !== "undefined" &&
+          typeof navigator.share === "function" &&
+          typeof navigator.canShare === "function";
 
-              if (canShareFiles) {
-                await navigator.share({
-                  title: "Osudový moment",
-                  files: [jpgFile],
-                });
-                if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-                  preopenedFacebookWindow.close();
-                }
-                return;
-              }
-            } catch (shareError) {
-              if (shareError?.name === "AbortError") {
-                if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-                  preopenedFacebookWindow.close();
-                }
-                return;
-              }
+        if (supportsNativeFileShare) {
+          const jpgFile = new File([blob], filename, { type: "image/jpeg" });
+          if (!navigator.canShare({ files: [jpgFile] })) {
+            setShareStatus("Zařízení nepodporuje sdílení JPG.");
+            return;
+          }
 
-              console.error("Native file share failed", {
-                message: shareError?.message || String(shareError),
-                name: shareError?.name || null,
-              });
+          try {
+            await navigator.share({ files: [jpgFile] });
+            return;
+          } catch (shareError) {
+            if (shareError?.name === "AbortError") {
+              return;
             }
-          }
 
-          setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
-          const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
-          if (uploadedShare?.imageUrl) {
-            await waitForShareImageAvailability(uploadedShare.imageUrl);
+            console.error("Native file share failed", {
+              message: shareError?.message || String(shareError),
+              name: shareError?.name || null,
+            });
+            setShareStatus("Sdílení JPG se nepodařilo.");
+            return;
           }
-          const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
-          openFacebookShare(facebookTargetUrl, { sameTab: true });
-          return;
         }
 
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
@@ -1173,7 +1138,7 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl, { sameTab: false });
+        openFacebookShare(facebookTargetUrl);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1229,14 +1194,7 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        if (isMobileDevice) {
-          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-            preopenedFacebookWindow.close();
-          }
-          return;
-        }
-
-        openFacebookShare(facebookTargetUrl, { sameTab: false });
+        openFacebookShare(facebookTargetUrl);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1255,9 +1213,6 @@ function App() {
             : "Facebook sdílení se otevřelo jako odkaz."
         );
       } else {
-        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.close();
-        }
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
       }
     }
