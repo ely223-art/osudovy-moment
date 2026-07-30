@@ -18,11 +18,6 @@ const extractShareId = (requestUrl) => {
   return url.pathname.match(/\/(?:s|i)\/([^/?#]+?)(?:\.jpg)?$/i)?.[1] || "";
 };
 
-const isSocialCrawler = (userAgent = "") =>
-  /facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|skypeuripreview|googlebot/i.test(
-    userAgent
-  );
-
 const escapeHtml = (value = "") =>
   value
     .replaceAll("&", "&amp;")
@@ -51,18 +46,6 @@ export default async (request) => {
     const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
     const title = "Osudovy moment";
     const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz. Pokracujte na hlavni web a vytvorte vlastni moment.";
-    const userAgent = request.headers.get("user-agent") || "";
-
-    if (!isSocialCrawler(userAgent)) {
-      return new Response(null, {
-        status: 302,
-        headers: {
-          location: websiteUrl,
-          "cache-control": "no-store",
-          vary: "user-agent",
-        },
-      });
-    }
 
     const html = `<!doctype html>
 <html lang="cs">
@@ -88,6 +71,7 @@ export default async (request) => {
   </head>
   <body>
     <p>Odkaz s nahledem momentu pro socialni site.</p>
+    <p><a href="${escapeHtml(websiteUrl)}">Prejit na osudovymoment.cz</a></p>
   </body>
 </html>`;
 
@@ -96,7 +80,6 @@ export default async (request) => {
       headers: {
         "content-type": "text/html; charset=utf-8",
         "cache-control": "no-store",
-        vary: "user-agent",
       },
     });
   } catch (error) {
