@@ -43,6 +43,9 @@ const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
 const EXPORT_VIEWPORT_WIDTH = 1440;
 const EXPORT_VIEWPORT_HEIGHT = 1800;
+const EXPORT_CARD_WIDTH = 840;
+const EXPORT_CARD_HEIGHT = 500;
+const EXPORT_CAPTURE_SCALE = 2;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -850,9 +853,13 @@ function App() {
 
       const captureNode = node;
 
-      const captureWidth = Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width));
-      const captureHeight = Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height));
-      const captureScale = 2;
+      const captureWidth = usesShareCard
+        ? Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width))
+        : EXPORT_CARD_WIDTH;
+      const captureHeight = usesShareCard
+        ? Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height))
+        : EXPORT_CARD_HEIGHT;
+      const captureScale = EXPORT_CAPTURE_SCALE;
 
       captureNode.classList.add("capture-freeze");
 
@@ -876,8 +883,8 @@ function App() {
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: EXPORT_VIEWPORT_WIDTH,
-          windowHeight: EXPORT_VIEWPORT_HEIGHT,
+          windowWidth: usesShareCard ? EXPORT_VIEWPORT_WIDTH : EXPORT_CARD_WIDTH,
+          windowHeight: usesShareCard ? EXPORT_VIEWPORT_HEIGHT : EXPORT_CARD_HEIGHT,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
@@ -1081,9 +1088,12 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = await prepareShareImage({ preferShareCard: false });
+      const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: false }));
 
       if (!blob) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
@@ -1106,7 +1116,7 @@ function App() {
           typeof navigator.share === "function" &&
           typeof navigator.canShare === "function";
 
-        if (supportsNativeFileShare) {
+        if (isMobileDevice && supportsNativeFileShare) {
           const jpgFile = new File([blob], filename, { type: "image/jpeg" });
           if (!navigator.canShare({ files: [jpgFile] })) {
             setShareStatus("Zařízení nepodporuje sdílení JPG.");
@@ -1128,6 +1138,11 @@ function App() {
             setShareStatus("Sdílení JPG se nepodařilo.");
             return;
           }
+        }
+
+        if (isMobileDevice && !supportsNativeFileShare) {
+          setShareStatus("Zařízení nepodporuje sdílení JPG.");
+          return;
         }
 
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
@@ -1228,6 +1243,19 @@ function App() {
       shareImageObjectUrlRef.current = "";
     }
   }, [completeMoment?.id]);
+
+  useEffect(() => {
+    if (screen !== "complete" || !completeMoment || !animationComplete || isPreparingShareImage || shareImageReady) {
+      return;
+    }
+
+    prepareShareImage({ preferShareCard: false }).catch((error) => {
+      console.error("Background JPG pre-generation failed", {
+        message: error?.message || String(error),
+        name: error?.name || null,
+      });
+    });
+  }, [screen, completeMoment?.id, animationComplete, isPreparingShareImage, shareImageReady]);
 
   useEffect(() => {
     if (screen !== "complete") {
