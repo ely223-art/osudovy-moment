@@ -4,6 +4,8 @@ export default async (request) => {
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
+    const shouldDownload = url.searchParams.get("download") === "1";
+    const requestedFilename = url.searchParams.get("filename") || "osudovy-moment.jpg";
 
     if (!id) {
       return new Response("Missing id", { status: 400 });
@@ -21,11 +23,22 @@ export default async (request) => {
       return new Response("Not found", { status: 404 });
     }
 
+    const safeFilename = requestedFilename
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .replace(/-{2,}/g, "-")
+      .replace(/(^-|-$)/g, "") || "osudovy-moment.jpg";
+
     return new Response(image, {
       status: 200,
       headers: {
         "content-type": "image/jpeg",
-        "cache-control": "public, max-age=31536000, immutable",
+        "cache-control": shouldDownload
+          ? "no-store, no-transform"
+          : "public, max-age=31536000, immutable",
+        "content-disposition": shouldDownload
+          ? `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(safeFilename)}`
+          : "inline",
+        "x-content-type-options": "nosniff",
       },
     });
   } catch (error) {

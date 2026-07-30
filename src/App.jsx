@@ -512,6 +512,30 @@ function App() {
     return false;
   };
 
+  const triggerServerDownload = (imageUrl, filename) => {
+    if (!imageUrl) {
+      return false;
+    }
+
+    try {
+      const downloadUrl = `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}download=1&filename=${encodeURIComponent(filename)}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return true;
+    } catch (error) {
+      console.error("Server download trigger failed", {
+        message: error?.message || String(error),
+        name: error?.name || null,
+      });
+      return false;
+    }
+  };
+
   const waitForCompletionMapTiles = async (timeoutMs = 3200) => {
     const mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
     if (!mapNode) {
@@ -880,16 +904,13 @@ function App() {
             : "Facebook sdílení se otevřelo pouze s odkazem."
         );
       } else {
-        const supportsNavigatorShare =
-          typeof navigator !== "undefined" &&
-          typeof navigator.share === "function";
-        const sharedFile = new File([blob], filename, { type: "image/jpeg" });
-        let canShareFileDirectly = supportsNavigatorShare;
-        if (supportsNavigatorShare && typeof navigator.canShare === "function") {
-          try {
-            canShareFileDirectly = navigator.canShare({ files: [sharedFile] });
-          } catch {
-            canShareFileDirectly = false;
+        const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+        if (uploadedDownload?.imageUrl) {
+          await waitForShareImageAvailability(uploadedDownload.imageUrl);
+          const downloadedFromServer = triggerServerDownload(uploadedDownload.imageUrl, filename);
+          if (downloadedFromServer) {
+            setShareStatus("JPG se stahuje ze serveru ve stejné verzi pro mobil i PC.");
+            return;
           }
         }
 
@@ -914,22 +935,6 @@ function App() {
 
           setShareStatus("JPG se otevřelo ze stejného souboru jako na PC. Uložte ho dlouhým stiskem na obrázek.");
           return;
-        }
-
-        if (isAppleMobile && !downloaded && canShareFileDirectly) {
-          try {
-            await navigator.share({
-              files: [sharedFile],
-              title: "Osudový moment JPG",
-            });
-            setShareStatus("Otevřelo se sdílení souboru. Pro stejný JPG jako na PC zvolte Uložit obrázek / Uložit do souborů.");
-            return;
-          } catch (shareError) {
-            console.error("Apple file share fallback failed", {
-              message: shareError?.message || String(shareError),
-              name: shareError?.name || null,
-            });
-          }
         }
 
         if (isAppleMobile && !downloaded) {
