@@ -41,8 +41,8 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
-const EXPORT_VIEWPORT_WIDTH = 1440;
-const EXPORT_VIEWPORT_HEIGHT = 1800;
+const EXPORT_VIEWPORT_WIDTH = 390;
+const EXPORT_VIEWPORT_HEIGHT = 844;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -847,11 +847,11 @@ function App() {
         exportClone.style.position = "fixed";
         exportClone.style.left = "0";
         exportClone.style.top = "0";
-        exportClone.style.width = "840px";
-        exportClone.style.minWidth = "840px";
+        exportClone.style.width = "390px";
+        exportClone.style.minWidth = "390px";
         exportClone.style.maxWidth = "none";
-        exportClone.style.height = "1350px";
-        exportClone.style.minHeight = "1350px";
+        exportClone.style.height = "844px";
+        exportClone.style.minHeight = "844px";
         exportClone.style.zIndex = "-1";
         exportClone.style.margin = "0";
         exportClone.style.transform = "none";

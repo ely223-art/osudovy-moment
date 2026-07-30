@@ -1170,20 +1170,20 @@ a {
 }
 
 .completion-card.is-exporting {
-  width: 840px !important;
-  min-width: 840px !important;
-  padding: 24px !important;
-  height: 1350px !important;
-  min-height: 1350px !important;
+  width: 390px !important;
+  min-width: 390px !important;
+  padding: 24px 16px !important;
+  height: 844px !important;
+  min-height: 844px !important;
 }
 
 .completion-card.is-exporting .completion-layout {
-  padding-top: 78px !important;
+  padding-top: 64px !important;
 }
 
 .completion-card.is-exporting .wizard-layout,
 .completion-card.is-exporting .completion-layout {
-  width: 840px !important;
+  width: 390px !important;
   max-width: none !important;
 }
 
@@ -1197,12 +1197,12 @@ a {
 
 .completion-card.is-exporting .completion-map-wrapper {
   width: 100% !important;
-  height: 500px !important;
-  min-height: 400px !important;
+  height: 340px !important;
+  min-height: 300px !important;
 }
 
 .completion-card.is-exporting .completion-map-wrapper .leaflet-container {
-  min-height: 400px !important;
+  min-height: 300px !important;
 }
 
 .completion-card.is-exporting .completion-actions .wizard-continue--secondary-mobile,
