@@ -101,7 +101,6 @@ function App() {
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
   const completionCardRef = useRef(null);
-  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const animationStartedRef = useRef(false);
@@ -441,14 +440,15 @@ function App() {
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
   const prepareShareImage = async () => {
-    if (!shareCardRef.current || !completeMoment || isPreparingShareImage) {
+    if (!completionCardRef.current || !completeMoment || isPreparingShareImage) {
       return null;
     }
 
     setIsPreparingShareImage(true);
+    completionCardRef.current.classList.add("is-exporting");
 
     try {
-      const node = shareCardRef.current;
+      const node = completionCardRef.current;
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
 
       const canvas = await html2canvas(node, {
@@ -456,6 +456,18 @@ function App() {
         useCORS: true,
         allowTaint: false,
         logging: false,
+        ignoreElements: (element) => {
+          const classList = element?.classList;
+          if (!classList) {
+            return false;
+          }
+
+          return (
+            classList.contains("leaflet-tile") ||
+            classList.contains("leaflet-control-container") ||
+            classList.contains("completion-map-zoom")
+          );
+        },
         scale: isMobileViewport ? 1.25 : 1.8,
       });
 
@@ -485,6 +497,7 @@ function App() {
       console.error("Nepodařilo se připravit kartičku pro sdílení:", error);
       return null;
     } finally {
+      completionCardRef.current?.classList.remove("is-exporting");
       setIsPreparingShareImage(false);
     }
   };
@@ -561,7 +574,7 @@ function App() {
   };
 
   const exportCompletionCard = async (mode) => {
-    if (!shareCardRef.current || !completeMoment) {
+    if (!completionCardRef.current || !completeMoment) {
       return;
     }
 
@@ -573,11 +586,14 @@ function App() {
       const shareUrl = `${window.location.origin}/moment/${completeMoment.id}`;
       const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = shareImageBlobRef.current;
+      let blob = shareImageBlobRef.current;
 
       if (!blob) {
-        prepareShareImage();
-        setShareStatus("Pripravuji JPG kartičku. Klepněte prosím znovu za 1-2 sekundy.");
+        blob = await prepareShareImage();
+      }
+
+      if (!blob) {
+        setShareStatus("Nepodařilo se připravit screenshot. Zkuste to prosím znovu.");
         return;
       }
 
@@ -1515,34 +1531,6 @@ function App() {
               </section>
             </main>
 
-            <div className="share-card" ref={shareCardRef} aria-hidden="true">
-              <div className="share-card__inner">
-                <div className="share-card__header">
-                  <img className="share-card__logo" src={logo} alt="" />
-                  <div className="share-card__title">Osudovy moment</div>
-                </div>
-
-                <div className="share-card__map">
-                  <img className="share-card__map-image" src="/mapa.png" alt="" />
-                  <div className="share-card__map-overlay">
-                    <div className="share-map__line" />
-                    <div className="share-map__point" />
-                    <div className="share-map__symbol">
-                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt="" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="share-card__body">
-                  <div className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</div>
-                  <div className="share-card__name">{completeMoment.nazev}</div>
-                  {completeMoment.datum ? <div className="share-card__date">{completeMoment.datum}</div> : null}
-                  {completeMoment.prikaz ? <div className="share-card__note">{completeMoment.prikaz}</div> : null}
-                </div>
-
-                <div className="share-card__footer">osudovymoment.cz</div>
-              </div>
-            </div>
           </>
         )}
       </div>
