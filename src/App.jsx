@@ -732,6 +732,33 @@ function App() {
       }
 
       if (mode === "share") {
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+
+        const fallbackToFacebookWithDownloadedJpg = async () => {
+          const downloaded = triggerDownload();
+          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+          if (!facebookWindow) {
+            window.location.href = facebookShareUrl;
+          }
+
+          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+            try {
+              await navigator.clipboard.writeText(websiteUrl);
+            } catch (clipboardError) {
+              console.error("Clipboard write failed", {
+                message: clipboardError?.message || String(clipboardError),
+                name: clipboardError?.name || null,
+              });
+            }
+          }
+
+          setShareStatus(
+            downloaded
+              ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
+              : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
+          );
+        };
+
         if (canShareFiles) {
           try {
             console.log("Share started", {
@@ -761,10 +788,10 @@ function App() {
               return;
             }
 
-            throw shareError;
+            await fallbackToFacebookWithDownloadedJpg();
           }
         } else {
-          throw new Error("File share není dostupné");
+          await fallbackToFacebookWithDownloadedJpg();
         }
       } else {
         if (isInAppSocialBrowser) {
@@ -815,14 +842,7 @@ function App() {
 
       if (mode === "share") {
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
-        const objectUrl = shareImageObjectUrlRef.current;
-
-        if (objectUrl) {
-          const imageTab = window.open(objectUrl, "_blank", "noopener,noreferrer");
-          if (!imageTab) {
-            window.location.href = objectUrl;
-          }
-        }
+        const downloaded = triggerDownload();
 
         const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
         if (!facebookWindow) {
@@ -840,7 +860,11 @@ function App() {
           }
         }
 
-        setShareStatus("Otevřelo se JPG obrazovky i Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte otevřený JPG.");
+        setShareStatus(
+          downloaded
+            ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
+            : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
+        );
       } else {
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
       }
