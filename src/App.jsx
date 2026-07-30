@@ -491,7 +491,27 @@ function App() {
         height: captureHeight,
         scrollX: typeof window !== "undefined" ? -window.scrollX : 0,
         scrollY: typeof window !== "undefined" ? -window.scrollY : 0,
+        imageTimeout: 15000,
+        removeContainer: true,
         logging: false,
+        onclone: (clonedDocument) => {
+          const style = clonedDocument.createElement("style");
+          style.textContent = `
+            * {
+              animation: none !important;
+              transition: none !important;
+            }
+            .completion-card {
+              transform: none !important;
+            }
+            .completion-map-marker__image,
+            .symbol-button__image {
+              image-rendering: auto !important;
+              transform: none !important;
+            }
+          `;
+          clonedDocument.head.appendChild(style);
+        },
         ignoreElements: (element) => {
           const classList = element?.classList;
           if (!classList) {
@@ -506,13 +526,27 @@ function App() {
         scale: isMobileViewport ? Math.max(1, Math.min(1.5, pixelRatio)) : Math.max(1, Math.min(1.75, pixelRatio)),
       });
 
+      let exportCanvas = canvas;
+      const maxWidth = 1440;
+      if (canvas.width > maxWidth) {
+        const ratio = maxWidth / canvas.width;
+        const resizedCanvas = document.createElement("canvas");
+        resizedCanvas.width = Math.round(canvas.width * ratio);
+        resizedCanvas.height = Math.round(canvas.height * ratio);
+        const context = resizedCanvas.getContext("2d");
+        if (context) {
+          context.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+          exportCanvas = resizedCanvas;
+        }
+      }
+
       console.log("JPG generated", {
-        width: canvas.width,
-        height: canvas.height,
+        width: exportCanvas.width,
+        height: exportCanvas.height,
       });
 
       const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(
+        exportCanvas.toBlob(
           (result) => {
             if (!result) {
               reject(new Error("Nepodařilo se vytvořit JPG."));
@@ -521,7 +555,7 @@ function App() {
             resolve(result);
           },
           "image/jpeg",
-          0.9
+          0.86
         );
       });
 
@@ -695,6 +729,11 @@ function App() {
       if (mode === "share") {
         if (isInAppSocialBrowser) {
           const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+
+          if (!facebookWindow) {
+            window.location.href = facebookShareUrl;
+          }
 
           if (navigator.clipboard?.writeText) {
             try {
@@ -707,7 +746,6 @@ function App() {
             }
           }
 
-          window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
           setShareStatus("Facebook v interním prohlížeči nepovolí sdílení JPG přímo. Otevřel se Facebook share pro odkaz; pro fotku použijte Stáhnout JPG a přiložte ji ručně.");
           return;
         }
