@@ -60,8 +60,8 @@ export default async (request) => {
     <meta property="og:image" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:type" content="image/jpeg" />
-    <meta property="og:image:width" content="1080" />
-    <meta property="og:image:height" content="1350" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="1500" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
