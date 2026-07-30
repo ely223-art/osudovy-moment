@@ -2,6 +2,7 @@ import { getStore } from "@netlify/blobs";
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
 const SHARE_ID_PATTERN = /^[a-zA-Z0-9-]{8,120}$/;
+const MAX_DESCRIPTION_LENGTH = 240;
 
 const jsonResponse = (statusCode, payload) => ({
   status: statusCode,
@@ -36,6 +37,8 @@ export default async (request) => {
 
     const titleHeader = request.headers.get("x-share-title") || "Osudovy moment";
     const title = decodeURIComponent(titleHeader).slice(0, 120);
+    const descriptionHeader = request.headers.get("x-share-description") || "";
+    const description = decodeURIComponent(descriptionHeader).slice(0, MAX_DESCRIPTION_LENGTH);
 
     const requestedShareIdHeader = request.headers.get("x-share-id") || "";
     const requestedShareId = decodeURIComponent(requestedShareIdHeader).trim();
@@ -46,6 +49,16 @@ export default async (request) => {
       metadata: {
         createdAt: new Date().toISOString(),
         title,
+      },
+    });
+
+    await store.set(`${id}.meta.json`, JSON.stringify({
+      title,
+      description,
+      createdAt: new Date().toISOString(),
+    }), {
+      metadata: {
+        kind: "moment-meta",
       },
     });
 

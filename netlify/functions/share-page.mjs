@@ -1,3 +1,5 @@
+import { getStore } from "@netlify/blobs";
+
 const toRequestUrl = (request) => {
   try {
     return new URL(request.url);
@@ -43,8 +45,17 @@ export default async (request) => {
     const origin = requestUrl.origin;
     const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
     const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
-    const title = "Osudovy moment";
-    const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
+    const store = getStore({ name: "moment-share-images" });
+    const metadata = await store.get(`${safeId}.meta.json`, { type: "json" });
+
+    const title =
+      typeof metadata?.title === "string" && metadata.title.trim()
+        ? metadata.title.trim()
+        : "Osudovy moment";
+    const description =
+      typeof metadata?.description === "string" && metadata.description.trim()
+        ? metadata.description.trim()
+        : "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
 
     const html = `<!doctype html>
 <html lang="cs">
