@@ -2033,7 +2033,7 @@ function App() {
 
               <main className="wizard-layout completion-layout">
                 <section className="wizard-card completion-card" ref={completionCardRef}>
-                  {animationComplete ? renderCompletionCardContent({ showActions: true, mapRef: mapContainerRef }) : null}
+                  {renderCompletionCardContent({ showActions: true, mapRef: mapContainerRef })}
                 </section>
               </main>
             </div>
