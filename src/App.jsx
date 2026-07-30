@@ -658,14 +658,6 @@ function App() {
         className: node.className,
       });
 
-      node.classList.add("capture-desktop-export");
-      window.dispatchEvent(new Event("resize"));
-      await new Promise((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
-      });
-
       await waitForCompletionMapTiles();
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
@@ -788,7 +780,6 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
-      completionCardRef.current?.classList.remove("capture-desktop-export");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
