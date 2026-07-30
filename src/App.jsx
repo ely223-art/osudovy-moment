@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
+import { toBlob as htmlToImageToBlob } from "html-to-image";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
@@ -560,51 +561,84 @@ function App() {
         animationComplete,
       });
 
-      const canvas = await html2canvas(node, {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: false,
-        width: captureWidth,
-        height: captureHeight,
-        scrollX: 0,
-        scrollY: 0,
-        imageTimeout: 15000,
-        removeContainer: true,
-        logging: false,
-        foreignObjectRendering: false,
-        windowWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
-        windowHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
-        ignoreElements: (element) => {
-          const classList = element?.classList;
-          if (!classList) {
-            return false;
-          }
+      let blob = null;
 
-          return (
-            classList.contains("leaflet-control-container") ||
-            classList.contains("completion-map-zoom")
+      try {
+        // Primary renderer: preserves DOM transforms and layout more faithfully.
+        blob = await htmlToImageToBlob(node, {
+          cacheBust: true,
+          pixelRatio: captureScale,
+          canvasWidth: Math.round(captureWidth * captureScale),
+          canvasHeight: Math.round(captureHeight * captureScale),
+          quality: 1,
+          type: "image/jpeg",
+          backgroundColor: "#07111f",
+          filter: (element) => {
+            const classList = element?.classList;
+            if (!classList) {
+              return true;
+            }
+
+            return !(
+              classList.contains("leaflet-control-container") ||
+              classList.contains("completion-map-zoom")
+            );
+          },
+        });
+      } catch (primaryError) {
+        console.error("html-to-image capture failed, falling back to html2canvas", {
+          message: primaryError?.message || String(primaryError),
+          name: primaryError?.name || null,
+        });
+      }
+
+      if (!blob) {
+        const canvas = await html2canvas(node, {
+          backgroundColor: null,
+          useCORS: true,
+          allowTaint: false,
+          width: captureWidth,
+          height: captureHeight,
+          scrollX: 0,
+          scrollY: 0,
+          imageTimeout: 15000,
+          removeContainer: true,
+          logging: false,
+          foreignObjectRendering: false,
+          windowWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
+          windowHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
+          ignoreElements: (element) => {
+            const classList = element?.classList;
+            if (!classList) {
+              return false;
+            }
+
+            return (
+              classList.contains("leaflet-control-container") ||
+              classList.contains("completion-map-zoom")
+            );
+          },
+          scale: captureScale,
+        });
+
+        blob = await new Promise((resolve, reject) => {
+          canvas.toBlob(
+            (result) => {
+              if (!result) {
+                reject(new Error("Nepodařilo se vytvořit JPG."));
+                return;
+              }
+              resolve(result);
+            },
+            "image/jpeg",
+            1
           );
-        },
-        scale: captureScale,
-      });
+        });
+      }
 
       console.log("JPG generated", {
-        width: canvas.width,
-        height: canvas.height,
-      });
-
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (result) => {
-            if (!result) {
-              reject(new Error("Nepodařilo se vytvořit JPG."));
-              return;
-            }
-            resolve(result);
-          },
-          "image/jpeg",
-          1
-        );
+        width: Math.round(captureWidth * captureScale),
+        height: Math.round(captureHeight * captureScale),
       });
 
       console.log("Blob created", {
