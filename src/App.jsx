@@ -760,7 +760,8 @@ function App() {
           });
         }
       } else {
-        node.classList.add("is-exporting");
+        completionScreenRef.current?.classList.add("is-exporting");
+        completionCardRef.current?.classList.add("is-exporting");
       }
 
       if (!usesShareCard) {
@@ -934,8 +935,8 @@ function App() {
       if (shareCardWasActivated) {
         shareCardRef.current?.classList.remove("is-capturing");
       }
-      completionCardRef.current?.classList.remove("is-exporting");
       completionScreenRef.current?.classList.remove("is-exporting");
+      completionCardRef.current?.classList.remove("is-exporting");
       shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
