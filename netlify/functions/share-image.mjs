@@ -1,5 +1,14 @@
 import { getStore } from "@netlify/blobs";
-import { extractShareId } from "../../src/utils/shareRequest.js";
+
+const extractShareId = (requestUrl) => {
+  const parsedUrl = new URL(requestUrl);
+  const queryId = parsedUrl.searchParams.get("id");
+  if (queryId) {
+    return queryId;
+  }
+
+  return parsedUrl.pathname.match(/\/(?:s|i)\/([^/?#]+?)(?:\.jpg)?$/i)?.[1] || "";
+};
 
 export default async (request) => {
   try {

@@ -1,3 +1,13 @@
+const extractShareId = (requestUrl) => {
+  const url = new URL(requestUrl);
+  const queryId = url.searchParams.get("id");
+  if (queryId) {
+    return queryId;
+  }
+
+  return url.pathname.match(/\/(?:s|i)\/([^/?#]+?)(?:\.jpg)?$/i)?.[1] || "";
+};
+
 const escapeHtml = (value = "") =>
   value
     .replaceAll("&", "&amp;")
@@ -5,8 +15,6 @@ const escapeHtml = (value = "") =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-
-import { extractShareId } from "../../src/utils/shareRequest.js";
 
 export default async (request) => {
   try {
