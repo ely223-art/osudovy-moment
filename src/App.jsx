@@ -42,6 +42,13 @@ const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
 
+const buildPublicAssetUrl = (assetPath = "") => {
+  const base = import.meta.env.BASE_URL || "/";
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  const normalizedPath = assetPath.replace(/^\/+/, "");
+  return `${normalizedBase}${normalizedPath}`;
+};
+
 function renderMomentMarkerBody(symbolImage) {
   return `
     <span class="completion-map-marker__glow"></span>
@@ -138,6 +145,7 @@ function App() {
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
   const [shareImageReady, setShareImageReady] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
+  const shareMapImageUrl = useMemo(() => buildPublicAssetUrl("mapa.png"), []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -635,6 +643,45 @@ function App() {
     await Promise.all(images.map((image) => waitForSingleImage(image)));
   };
 
+  const preloadImageSources = async (sources, timeoutMs = 9000) => {
+    const uniqueSources = Array.from(new Set((sources || []).filter(Boolean)));
+    if (!uniqueSources.length) {
+      return true;
+    }
+
+    const results = await Promise.all(
+      uniqueSources.map(
+        (source) =>
+          new Promise((resolve) => {
+            const image = new Image();
+            let settled = false;
+
+            const finish = (loaded) => {
+              if (settled) {
+                return;
+              }
+              settled = true;
+              resolve(loaded);
+            };
+
+            image.onload = () => finish(true);
+            image.onerror = () => finish(false);
+            image.decoding = "sync";
+            image.src = source;
+
+            if (image.complete) {
+              finish(image.naturalWidth > 0);
+              return;
+            }
+
+            window.setTimeout(() => finish(image.complete && image.naturalWidth > 0), timeoutMs);
+          })
+      )
+    );
+
+    return results.every(Boolean);
+  };
+
   const prepareShareImage = async () => {
     console.log("Export started", {
       screen,
@@ -667,6 +714,17 @@ function App() {
       if (usesShareCard) {
         node.classList.add("is-capturing");
         shareCardWasActivated = true;
+
+        const shareCardImageElements = Array.from(node.querySelectorAll("img"));
+        const shareCardImageSources = shareCardImageElements
+          .map((image) => image.currentSrc || image.src)
+          .filter(Boolean);
+        const preloadOk = await preloadImageSources(shareCardImageSources, 9000);
+        if (!preloadOk) {
+          console.warn("Some share-card images did not preload before capture", {
+            sources: shareCardImageSources,
+          });
+        }
       } else {
         node.classList.add("is-exporting");
       }
@@ -676,6 +734,16 @@ function App() {
       }
 
       await waitForNodeImages(node, 9000);
+
+      if (usesShareCard) {
+        const hasMissingImage = Array.from(node.querySelectorAll("img")).some(
+          (image) => !(image.complete && image.naturalWidth > 0)
+        );
+
+        if (hasMissingImage) {
+          throw new Error("Share-card images are not fully loaded for export.");
+        }
+      }
 
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
@@ -984,7 +1052,8 @@ function App() {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
-          const serverDownloadUrl = buildServerDownloadUrl(uploadedDownload.imageUrl, filename);
+          const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
+          const serverDownloadUrl = buildServerDownloadUrl(uploadedDownload.imageUrl, uniqueFilename);
           setDirectDownloadLink(serverDownloadUrl, filename, false);
           const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
             sameTab: true,
@@ -1885,12 +1954,12 @@ function App() {
                 </div>
 
                 <div className="share-card__map">
-                  <img className="share-card__map-image" src="/mapa.png" alt="Mapa" />
+                  <img className="share-card__map-image" src={shareMapImageUrl} alt="Mapa" loading="eager" />
                   <div className="share-card__map-overlay">
                     <span className="share-map__line" />
                     <span className="share-map__point" />
                     <span className="share-map__symbol">
-                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt={completeMoment.symbolLabel || "Symbol"} />
+                      <img src={completeMoment.symbolImage || buildPublicAssetUrl("ostatni.png")} alt={completeMoment.symbolLabel || "Symbol"} loading="eager" />
                     </span>
                   </div>
                 </div>
