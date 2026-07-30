@@ -170,6 +170,7 @@ function App() {
   const [townsLoading, setTownsLoading] = useState(false);
   const [townsError, setTownsError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [directDownloadUrl, setDirectDownloadUrl] = useState("");
   const [directDownloadFilename, setDirectDownloadFilename] = useState("");
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
@@ -1074,13 +1075,14 @@ function App() {
     }
 
     setShareStatus("");
+    setShareLinkUrl("");
     clearDirectDownloadLink();
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
     const preopenedFacebookWindow =
-      mode === "share" && !isMobileDevice
+      mode === "share"
         ? window.open("about:blank", "_blank", "noopener,noreferrer")
         : null;
 
@@ -1098,12 +1100,6 @@ function App() {
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
-
-        // Mobile browsers are more reliable with same-tab navigation than async popups.
-        if (isMobileDevice) {
-          window.location.href = facebookShareUrl;
-          return;
-        }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
@@ -1123,6 +1119,7 @@ function App() {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+        setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
 
@@ -1178,6 +1175,7 @@ function App() {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+        setShareLinkUrl(facebookTargetUrl);
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
@@ -1499,7 +1497,8 @@ function App() {
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
-      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x));
+      const markerAnchorX = 14;
+      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x - markerAnchorX));
       const boundedY = Math.max(24, Math.min(container.clientHeight - 24, point.y));
       markerElement.style.left = `${boundedX}px`;
       markerElement.style.top = `${boundedY}px`;
@@ -2123,6 +2122,11 @@ function App() {
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
+                    {shareLinkUrl ? (
+                      <p className="completion-share-status">
+                        Odkaz pro sdílení: <a href={shareLinkUrl} target="_blank" rel="noopener noreferrer">{shareLinkUrl}</a>
+                      </p>
+                    ) : null}
                     {directDownloadUrl ? (
                       <a
                         className="wizard-continue"
