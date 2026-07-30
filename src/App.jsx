@@ -102,6 +102,7 @@ function App() {
   const publicMapRef = useRef(null);
   const completionCardRef = useRef(null);
   const shareCardRef = useRef(null);
+  const shareImageBlobRef = useRef(null);
   const animationStartedRef = useRef(false);
   const animationTimersRef = useRef([]);
   const [screen, setScreen] = useState("home");
@@ -127,6 +128,7 @@ function App() {
   const [townsError, setTownsError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -437,6 +439,49 @@ function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
+  const prepareShareImage = async () => {
+    if (!shareCardRef.current || !completeMoment || isPreparingShareImage) {
+      return null;
+    }
+
+    setIsPreparingShareImage(true);
+
+    try {
+      const node = shareCardRef.current;
+      const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
+
+      const canvas = await html2canvas(node, {
+        backgroundColor: "#07111f",
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        scale: isMobileViewport ? 1.25 : 1.8,
+      });
+
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (!result) {
+              reject(new Error("Nepodařilo se vytvořit JPG."));
+              return;
+            }
+            resolve(result);
+          },
+          "image/jpeg",
+          0.9
+        );
+      });
+
+      shareImageBlobRef.current = blob;
+      return blob;
+    } catch (error) {
+      console.error("Nepodařilo se připravit kartičku pro sdílení:", error);
+      return null;
+    } finally {
+      setIsPreparingShareImage(false);
+    }
+  };
+
   const saveMomentToStorage = (moment) => {
     if (typeof window === "undefined") {
       return [];
@@ -517,36 +562,17 @@ function App() {
     setShareStatus("");
     completionCardRef.current?.classList.add("is-exporting");
 
-    await new Promise((resolve) => window.setTimeout(resolve, 400));
-
     try {
-      const node = shareCardRef.current;
       const shareUrl = `${window.location.origin}/moment/${completeMoment.id}`;
       const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
+      const blob = shareImageBlobRef.current;
 
-      const canvas = await html2canvas(node, {
-        backgroundColor: "#07111f",
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        scale: isMobileViewport ? 1.25 : 1.8,
-      });
-
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (result) => {
-            if (!result) {
-              reject(new Error("Nepodařilo se vytvořit JPG."));
-              return;
-            }
-            resolve(result);
-          },
-          "image/jpeg",
-          0.9
-        );
-      });
+      if (!blob) {
+        prepareShareImage();
+        setShareStatus("Pripravuji JPG kartičku. Klepněte prosím znovu za 1-2 sekundy.");
+        return;
+      }
 
       const file = new File([blob], filename, { type: "image/jpeg" });
 
@@ -589,6 +615,11 @@ function App() {
             });
             setShareStatus("Kartička byla sdílená.");
           } catch (shareError) {
+            if (shareError?.name === "AbortError") {
+              setShareStatus("Sdílení bylo zrušeno.");
+              return;
+            }
+
             if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
               await navigator.share({
                 title: "Osudový moment",
@@ -622,12 +653,20 @@ function App() {
         }
       } else {
         if (canShareFiles) {
-          await navigator.share({
-            files: [file],
-            title: "Osudový moment",
-            text: "Vyberte Uložit obrázek / Uložit do souborů.",
-          });
-          setShareStatus("Otevřelo se systémové menu. Pro stažení vyberte Uložit obrázek / Uložit do souborů.");
+          try {
+            await navigator.share({
+              files: [file],
+              title: "Osudový moment",
+              text: "Vyberte Uložit obrázek / Uložit do souborů.",
+            });
+            setShareStatus("Otevřelo se systémové menu. Pro stažení vyberte Uložit obrázek / Uložit do souborů.");
+          } catch (shareError) {
+            if (shareError?.name === "AbortError") {
+              setShareStatus("Stahování bylo zrušeno.");
+            } else {
+              throw shareError;
+            }
+          }
         } else {
           const downloaded = triggerDownload();
           if (!downloaded) {
@@ -650,6 +689,16 @@ function App() {
       setIsExporting(false);
     }
   };
+
+  useEffect(() => {
+    shareImageBlobRef.current = null;
+  }, [completeMoment?.id]);
+
+  useEffect(() => {
+    if (screen === "complete" && completeMoment && animationComplete) {
+      prepareShareImage();
+    }
+  }, [screen, completeMoment?.id, animationComplete]);
 
   useEffect(() => {
     if (screen !== "complete") {
@@ -1419,11 +1468,11 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
                         Prohlédnout mapu osudových momentů
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting}>
-                        {isExporting ? "Probíhá…" : "Sdílet"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting || isPreparingShareImage}>
+                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Sdílet"}
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting}>
-                        {isExporting ? "Probíhá…" : "Stáhnout JPG"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage}>
+                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Stáhnout JPG"}
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
