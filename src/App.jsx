@@ -734,12 +734,14 @@ function App() {
 
     setIsPreparingShareImage(true);
     let shareCardWasActivated = false;
+    let exportClone = null;
 
     try {
       const node = preferShareCard
         ? shareCardRef.current || completionCardRef.current || completionScreenRef.current
         : completionCardRef.current || completionScreenRef.current || shareCardRef.current;
       const usesShareCard = node === shareCardRef.current;
+      const usesCompletionCard = !usesShareCard;
       console.log("Export area found", {
         className: node.className,
         usesShareCard,
@@ -796,11 +798,31 @@ function App() {
         });
       });
 
-      const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
-      const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
+      let captureNode = node;
+
+      if (usesCompletionCard) {
+        exportClone = node.cloneNode(true);
+        exportClone.classList.add("is-exporting");
+        exportClone.style.position = "fixed";
+        exportClone.style.left = "0";
+        exportClone.style.top = "0";
+        exportClone.style.width = `${node.offsetWidth || 840}px`;
+        exportClone.style.maxWidth = "none";
+        exportClone.style.zIndex = "-1";
+        exportClone.style.margin = "0";
+        exportClone.style.transform = "none";
+        exportClone.style.pointerEvents = "none";
+        exportClone.style.background = "#07111f";
+        exportClone.setAttribute("aria-hidden", "true");
+        document.body.appendChild(exportClone);
+        captureNode = exportClone;
+      }
+
+      const captureWidth = Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width));
+      const captureHeight = Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height));
       const captureScale = 2;
 
-      node.classList.add("capture-freeze");
+      captureNode.classList.add("capture-freeze");
 
       console.log("Map ready", {
         mapReady,
@@ -810,7 +832,7 @@ function App() {
       let blob = null;
 
       const captureWithHtml2Canvas = async (foreignObjectRendering) => {
-        const canvas = await html2canvas(node, {
+        const canvas = await html2canvas(captureNode, {
           backgroundColor: "#07111f",
           useCORS: true,
           allowTaint: false,
@@ -937,6 +959,9 @@ function App() {
       }
       completionScreenRef.current?.classList.remove("is-exporting");
       completionCardRef.current?.classList.remove("is-exporting");
+      if (exportClone?.parentNode) {
+        exportClone.parentNode.removeChild(exportClone);
+      }
       shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
