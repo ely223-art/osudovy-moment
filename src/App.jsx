@@ -512,13 +512,21 @@ function App() {
     return false;
   };
 
-  const triggerServerDownload = (imageUrl, filename) => {
+  const triggerServerDownload = (imageUrl, filename, options = {}) => {
+    const { sameTab = false } = options;
+
     if (!imageUrl) {
       return false;
     }
 
     try {
       const downloadUrl = `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}download=1&filename=${encodeURIComponent(filename)}`;
+
+      if (sameTab) {
+        window.location.assign(downloadUrl);
+        return true;
+      }
+
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = filename;
@@ -907,9 +915,15 @@ function App() {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
-          const downloadedFromServer = triggerServerDownload(uploadedDownload.imageUrl, filename);
+          const downloadedFromServer = triggerServerDownload(uploadedDownload.imageUrl, filename, {
+            sameTab: isMobileDevice,
+          });
           if (downloadedFromServer) {
-            setShareStatus("JPG se stahuje ze serveru ve stejné verzi pro mobil i PC.");
+            setShareStatus(
+              isMobileDevice
+                ? "Otevírám serverový JPG soubor pro stažení (stejná verze jako na PC)."
+                : "JPG se stahuje ze serveru ve stejné verzi pro mobil i PC."
+            );
             return;
           }
         }
@@ -928,10 +942,7 @@ function App() {
 
         if (!downloaded && isMobileDevice) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
-          const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
-          if (!opened) {
-            window.location.href = objectUrl;
-          }
+          window.location.href = objectUrl;
 
           setShareStatus("JPG se otevřelo ze stejného souboru jako na PC. Uložte ho dlouhým stiskem na obrázek.");
           return;
