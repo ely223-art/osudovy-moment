@@ -543,7 +543,30 @@ function App() {
       return "";
     }
 
-    return `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}download=1&filename=${encodeURIComponent(filename)}`;
+    try {
+      const parsedUrl = new URL(imageUrl, window.location.origin);
+      const match = parsedUrl.pathname.match(/\/i\/([^/.]+)\.jpg$/i);
+      const imageId = match?.[1] || "";
+
+      if (imageId) {
+        const directFunctionUrl = new URL("/.netlify/functions/share-image", parsedUrl.origin);
+        directFunctionUrl.searchParams.set("id", imageId);
+        directFunctionUrl.searchParams.set("download", "1");
+        directFunctionUrl.searchParams.set("filename", filename || "osudovy-moment.jpg");
+        return directFunctionUrl.toString();
+      }
+
+      const fallbackUrl = new URL(imageUrl, window.location.origin);
+      fallbackUrl.searchParams.set("download", "1");
+      fallbackUrl.searchParams.set("filename", filename || "osudovy-moment.jpg");
+      return fallbackUrl.toString();
+    } catch (error) {
+      console.error("Failed to build server download URL", {
+        message: error?.message || String(error),
+        name: error?.name || null,
+      });
+      return "";
+    }
   };
 
   const triggerServerDownload = (downloadUrl, options = {}) => {
