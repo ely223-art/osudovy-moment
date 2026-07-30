@@ -450,6 +450,37 @@ function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
+  const uploadShareImageForFacebook = async (blob, title) => {
+    try {
+      const response = await fetch("/.netlify/functions/create-share-link", {
+        method: "POST",
+        headers: {
+          "content-type": "image/jpeg",
+          "x-share-title": encodeURIComponent(title || "Osudovy moment"),
+        },
+        body: blob,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status} ${errorText}`);
+      }
+
+      const payload = await response.json();
+      if (!payload?.shareUrl) {
+        throw new Error("Upload response is missing shareUrl");
+      }
+
+      return payload;
+    } catch (error) {
+      console.error("Facebook image upload failed", {
+        message: error?.message || String(error),
+        name: error?.name || null,
+      });
+      return null;
+    }
+  };
+
   const waitForCompletionMapTiles = async (timeoutMs = 3200) => {
     const mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
     if (!mapNode) {
@@ -730,8 +761,8 @@ function App() {
         }
       };
 
-      const openFacebookShare = () => {
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+      const openFacebookShare = (targetUrl = websiteUrl) => {
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
@@ -762,9 +793,13 @@ function App() {
       }
 
       if (mode === "share") {
+        setShareStatus("Připravuji Facebook sdílení...");
+        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+
         const fallbackToFacebookWithDownloadedJpg = async () => {
           const downloaded = triggerDownload();
-          openFacebookShare();
+          openFacebookShare(facebookTargetUrl);
 
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
             try {
@@ -778,7 +813,9 @@ function App() {
           }
 
           setShareStatus(
-            downloaded
+            uploadedShare
+              ? "Facebook sdílení je připravené s vaším obrázkem. Otevřel se i stažený JPG jako záloha."
+              : downloaded
               ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
               : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
           );
@@ -894,7 +931,11 @@ function App() {
             })()
           : false;
 
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+        const uploadedShare = hasCachedBlob
+          ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev)
+          : null;
+        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
         } else {
@@ -916,7 +957,9 @@ function App() {
         }
 
         setShareStatus(
-          downloaded
+          uploadedShare
+            ? "Facebook sdílení je připravené s vaším obrázkem. Otevřel se i stažený JPG jako záloha."
+            : downloaded
             ? "JPG se stáhlo a otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte stažený JPG."
             : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
         );
