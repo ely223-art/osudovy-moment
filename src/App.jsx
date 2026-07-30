@@ -101,7 +101,6 @@ function App() {
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
   const completionCardRef = useRef(null);
-  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const animationStartedRef = useRef(false);
@@ -456,11 +455,10 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if ((!completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
+    if (!completionCardRef.current || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
         reason: "Missing export area or moment, or preparation already running",
         hasCompletionCard: !!completionCardRef.current,
-        hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -470,15 +468,15 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = shareCardRef.current || completionCardRef.current;
+      const node = completionCardRef.current;
       console.log("Export area found", {
         className: node.className,
       });
 
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const captureWidth = shareCardRef.current ? 1080 : Math.max(1, Math.round(node.getBoundingClientRect().width));
-      const captureHeight = shareCardRef.current ? 1350 : Math.max(1, Math.round(node.getBoundingClientRect().height));
+      const captureWidth = Math.max(1, Math.round(node.getBoundingClientRect().width));
+      const captureHeight = Math.max(1, Math.round(node.getBoundingClientRect().height));
 
       console.log("Map ready", {
         mapReady,
@@ -641,7 +639,7 @@ function App() {
 
       if (!blob) {
         prepareShareImage();
-        setShareStatus("Připravuji hezký JPG obrázek. Zkuste to prosím za 1-2 sekundy znovu.");
+        setShareStatus("Připravuji přesný screen hotové obrazovky. Zkuste to prosím za 1-2 sekundy znovu.");
         return;
       }
 
@@ -676,13 +674,17 @@ function App() {
       let canShareFiles = supportsShare;
       if (supportsShare && typeof navigator.canShare === "function") {
         try {
-          canShareFiles = navigator.canShare({ files: [file] });
+          const canShareResult = navigator.canShare({ files: [file] });
+          canShareFiles = true;
+          if (!canShareResult) {
+            console.warn("canShare returned false, trying file share anyway");
+          }
         } catch (shareCapabilityError) {
           console.error("canShare check failed", {
             message: shareCapabilityError?.message || String(shareCapabilityError),
             name: shareCapabilityError?.name || null,
           });
-          canShareFiles = false;
+          canShareFiles = true;
         }
       }
 
@@ -1639,35 +1641,6 @@ function App() {
                 )}
               </section>
             </main>
-
-            <div className="share-card" ref={shareCardRef} aria-hidden="true">
-              <div className="share-card__inner">
-                <div className="share-card__header">
-                  <img className="share-card__logo" src={logo} alt="" />
-                  <div className="share-card__title">Osudovy moment</div>
-                </div>
-
-                <div className="share-card__map">
-                  <img className="share-card__map-image" src="/mapa.png" alt="" />
-                  <div className="share-card__map-overlay">
-                    <div className="share-map__line" />
-                    <div className="share-map__point" />
-                    <div className="share-map__symbol">
-                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt="" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="share-card__body">
-                  <div className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</div>
-                  <div className="share-card__name">{completeMoment.nazev}</div>
-                  {completeMoment.datum ? <div className="share-card__date">{completeMoment.datum}</div> : null}
-                  {completeMoment.prikaz ? <div className="share-card__note">{completeMoment.prikaz}</div> : null}
-                </div>
-
-                <div className="share-card__footer">osudovymoment.cz</div>
-              </div>
-            </div>
 
           </>
         )}
