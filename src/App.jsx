@@ -714,60 +714,6 @@ function App() {
     return results.every(Boolean);
   };
 
-  const resizeBlobToWidth = async (blob, targetWidth) => {
-    if (!blob || !targetWidth) {
-      return blob;
-    }
-
-    const imageUrl = URL.createObjectURL(blob);
-
-    try {
-      const image = await new Promise((resolve, reject) => {
-        const instance = new Image();
-        instance.onload = () => resolve(instance);
-        instance.onerror = () => reject(new Error("Nepodařilo se načíst JPG pro změnu velikosti."));
-        instance.src = imageUrl;
-      });
-
-      const sourceWidth = image.naturalWidth || image.width;
-      const sourceHeight = image.naturalHeight || image.height;
-
-      if (!sourceWidth || !sourceHeight || targetWidth >= sourceWidth) {
-        return blob;
-      }
-
-      const targetHeight = Math.max(1, Math.round((targetWidth / sourceWidth) * sourceHeight));
-      const canvas = document.createElement("canvas");
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-
-      const context = canvas.getContext("2d");
-      if (!context) {
-        return blob;
-      }
-
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = "high";
-      context.drawImage(image, 0, 0, targetWidth, targetHeight);
-
-      return await new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (result) => {
-            if (!result) {
-              reject(new Error("Nepodařilo se změnit velikost JPG."));
-              return;
-            }
-            resolve(result);
-          },
-          "image/jpeg",
-          EXPORT_JPEG_QUALITY
-        );
-      });
-    } finally {
-      URL.revokeObjectURL(imageUrl);
-    }
-  };
-
   const prepareShareImage = async ({ preferShareCard = false } = {}) => {
     console.log("Export started", {
       screen,
@@ -1037,12 +983,6 @@ function App() {
 
       if (!blob) {
         blob = await captureWithHtml2Canvas(false);
-      }
-
-      if (usesCompletionCard && blob) {
-        const liveCardWidth = Math.max(320, Math.round(completionCardRef.current?.getBoundingClientRect().width || 390));
-        const targetWidth = Math.round(liveCardWidth * 2);
-        blob = await resizeBlobToWidth(blob, targetWidth);
       }
 
       console.log("JPG generated", {
