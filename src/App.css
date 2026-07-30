@@ -1338,15 +1338,7 @@ a {
 
 @media (max-width: 640px) {
   .completion-card {
-    padding: 18px 16px 20px;
-  }
-
-  .completion-actions {
-    flex-direction: column;
-  }
-
-  .completion-actions .wizard-continue {
-    width: 100%;
+    padding: 24px 24px 24px;
   }
 }
 
@@ -1594,7 +1586,7 @@ a {
   .hero-layout {
     min-height: auto;
     gap: 20px;
-    padding: 120px 18px 22px;
+    padding: 104px 18px 20px;
   }
 
   .hero-title {
@@ -1637,7 +1629,7 @@ a {
 
   .wizard-layout {
     min-height: auto;
-    padding: 102px 14px 24px;
+    padding: 84px 14px 22px;
   }
 
   .wizard-card {
@@ -1716,41 +1708,32 @@ a {
   }
 
   .completion-layout {
-    padding-top: 102px;
+    padding-top: 72px;
   }
 
   .completion-card {
-    padding: 18px 12px 18px;
+    padding: 24px 24px 24px;
   }
 
   .completion-map-wrapper {
-    height: 380px;
-    min-height: 330px;
+    height: 500px;
+    min-height: 400px;
   }
 
   .completion-map-marker {
-    transform: translate(6%, -50%);
+    transform: translate(14%, -50%);
   }
 
   .completion-actions {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
-  }
-
-  .completion-actions .wizard-continue--secondary-mobile {
-    display: none;
-  }
-
-  .completion-actions .wizard-continue {
-    width: 100%;
-    margin-top: 0;
   }
 }
 
 @media (max-width: 430px) {
   .hero-layout {
-    padding-top: 148px;
+    padding-top: 92px;
   }
 
   .hero-title {
@@ -1762,11 +1745,7 @@ a {
   }
 
   .wizard-layout {
-    padding-top: 94px;
-  }
-
-  .hero-layout {
-    padding-top: 104px;
+    padding-top: 74px;
   }
 
   .hero-actions {
