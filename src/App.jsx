@@ -1521,15 +1521,34 @@ function App() {
       markerElement.style.top = `${boundedY}px`;
     };
 
+    const handleExportMapResize = () => {
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        updateMarkerPosition();
+      });
+    };
+
     map.whenReady(() => {
-      map.invalidateSize();
-      updateMarkerPosition();
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        updateMarkerPosition();
+      });
     });
 
     map.on("move zoom viewreset resize", updateMarkerPosition);
+    window.addEventListener("resize", handleExportMapResize);
+
+    setTimeout(() => {
+      handleExportMapResize();
+    }, 80);
+
+    requestAnimationFrame(() => {
+      handleExportMapResize();
+    });
 
     return () => {
       map.off("move zoom viewreset resize", updateMarkerPosition);
+      window.removeEventListener("resize", handleExportMapResize);
       map.remove();
       if (exportMapRef.current === map) {
         exportMapRef.current = null;
