@@ -504,16 +504,21 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = completionScreenRef.current || completionCardRef.current;
+      const node = completionCardRef.current || completionScreenRef.current;
       console.log("Export area found", {
         className: node.className,
       });
 
       await waitForCompletionMapTiles();
 
+      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+      const isIOSWebKit = /iPhone|iPad|iPod/i.test(userAgent);
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const captureWidth = Math.max(1, Math.round(node.getBoundingClientRect().width));
-      const captureHeight = Math.max(1, Math.round(node.getBoundingClientRect().height));
+      const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
+      const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
+      const captureScale = isIOSWebKit ? 1 : Math.max(1, Math.min(2, pixelRatio));
+
+      node.classList.add("capture-freeze");
 
       console.log("Map ready", {
         mapReady,
@@ -531,6 +536,9 @@ function App() {
         imageTimeout: 15000,
         removeContainer: true,
         logging: false,
+        foreignObjectRendering: false,
+        windowWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
+        windowHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
         ignoreElements: (element) => {
           const classList = element?.classList;
           if (!classList) {
@@ -542,7 +550,7 @@ function App() {
             classList.contains("completion-map-zoom")
           );
         },
-        scale: Math.max(1, pixelRatio),
+        scale: captureScale,
       });
 
       console.log("JPG generated", {
@@ -588,6 +596,8 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
+      completionCardRef.current?.classList.remove("capture-freeze");
+      completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
     }
   };
@@ -674,6 +684,9 @@ function App() {
 
     setShareStatus("");
 
+    const preopenedFacebookWindow =
+      mode === "share" ? window.open("about:blank", "_blank", "noopener,noreferrer") : null;
+
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const blob = await prepareShareImage();
@@ -682,6 +695,9 @@ function App() {
         /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
       if (!blob) {
+        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+          preopenedFacebookWindow.close();
+        }
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
         return;
       }
@@ -710,6 +726,20 @@ function App() {
         }
       };
 
+      const openFacebookShare = () => {
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+
+        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+          preopenedFacebookWindow.location.href = facebookShareUrl;
+          return;
+        }
+
+        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+        if (!facebookWindow) {
+          window.location.href = facebookShareUrl;
+        }
+      };
+
       const supportsShare =
         typeof navigator !== "undefined" &&
         typeof navigator.share === "function";
@@ -732,14 +762,9 @@ function App() {
       }
 
       if (mode === "share") {
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
-
         const fallbackToFacebookWithDownloadedJpg = async () => {
           const downloaded = triggerDownload();
-          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-          if (!facebookWindow) {
-            window.location.href = facebookShareUrl;
-          }
+          openFacebookShare();
 
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
             try {
@@ -774,6 +799,11 @@ function App() {
               title: "Osudový moment - Facebook",
               text: `${completeMoment.nazev}\n${websiteUrl}`,
             });
+
+            if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+              preopenedFacebookWindow.close();
+            }
+
             setShareStatus("JPG obrazovky bylo sdíleno.");
           } catch (shareError) {
             console.error("Share error", {
@@ -784,6 +814,9 @@ function App() {
             });
 
             if (shareError?.name === "AbortError") {
+              if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+                preopenedFacebookWindow.close();
+              }
               setShareStatus("Sdílení bylo zrušeno.");
               return;
             }
@@ -841,12 +874,33 @@ function App() {
       });
 
       if (mode === "share") {
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
-        const downloaded = triggerDownload();
+        const hasCachedBlob = !!shareImageBlobRef.current;
+        const downloaded = hasCachedBlob
+          ? (() => {
+              try {
+                const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(shareImageBlobRef.current);
+                const link = document.createElement("a");
+                link.href = objectUrl;
+                link.download = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
+                link.rel = "noopener";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                return true;
+              } catch {
+                return false;
+              }
+            })()
+          : false;
 
-        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-        if (!facebookWindow) {
-          window.location.href = facebookShareUrl;
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+          preopenedFacebookWindow.location.href = facebookShareUrl;
+        } else {
+          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+          if (!facebookWindow) {
+            window.location.href = facebookShareUrl;
+          }
         }
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -866,6 +920,9 @@ function App() {
             : "Otevřelo se Facebook sdílení odkazu na osudovymoment.cz. Pokud JPG není stažený, použijte Stáhnout JPG a přiložte ho."
         );
       } else {
+        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+          preopenedFacebookWindow.close();
+        }
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
       }
     }

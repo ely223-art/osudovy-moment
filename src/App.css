@@ -1156,6 +1156,11 @@ a {
   font-size: 0.92rem;
 }
 
+.capture-freeze,
+.capture-freeze * {
+  animation-play-state: paused !important;
+}
+
 .is-exporting .completion-actions {
   display: none !important;
 }
