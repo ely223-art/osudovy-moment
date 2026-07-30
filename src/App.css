@@ -1172,15 +1172,15 @@ a {
 
 .share-card {
   position: fixed;
-  left: -200vw;
-  top: -200vh;
-  z-index: -1;
+  left: 0;
+  top: 0;
+  z-index: 0;
   width: 1080px;
-  height: 1080px;
+  height: 1350px;
   padding: 24px;
   background: #07111f;
   pointer-events: none;
-  opacity: 1;
+  opacity: 0;
   visibility: visible;
   transform: none;
 }

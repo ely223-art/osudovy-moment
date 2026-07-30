@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { toJpeg } from "html-to-image";
+import html2canvas from "html2canvas";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
@@ -526,15 +526,28 @@ function App() {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
 
-      const dataUrl = await toJpeg(node, {
-        cacheBust: true,
-        pixelRatio: isMobileViewport ? 1.4 : 2,
+      const canvas = await html2canvas(node, {
         backgroundColor: "#07111f",
-        quality: 0.92,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        scale: isMobileViewport ? 1.25 : 1.8,
       });
 
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (!result) {
+              reject(new Error("Nepodařilo se vytvořit JPG."));
+              return;
+            }
+            resolve(result);
+          },
+          "image/jpeg",
+          0.9
+        );
+      });
+
       const file = new File([blob], filename, { type: "image/jpeg" });
 
       const triggerDownload = () => {
@@ -576,12 +589,16 @@ function App() {
             });
             setShareStatus("Kartička byla sdílená.");
           } catch (shareError) {
-            await navigator.share({
-              title: "Osudový moment",
-              text: `${completeMoment.nazev}\n${websiteUrl}`,
-              url: websiteUrl,
-            });
-            setShareStatus("Odkaz na web byl sdílený.");
+            if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+              await navigator.share({
+                title: "Osudový moment",
+                text: `${completeMoment.nazev}\n${websiteUrl}`,
+                url: websiteUrl,
+              });
+              setShareStatus("Odkaz na web byl sdílený.");
+            } else {
+              throw shareError;
+            }
           }
         } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
           await navigator.share({
@@ -614,7 +631,9 @@ function App() {
         } else {
           const downloaded = triggerDownload();
           if (!downloaded) {
-            window.open(dataUrl, "_blank", "noopener,noreferrer");
+            const objectUrl = URL.createObjectURL(blob);
+            window.open(objectUrl, "_blank", "noopener,noreferrer");
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
             setShareStatus("Obrázek se otevřel v nové kartě. Podržením uložte JPG.");
           } else if (isAppleMobile) {
             setShareStatus("Pokud Safari JPG neuloží přímo, použijte tlačítko Sdílet.");
