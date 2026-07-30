@@ -746,31 +746,22 @@ function App() {
 
     try {
       const node = shareCardRef.current;
-
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
       }
 
-      const usesShareCard = node === shareCardRef.current;
-      console.log("Export area found", {
-        className: node.className,
-        usesShareCard,
-      });
+      node.classList.add("is-capturing");
+      shareCardWasActivated = true;
 
-      if (usesShareCard) {
-        node.classList.add("is-capturing");
-        shareCardWasActivated = true;
-
-        const shareCardImageElements = Array.from(node.querySelectorAll("img"));
-        const shareCardImageSources = shareCardImageElements
-          .map((image) => image.currentSrc || image.src)
-          .filter(Boolean);
-        const preloadOk = await preloadImageSources(shareCardImageSources, 9000);
-        if (!preloadOk) {
-          console.warn("Some share-card images did not preload before capture", {
-            sources: shareCardImageSources,
-          });
-        }
+      const shareCardImageElements = Array.from(node.querySelectorAll("img"));
+      const shareCardImageSources = shareCardImageElements
+        .map((image) => image.currentSrc || image.src)
+        .filter(Boolean);
+      const preloadOk = await preloadImageSources(shareCardImageSources, 9000);
+      if (!preloadOk) {
+        console.warn("Some share-card images did not preload before capture", {
+          sources: shareCardImageSources,
+        });
       }
 
       await waitForNodeImages(node, 9000);
@@ -786,14 +777,11 @@ function App() {
         }
       }
 
-      if (usesShareCard) {
-        const hasMissingImage = Array.from(node.querySelectorAll("img")).some(
-          (image) => !(image.complete && image.naturalWidth > 0)
-        );
-
-        if (hasMissingImage) {
-          throw new Error("Share-card images are not fully loaded for export.");
-        }
+      const hasMissingImage = Array.from(node.querySelectorAll("img")).some(
+        (image) => !(image.complete && image.naturalWidth > 0)
+      );
+      if (hasMissingImage) {
+        throw new Error("Share-card images are not fully loaded for export.");
       }
 
       await new Promise((resolve) => {
@@ -802,23 +790,14 @@ function App() {
         });
       });
 
-      const captureNode = node;
-
       const captureWidth = EXPORT_SHARE_WIDTH;
       const captureHeight = EXPORT_SHARE_HEIGHT;
       const captureScale = EXPORT_CAPTURE_SCALE;
 
-      captureNode.classList.add("capture-freeze");
-
-      console.log("Map ready", {
-        mapReady,
-        animationComplete,
-      });
-
-      let blob = null;
+      node.classList.add("capture-freeze");
 
       const captureWithHtml2Canvas = async (foreignObjectRendering) => {
-        const canvas = await html2canvas(captureNode, {
+        const canvas = await html2canvas(node, {
           backgroundColor: "#07111f",
           useCORS: true,
           allowTaint: false,
@@ -832,17 +811,6 @@ function App() {
           foreignObjectRendering,
           windowWidth: captureWidth,
           windowHeight: captureHeight,
-          ignoreElements: (element) => {
-            const classList = element?.classList;
-            if (!classList) {
-              return false;
-            }
-
-            return (
-              classList.contains("leaflet-control-container") ||
-              classList.contains("completion-map-zoom")
-            );
-          },
           scale: captureScale,
         });
 
@@ -861,35 +829,23 @@ function App() {
         });
       };
 
-      if (!blob) {
-        try {
-          // Primary renderer for share-card: stable on mobile and desktop.
-          blob = await htmlToImageToBlob(node, {
-            cacheBust: true,
-            pixelRatio: captureScale,
-            canvasWidth: captureWidth,
-            canvasHeight: captureHeight,
-            quality: EXPORT_JPEG_QUALITY,
-            type: "image/jpeg",
-            backgroundColor: "#07111f",
-            filter: (element) => {
-              const classList = element?.classList;
-              if (!classList) {
-                return true;
-              }
+      let blob = null;
 
-              return !(
-                classList.contains("leaflet-control-container") ||
-                classList.contains("completion-map-zoom")
-              );
-            },
-          });
-        } catch (primaryError) {
-          console.error("html-to-image capture failed, falling back to html2canvas", {
-            message: primaryError?.message || String(primaryError),
-            name: primaryError?.name || null,
-          });
-        }
+      try {
+        blob = await htmlToImageToBlob(node, {
+          cacheBust: true,
+          pixelRatio: captureScale,
+          canvasWidth: captureWidth,
+          canvasHeight: captureHeight,
+          quality: EXPORT_JPEG_QUALITY,
+          type: "image/jpeg",
+          backgroundColor: "#07111f",
+        });
+      } catch (primaryError) {
+        console.error("html-to-image capture failed, falling back to html2canvas", {
+          message: primaryError?.message || String(primaryError),
+          name: primaryError?.name || null,
+        });
       }
 
       if (!blob) {
@@ -907,14 +863,13 @@ function App() {
         blob = await captureWithHtml2Canvas(false);
       }
 
+      if (!blob) {
+        throw new Error("Nepodařilo se připravit JPG.");
+      }
+
       console.log("JPG generated", {
         width: Math.round(captureWidth * captureScale),
         height: Math.round(captureHeight * captureScale),
-      });
-
-      console.log("Blob created", {
-        size: blob?.size || 0,
-        type: blob?.type || null,
       });
 
       shareImageBlobRef.current = blob;

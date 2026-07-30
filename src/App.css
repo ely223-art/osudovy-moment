@@ -1308,8 +1308,9 @@ a {
 
 .share-card__map {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 280px;
+  flex: 0 0 320px;
+  height: 320px;
+  min-height: 320px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(255, 234, 197, 0.2);
@@ -1385,6 +1386,10 @@ a {
 .share-card__body {
   display: grid;
   gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 234, 197, 0.18);
+  border-radius: 12px;
+  background: rgba(6, 13, 24, 0.74);
 }
 
 .share-card__place {
@@ -1401,7 +1406,7 @@ a {
 
 .share-card__name {
   font-family: "Cormorant Garamond", serif;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   color: #fcf7ee;
 }
 
