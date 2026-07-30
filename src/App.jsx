@@ -1148,7 +1148,7 @@ function App() {
 
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = await prepareShareImage({ preferShareCard: true });
+      const blob = await prepareShareImage({ preferShareCard: false });
 
       if (!blob) {
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
@@ -1292,7 +1292,7 @@ function App() {
     }
 
     setShareStatus("");
-    prepareShareImage({ preferShareCard: true }).then((preparedBlob) => {
+    prepareShareImage({ preferShareCard: false }).then((preparedBlob) => {
       if (!preparedBlob || !shareImageObjectUrlRef.current) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
         return;
