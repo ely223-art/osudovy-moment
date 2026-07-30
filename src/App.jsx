@@ -46,6 +46,8 @@ const EXPORT_VIEWPORT_HEIGHT = 1800;
 const EXPORT_CARD_WIDTH = 840;
 const EXPORT_CARD_HEIGHT = 500;
 const EXPORT_CAPTURE_SCALE = 2;
+const EXPORT_SHARE_WIDTH = 1080;
+const EXPORT_SHARE_HEIGHT = 1350;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -720,16 +722,15 @@ function App() {
     return results.every(Boolean);
   };
 
-  const prepareShareImage = async ({ preferShareCard = false } = {}) => {
+  const prepareShareImage = async () => {
     console.log("Export started", {
       screen,
       completeMomentId: completeMoment?.id || null,
     });
 
-    if ((!completionCardRef.current && !shareCardRef.current) || !completeMoment || isPreparingShareImage) {
+    if (!shareCardRef.current || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
-        reason: "Missing completion area or moment, or preparation already running",
-        hasCompletionCard: !!completionCardRef.current,
+        reason: "Missing share-card area or moment, or preparation already running",
         hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
@@ -741,17 +742,13 @@ function App() {
     let shareCardWasActivated = false;
 
     try {
-      const selectedPlace = completeMoment;
-      const node = preferShareCard
-        ? shareCardRef.current || completionCardRef.current
-        : exportCardRef.current;
+      const node = shareCardRef.current;
 
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
       }
 
       const usesShareCard = node === shareCardRef.current;
-      const usesCompletionCard = !usesShareCard;
       console.log("Export area found", {
         className: node.className,
         usesShareCard,
@@ -771,55 +768,6 @@ function App() {
             sources: shareCardImageSources,
           });
         }
-      }
-
-      if (!usesShareCard) {
-        const latitude = parseCoordinate(selectedPlace?.latitude);
-        const longitude = parseCoordinate(selectedPlace?.longitude);
-
-        if (
-          Number.isFinite(latitude) &&
-          Number.isFinite(longitude) &&
-          (exportMapRef.current?.setView || completionMapRef.current?.setView)
-        ) {
-          await new Promise((resolve) => {
-            const map = exportMapRef.current || completionMapRef.current;
-            if (!map) {
-              resolve();
-              return;
-            }
-
-            let settled = false;
-            const finish = () => {
-              if (settled) {
-                return;
-              }
-              settled = true;
-              map.off("moveend", finish);
-              resolve();
-            };
-
-            map.on("moveend", finish);
-            map.setView([latitude, longitude], 9, { animate: false });
-            window.setTimeout(finish, 450);
-          });
-        }
-
-        const map = exportMapRef.current || completionMapRef.current;
-        if (map?.invalidateSize) {
-          map.invalidateSize();
-        }
-
-        await new Promise((resolve) => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-          });
-        });
-
-        await waitForCompletionMapTiles(
-          node.querySelector(".completion-map-wrapper"),
-          5000
-        );
       }
 
       await waitForNodeImages(node, 9000);
@@ -853,12 +801,14 @@ function App() {
 
       const captureNode = node;
 
-      const captureWidth = usesShareCard
-        ? Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width))
-        : EXPORT_CARD_WIDTH;
-      const captureHeight = usesShareCard
-        ? Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height))
-        : EXPORT_CARD_HEIGHT;
+      const captureWidth = Math.max(
+        1,
+        captureNode.scrollWidth || captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width) || EXPORT_SHARE_WIDTH
+      );
+      const captureHeight = Math.max(
+        1,
+        captureNode.scrollHeight || captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height) || EXPORT_SHARE_HEIGHT
+      );
       const captureScale = EXPORT_CAPTURE_SCALE;
 
       captureNode.classList.add("capture-freeze");
@@ -883,8 +833,8 @@ function App() {
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: usesShareCard ? EXPORT_VIEWPORT_WIDTH : EXPORT_CARD_WIDTH,
-          windowHeight: usesShareCard ? EXPORT_VIEWPORT_HEIGHT : EXPORT_CARD_HEIGHT,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
@@ -914,24 +864,9 @@ function App() {
         });
       };
 
-      if (usesShareCard) {
+      if (!blob) {
         try {
-          blob = await captureWithHtml2Canvas(true);
-        } catch (shareCanvasError) {
-          console.error("Share-card html2canvas (foreignObject) failed", {
-            message: shareCanvasError?.message || String(shareCanvasError),
-            name: shareCanvasError?.name || null,
-          });
-        }
-
-        if (!blob) {
-          blob = await captureWithHtml2Canvas(false);
-        }
-      }
-
-      if (!blob && usesShareCard) {
-        try {
-        // Primary renderer: preserves DOM transforms and layout more faithfully.
+          // Primary renderer for the single shared export component.
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
@@ -956,6 +891,17 @@ function App() {
           console.error("html-to-image capture failed, falling back to html2canvas", {
             message: primaryError?.message || String(primaryError),
             name: primaryError?.name || null,
+          });
+        }
+      }
+
+      if (!blob) {
+        try {
+          blob = await captureWithHtml2Canvas(true);
+        } catch (shareCanvasError) {
+          console.error("Share-card html2canvas (foreignObject) failed", {
+            message: shareCanvasError?.message || String(shareCanvasError),
+            name: shareCanvasError?.name || null,
           });
         }
       }
@@ -1093,7 +1039,7 @@ function App() {
 
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: false }));
+      const blob = shareImageBlobRef.current || (await prepareShareImage());
 
       if (!blob) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
@@ -1249,13 +1195,21 @@ function App() {
       return;
     }
 
-    prepareShareImage({ preferShareCard: false }).catch((error) => {
+    prepareShareImage().catch((error) => {
       console.error("Background JPG pre-generation failed", {
         message: error?.message || String(error),
         name: error?.name || null,
       });
     });
   }, [screen, completeMoment?.id, animationComplete, isPreparingShareImage, shareImageReady]);
+
+  const exportMomentUrl = useMemo(() => {
+    if (!completeMoment?.id) {
+      return websiteUrl;
+    }
+
+    return `${websiteUrl}/s/${encodeURIComponent(completeMoment.id)}`;
+  }, [completeMoment?.id]);
 
   useEffect(() => {
     if (screen !== "complete") {
@@ -2207,12 +2161,13 @@ function App() {
 
                 <div className="share-card__body">
                   <span className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</span>
+                  <span className="share-card__type">Symbol: {completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
                   <strong className="share-card__name">{completeMoment.nazev || "Osudový moment"}</strong>
                   {completeMoment.datum ? <span className="share-card__date">Datum: {completeMoment.datum}</span> : null}
                   {completeMoment.prikaz ? <span className="share-card__note">{completeMoment.prikaz}</span> : null}
                 </div>
 
-                <span className="share-card__footer">osudovymoment.cz</span>
+                <span className="share-card__footer">{exportMomentUrl}</span>
               </div>
             </div>
           </>

@@ -1391,6 +1391,12 @@ a {
   color: rgba(247, 239, 226, 0.84);
 }
 
+.share-card__type {
+  font-family: "Inter", sans-serif;
+  font-size: 0.95rem;
+  color: rgba(247, 239, 226, 0.78);
+}
+
 .share-card__name {
   font-family: "Cormorant Garamond", serif;
   font-size: 1.8rem;
@@ -1408,10 +1414,11 @@ a {
   margin-top: auto;
   padding-top: 4px;
   font-family: "Inter", sans-serif;
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: rgba(247, 239, 226, 0.66);
+  word-break: break-all;
 }
 
 @media (max-width: 640px) {
