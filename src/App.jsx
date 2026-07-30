@@ -807,8 +807,11 @@ function App() {
         exportClone.style.position = "fixed";
         exportClone.style.left = "0";
         exportClone.style.top = "0";
-        exportClone.style.width = `${node.offsetWidth || 840}px`;
+        exportClone.style.width = "840px";
+        exportClone.style.minWidth = "840px";
         exportClone.style.maxWidth = "none";
+        exportClone.style.height = "1350px";
+        exportClone.style.minHeight = "1350px";
         exportClone.style.zIndex = "-1";
         exportClone.style.margin = "0";
         exportClone.style.transform = "none";
@@ -826,6 +829,10 @@ function App() {
         ) {
           const latitude = Number(selectedPlace.latitude);
           const longitude = Number(selectedPlace.longitude);
+
+          exportMapContainer.style.width = "100%";
+          exportMapContainer.style.height = "500px";
+          exportMapContainer.style.minHeight = "400px";
 
           if (exportMapContainer.firstChild) {
             exportMapContainer.replaceChildren();
