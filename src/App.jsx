@@ -578,23 +578,17 @@ function App() {
         });
       });
 
-      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-      const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-
-      if (isMobileDevice) {
-        node.classList.add("capture-desktop-export");
-        window.dispatchEvent(new Event("resize"));
-        await new Promise((resolve) => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-          });
+      node.classList.add("capture-desktop-export");
+      window.dispatchEvent(new Event("resize"));
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
         });
-      }
+      });
 
       const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
       const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
-      const captureScale = Math.max(1, Math.min(2, pixelRatio));
+      const captureScale = 2;
 
       node.classList.add("capture-freeze");
 
@@ -909,33 +903,18 @@ function App() {
           return;
         }
 
-        if (isMobileDevice && canShareFileDirectly) {
-          try {
-            await navigator.share({
-              files: [sharedFile],
-              title: "Osudový moment JPG",
-            });
-            setShareStatus("Otevřelo se sdílení souboru. Pro stažení zvolte Uložit obrázek / Uložit do souborů.");
-            return;
-          } catch (shareError) {
-            console.error("Mobile file share failed", {
-              message: shareError?.message || String(shareError),
-              name: shareError?.name || null,
-            });
-          }
-        }
+        const downloaded = triggerDownload();
 
-        if (isMobileDevice) {
+        if (!downloaded && isMobileDevice) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
           const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
           if (!opened) {
             window.location.href = objectUrl;
           }
-          setShareStatus("JPG se otevřelo. Pro uložení použijte dlouhý stisk na obrázek.");
+
+          setShareStatus("JPG se otevřelo ze stejného souboru jako na PC. Uložte ho dlouhým stiskem na obrázek.");
           return;
         }
-
-        const downloaded = triggerDownload();
 
         if (isAppleMobile && !downloaded && canShareFileDirectly) {
           try {
