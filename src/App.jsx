@@ -536,8 +536,7 @@ function App() {
 
     try {
       const parsedUrl = new URL(imageUrl, window.location.origin);
-      const match = parsedUrl.pathname.match(/\/i\/([^/.]+)\.jpg$/i);
-      const imageId = match?.[1] || "";
+      const imageId = parsedUrl.searchParams.get("id") || parsedUrl.pathname.match(/\/i\/([^/.]+)\.jpg$/i)?.[1] || "";
 
       if (imageId) {
         const directFunctionUrl = new URL("/.netlify/functions/share-image", parsedUrl.origin);

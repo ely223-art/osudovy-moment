@@ -21,9 +21,8 @@ export default async (request) => {
     }
 
     const origin = requestUrl.origin;
-    const canonicalUrl = "https://osudovymoment.cz";
     const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
-    const imageUrl = `${origin}/i/${encodeURIComponent(safeId)}.jpg`;
+    const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
     const title = "Osudovy moment";
     const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
 
@@ -48,10 +47,9 @@ export default async (request) => {
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
     <meta name="robots" content="noindex,nofollow" />
-    <meta http-equiv="refresh" content="1;url=${escapeHtml(canonicalUrl)}" />
   </head>
   <body>
-    <p>Presmerovani na <a href="${escapeHtml(canonicalUrl)}">osudovymoment.cz</a>...</p>
+    <p>Odkaz s náhledem momentu.</p>
   </body>
 </html>`;
 
