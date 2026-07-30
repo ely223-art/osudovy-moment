@@ -1594,12 +1594,5 @@ a {
   .wizard-card {
     padding: 24px 20px 22px;
   }
-}.hero-title,
-.hero-subtitle,
-.hero-description,
-.hero-actions {
-  position: relative;
-  top: -400px;
-
 }
 
