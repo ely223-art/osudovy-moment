@@ -43,7 +43,6 @@ const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
 const EXPORT_VIEWPORT_WIDTH = 1440;
 const EXPORT_VIEWPORT_HEIGHT = 1800;
-const EXPORT_CARD_WIDTH = 840;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -799,86 +798,7 @@ function App() {
         });
       });
 
-      let mapSnapshotDataUrl = "";
-      if (usesCompletionCard) {
-        const liveMapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
-        if (liveMapNode) {
-          try {
-            const mapSnapshotCanvas = await html2canvas(liveMapNode, {
-              backgroundColor: null,
-              useCORS: true,
-              allowTaint: false,
-              width: Math.max(1, liveMapNode.offsetWidth || Math.round(liveMapNode.getBoundingClientRect().width)),
-              height: Math.max(1, liveMapNode.offsetHeight || Math.round(liveMapNode.getBoundingClientRect().height)),
-              scrollX: 0,
-              scrollY: 0,
-              imageTimeout: 15000,
-              removeContainer: true,
-              logging: false,
-              foreignObjectRendering: false,
-              windowWidth: EXPORT_VIEWPORT_WIDTH,
-              windowHeight: EXPORT_VIEWPORT_HEIGHT,
-              ignoreElements: (element) => {
-                const classList = element?.classList;
-                if (!classList) {
-                  return false;
-                }
-
-                return classList.contains("completion-map-zoom");
-              },
-              scale: 2,
-            });
-
-            mapSnapshotDataUrl = mapSnapshotCanvas.toDataURL("image/png");
-          } catch (mapSnapshotError) {
-            console.error("Map snapshot capture failed", {
-              message: mapSnapshotError?.message || String(mapSnapshotError),
-              name: mapSnapshotError?.name || null,
-            });
-          }
-        }
-      }
-
       let captureNode = node;
-
-      if (usesCompletionCard && mapSnapshotDataUrl) {
-        exportClone = node.cloneNode(true);
-        exportClone.classList.add("is-exporting");
-        exportClone.style.position = "fixed";
-        exportClone.style.left = "0";
-        exportClone.style.top = "0";
-        exportClone.style.width = `${EXPORT_CARD_WIDTH}px`;
-        exportClone.style.minWidth = `${EXPORT_CARD_WIDTH}px`;
-        exportClone.style.maxWidth = "none";
-        exportClone.style.zIndex = "-1";
-        exportClone.style.margin = "0";
-        exportClone.style.transform = "none";
-        exportClone.style.pointerEvents = "none";
-        exportClone.style.background = "#07111f";
-        exportClone.setAttribute("aria-hidden", "true");
-        document.body.appendChild(exportClone);
-
-        const exportMapShell = exportClone.querySelector(".completion-map-shell");
-        const exportMapWrapper = exportClone.querySelector(".completion-map-wrapper");
-        if (exportMapShell && exportMapWrapper) {
-          exportMapWrapper.replaceChildren();
-          exportMapWrapper.style.position = "relative";
-          exportMapWrapper.style.background = "#050b14";
-          exportMapWrapper.style.overflow = "hidden";
-
-          const snapshotImage = document.createElement("img");
-          snapshotImage.src = mapSnapshotDataUrl;
-          snapshotImage.alt = "Mapa osudového momentu";
-          snapshotImage.style.width = "100%";
-          snapshotImage.style.height = "100%";
-          snapshotImage.style.display = "block";
-          snapshotImage.style.objectFit = "cover";
-          exportMapWrapper.appendChild(snapshotImage);
-        }
-        captureNode = exportClone;
-      } else if (usesCompletionCard) {
-        console.warn("Map snapshot unavailable, using live completion card capture fallback.");
-      }
 
       const captureWidth = Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width));
       const captureHeight = Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height));
