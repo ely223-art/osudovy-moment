@@ -39,6 +39,7 @@ const parseCoordinate = (value) => {
 
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
+const EXPORT_JPEG_QUALITY = 0.92;
 
 function renderMomentMarkerBody(symbolImage) {
   return `
@@ -669,7 +670,7 @@ function App() {
           pixelRatio: captureScale,
           canvasWidth: captureWidth,
           canvasHeight: captureHeight,
-          quality: 1,
+          quality: EXPORT_JPEG_QUALITY,
           type: "image/jpeg",
           backgroundColor: "#07111f",
           filter: (element) => {
@@ -730,7 +731,7 @@ function App() {
               resolve(result);
             },
             "image/jpeg",
-            1
+            EXPORT_JPEG_QUALITY
           );
         });
       }
@@ -950,6 +951,7 @@ function App() {
           const serverDownloadUrl = buildServerDownloadUrl(uploadedDownload.imageUrl, filename);
           setDirectDownloadLink(serverDownloadUrl, filename, false);
 
+          // On mobile, always use same-tab navigation to avoid popup/auto-download blocking.
           const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
             sameTab: isMobileDevice,
           });
@@ -961,6 +963,14 @@ function App() {
             );
             return;
           }
+        }
+
+        if (isMobileDevice) {
+          const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(objectUrl, filename, !shareImageObjectUrlRef.current);
+          window.location.href = objectUrl;
+          setShareStatus("Automatické stažení mobil zablokoval. Klikněte na Přímé stažení JPG.");
+          return;
         }
 
         if (isInAppSocialBrowser) {

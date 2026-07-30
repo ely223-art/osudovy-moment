@@ -1,6 +1,6 @@
 import { getStore } from "@netlify/blobs";
 
-const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
 
 const jsonResponse = (statusCode, payload) => ({
   status: statusCode,
