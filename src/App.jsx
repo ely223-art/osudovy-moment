@@ -504,19 +504,23 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = completionCardRef.current || completionScreenRef.current;
+      const node = completionScreenRef.current || completionCardRef.current;
       console.log("Export area found", {
         className: node.className,
       });
 
       await waitForCompletionMapTiles();
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
 
-      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-      const isIOSWebKit = /iPhone|iPad|iPod/i.test(userAgent);
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
-      const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
-      const captureScale = isIOSWebKit ? 1 : Math.max(1, Math.min(2, pixelRatio));
+      const nodeRect = node.getBoundingClientRect();
+      const captureWidth = Math.max(1, nodeRect.width);
+      const captureHeight = Math.max(1, nodeRect.height);
+      const captureScale = Math.max(1, Math.min(3, pixelRatio));
 
       node.classList.add("capture-freeze");
 
@@ -531,8 +535,8 @@ function App() {
         allowTaint: false,
         width: captureWidth,
         height: captureHeight,
-        scrollX: typeof window !== "undefined" ? -window.scrollX : 0,
-        scrollY: typeof window !== "undefined" ? -window.scrollY : 0,
+        scrollX: 0,
+        scrollY: 0,
         imageTimeout: 15000,
         removeContainer: true,
         logging: false,
@@ -747,17 +751,13 @@ function App() {
       let canShareFiles = supportsShare;
       if (supportsShare && typeof navigator.canShare === "function") {
         try {
-          const canShareResult = navigator.canShare({ files: [file] });
-          canShareFiles = true;
-          if (!canShareResult) {
-            console.warn("canShare returned false, trying file share anyway");
-          }
+          canShareFiles = navigator.canShare({ files: [file] });
         } catch (shareCapabilityError) {
           console.error("canShare check failed", {
             message: shareCapabilityError?.message || String(shareCapabilityError),
             name: shareCapabilityError?.name || null,
           });
-          canShareFiles = true;
+          canShareFiles = false;
         }
       }
 
@@ -798,6 +798,7 @@ function App() {
               files: [file],
               title: "Osudový moment - Facebook",
               text: `${completeMoment.nazev}\n${websiteUrl}`,
+              url: websiteUrl,
             });
 
             if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
