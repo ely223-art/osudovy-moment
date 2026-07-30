@@ -449,7 +449,18 @@ function App() {
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
   const prepareShareImage = async () => {
+    console.log("Export started", {
+      screen,
+      completeMomentId: completeMoment?.id || null,
+    });
+
     if (!completionCardRef.current || !completeMoment || isPreparingShareImage) {
+      console.error("Export failed", {
+        reason: "Missing export area or moment, or preparation already running",
+        hasCompletionCard: !!completionCardRef.current,
+        hasCompleteMoment: !!completeMoment,
+        isPreparingShareImage,
+      });
       return null;
     }
 
@@ -457,11 +468,20 @@ function App() {
 
     try {
       const node = completionCardRef.current;
+      console.log("Export area found", {
+        className: node.className,
+      });
+
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
       const bounds = node.getBoundingClientRect();
       const captureWidth = Math.max(1, Math.round(bounds.width));
       const captureHeight = Math.max(1, Math.round(bounds.height));
+
+      console.log("Map ready", {
+        mapReady,
+        animationComplete,
+      });
 
       const canvas = await html2canvas(node, {
         backgroundColor: "#07111f",
@@ -486,6 +506,11 @@ function App() {
         scale: isMobileViewport ? Math.max(1, Math.min(1.5, pixelRatio)) : Math.max(1, Math.min(1.75, pixelRatio)),
       });
 
+      console.log("JPG generated", {
+        width: canvas.width,
+        height: canvas.height,
+      });
+
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(
           (result) => {
@@ -500,6 +525,11 @@ function App() {
         );
       });
 
+      console.log("Blob created", {
+        size: blob?.size || 0,
+        type: blob?.type || null,
+      });
+
       shareImageBlobRef.current = blob;
 
       if (shareImageObjectUrlRef.current) {
@@ -510,6 +540,11 @@ function App() {
       return blob;
     } catch (error) {
       console.error("Nepodařilo se připravit kartičku pro sdílení:", error);
+      console.error("Export step error", {
+        message: error?.message || String(error),
+        name: error?.name || null,
+        stack: error?.stack || null,
+      });
       return null;
     } finally {
       setIsPreparingShareImage(false);
@@ -655,6 +690,14 @@ function App() {
 
         if (canShareFiles) {
           try {
+            console.log("Share started", {
+              type: "file",
+              mode,
+              filename,
+              size: file.size,
+              mime: file.type,
+            });
+
             await navigator.share({
               files: [file],
               title: "Osudový moment",
@@ -662,12 +705,24 @@ function App() {
             });
             setShareStatus("Kartička byla sdílená.");
           } catch (shareError) {
+            console.error("Share error", {
+              mode,
+              message: shareError?.message || String(shareError),
+              name: shareError?.name || null,
+              stack: shareError?.stack || null,
+            });
+
             if (shareError?.name === "AbortError") {
               setShareStatus("Sdílení bylo zrušeno.");
               return;
             }
 
             if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+              console.log("Share started", {
+                type: "url",
+                mode,
+              });
+
               await navigator.share({
                 title: "Osudový moment",
                 text: `${completeMoment.nazev}\n${websiteUrl}`,
@@ -679,6 +734,11 @@ function App() {
             }
           }
         } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+          console.log("Share started", {
+            type: "url",
+            mode,
+          });
+
           await navigator.share({
             title: "Osudový moment",
             text: `${completeMoment.nazev}\n${websiteUrl}`,
@@ -717,6 +777,12 @@ function App() {
       }
     } catch (error) {
       console.error("Nepodařilo se vytvořit JPG kartičku:", error);
+      console.error("Export/share flow error", {
+        mode,
+        message: error?.message || String(error),
+        name: error?.name || null,
+        stack: error?.stack || null,
+      });
       setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
     } finally {
       setIsExporting(false);
