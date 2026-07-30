@@ -1,9 +1,10 @@
 import { getStore } from "@netlify/blobs";
+import { extractShareId } from "../../src/utils/shareRequest.js";
 
 export default async (request) => {
   try {
     const url = new URL(request.url);
-    const id = url.searchParams.get("id");
+    const id = extractShareId(request.url);
     const shouldDownload = url.searchParams.get("download") === "1";
     const requestedFilename = url.searchParams.get("filename") || "osudovy-moment.jpg";
 

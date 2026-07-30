@@ -6,10 +6,11 @@ const escapeHtml = (value = "") =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
+import { extractShareId } from "../../src/utils/shareRequest.js";
+
 export default async (request) => {
   try {
-    const requestUrl = new URL(request.url);
-    const id = requestUrl.searchParams.get("id");
+    const id = extractShareId(request.url);
 
     if (!id) {
       return new Response("Missing id", { status: 400 });
