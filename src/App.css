@@ -1250,26 +1250,28 @@ a {
 }
 
 .share-card {
-  position: absolute;
-  left: -200vw;
+  position: fixed;
+  left: 0;
   top: 0;
-  z-index: 0;
+  z-index: -1;
   width: 1080px;
   height: 1350px;
   padding: 24px;
   background: #07111f;
   pointer-events: none;
-  opacity: 1;
+  opacity: 0;
   visibility: visible;
   transform: none;
 }
 
 .share-card:not(.is-capturing) {
-  left: -200vw;
+  left: 0;
 }
 
 .share-card.is-capturing {
   left: 0;
+  z-index: 2147483000;
+  opacity: 1;
 }
 
 .share-card__inner {

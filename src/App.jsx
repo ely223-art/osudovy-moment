@@ -41,10 +41,6 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
-const EXPORT_VIEWPORT_WIDTH = 1440;
-const EXPORT_VIEWPORT_HEIGHT = 1800;
-const EXPORT_CARD_WIDTH = 840;
-const EXPORT_CARD_HEIGHT = 500;
 const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1080;
 const EXPORT_SHARE_HEIGHT = 1350;
@@ -801,14 +797,8 @@ function App() {
 
       const captureNode = node;
 
-      const captureWidth = Math.max(
-        1,
-        captureNode.scrollWidth || captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width) || EXPORT_SHARE_WIDTH
-      );
-      const captureHeight = Math.max(
-        1,
-        captureNode.scrollHeight || captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height) || EXPORT_SHARE_HEIGHT
-      );
+      const captureWidth = EXPORT_SHARE_WIDTH;
+      const captureHeight = EXPORT_SHARE_HEIGHT;
       const captureScale = EXPORT_CAPTURE_SCALE;
 
       captureNode.classList.add("capture-freeze");
@@ -1057,40 +1047,6 @@ function App() {
       };
 
       if (mode === "share") {
-        const supportsNativeFileShare =
-          typeof navigator !== "undefined" &&
-          typeof navigator.share === "function" &&
-          typeof navigator.canShare === "function";
-
-        if (isMobileDevice && supportsNativeFileShare) {
-          const jpgFile = new File([blob], filename, { type: "image/jpeg" });
-          if (!navigator.canShare({ files: [jpgFile] })) {
-            setShareStatus("Zařízení nepodporuje sdílení JPG.");
-            return;
-          }
-
-          try {
-            await navigator.share({ files: [jpgFile] });
-            return;
-          } catch (shareError) {
-            if (shareError?.name === "AbortError") {
-              return;
-            }
-
-            console.error("Native file share failed", {
-              message: shareError?.message || String(shareError),
-              name: shareError?.name || null,
-            });
-            setShareStatus("Sdílení JPG se nepodařilo.");
-            return;
-          }
-        }
-
-        if (isMobileDevice && !supportsNativeFileShare) {
-          setShareStatus("Zařízení nepodporuje sdílení JPG.");
-          return;
-        }
-
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedShare?.imageUrl) {
@@ -1103,7 +1059,7 @@ function App() {
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(websiteUrl);
+            await navigator.clipboard.writeText(facebookTargetUrl);
           } catch (clipboardError) {
             console.error("Clipboard write failed", {
               message: clipboardError?.message || String(clipboardError),
@@ -1159,7 +1115,7 @@ function App() {
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(websiteUrl);
+            await navigator.clipboard.writeText(facebookTargetUrl);
           } catch (clipboardError) {
             console.error("Clipboard write failed", {
               message: clipboardError?.message || String(clipboardError),
