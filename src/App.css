@@ -1177,7 +1177,7 @@ a {
 }
 
 .export-render-surface .completion-card.is-exporting .wizard-title {
-  font-size: clamp(2rem, 3vw, 2.45rem) !important;
+  font-size: 2.45rem !important;
   line-height: 1.08 !important;
 }
 
@@ -1192,6 +1192,11 @@ a {
 .export-render-surface .completion-card.is-exporting .completion-value {
   font-size: 1rem !important;
   line-height: 1.45 !important;
+}
+
+.export-render-surface .completion-card.is-exporting .completion-map-place-label {
+  font-size: 16px !important;
+  line-height: 1.15 !important;
 }
 
 .completion-card.is-exporting .completion-layout {
@@ -1803,8 +1808,7 @@ a {
     gap: 10px;
   }
 
-  .completion-actions .wizard-continue--secondary-mobile,
-  .completion-actions .wizard-continue:nth-child(2) {
+  .completion-actions .wizard-continue--secondary-mobile {
     display: none;
   }
 }

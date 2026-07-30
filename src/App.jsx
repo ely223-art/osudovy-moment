@@ -575,28 +575,6 @@ function App() {
     setDirectDownloadFilename("");
   };
 
-  const handleCopyShareLink = async () => {
-    if (!shareLinkUrl) {
-      return;
-    }
-
-    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-      setShareStatus("Kopírování odkazu není v tomto prohlížeči dostupné.");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareLinkUrl);
-      setShareStatus("Odkaz na moment byl zkopírován.");
-    } catch (clipboardError) {
-      console.error("Clipboard write failed", {
-        message: clipboardError?.message || String(clipboardError),
-        name: clipboardError?.name || null,
-      });
-      setShareStatus("Kopírování odkazu se nepodařilo.");
-    }
-  };
-
   const triggerServerDownload = (downloadUrl, options = {}) => {
     const { sameTab = false } = options;
 
@@ -1132,45 +1110,16 @@ function App() {
         }
       };
 
-      const prepareMobileFallbackDownload = (targetBlob, uploadedShare, targetFilename) => {
-        if (uploadedShare?.imageUrl) {
-          const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedShare.id || Date.now()}.jpg`;
-          const serverDownloadUrl = buildServerDownloadUrl(uploadedShare.imageUrl, uniqueFilename);
-          setDirectDownloadLink(serverDownloadUrl, targetFilename, false);
-          return;
-        }
-
-        if (shareImageObjectUrlRef.current) {
-          setDirectDownloadLink(shareImageObjectUrlRef.current, targetFilename, true);
-          return;
-        }
-
-        if (targetBlob) {
-          const objectUrl = URL.createObjectURL(targetBlob);
-          setDirectDownloadLink(objectUrl, targetFilename, true);
-        }
-      };
-
       if (mode === "share") {
-        setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
-        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
-        if (uploadedShare?.imageUrl) {
-          await waitForShareImageAvailability(uploadedShare.imageUrl);
-        }
-        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
-        setShareLinkUrl(facebookTargetUrl);
-
         if (isMobileDevice) {
-          let fileShareSupported = false;
-
           if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
             try {
               const jpgFile = new File([blob], filename, { type: "image/jpeg" });
-              if (typeof navigator.canShare === "function") {
-                fileShareSupported = navigator.canShare({ files: [jpgFile] });
-              }
+              const canShareFiles =
+                typeof navigator.canShare === "function" &&
+                navigator.canShare({ files: [jpgFile] });
 
-              if (fileShareSupported) {
+              if (canShareFiles) {
                 await navigator.share({
                   title: "Osudový moment",
                   files: [jpgFile],
@@ -1178,9 +1127,6 @@ function App() {
                 if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
                   preopenedFacebookWindow.close();
                 }
-                setShareStatus(
-                  "JPG byl předán do sdílení. Pro text příspěvku použijte tlačítko Kopírovat odkaz na moment."
-                );
                 return;
               }
             } catch (shareError) {
@@ -1188,7 +1134,6 @@ function App() {
                 if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
                   preopenedFacebookWindow.close();
                 }
-                setShareStatus("Sdílení bylo zrušeno.");
                 return;
               }
 
@@ -1198,16 +1143,16 @@ function App() {
               });
             }
           }
-
-          prepareMobileFallbackDownload(blob, uploadedShare, filename);
-          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-            preopenedFacebookWindow.close();
-          }
-          setShareStatus(
-            "Facebook na tomto zařízení nepřijal JPG přes systémové sdílení. Použijte Uložit JPG a Kopírovat odkaz na moment."
-          );
           return;
         }
+
+        setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
+        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
+        if (uploadedShare?.imageUrl) {
+          await waitForShareImageAvailability(uploadedShare.imageUrl);
+        }
+        const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
+        setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl, { sameTab: false });
 
@@ -1238,7 +1183,7 @@ function App() {
             sameTab: true,
           });
           if (downloadedFromServer) {
-            setShareStatus("Otevírám stejné serverové JPG pro všechna zařízení. Pokud se stahování nespustí, použijte Přímé stažení JPG.");
+            setShareStatus("Otevírám stejné serverové JPG pro všechna zařízení.");
             return;
           }
         }
@@ -1266,13 +1211,9 @@ function App() {
         setShareLinkUrl(facebookTargetUrl);
 
         if (isMobileDevice) {
-          prepareMobileFallbackDownload(shareImageBlobRef.current, uploadedShare, `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`);
           if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
             preopenedFacebookWindow.close();
           }
-          setShareStatus(
-            "Facebook na tomto zařízení nepřijal JPG přes systémové sdílení. Použijte Uložit JPG a Kopírovat odkaz na moment."
-          );
           return;
         }
 
@@ -1313,23 +1254,6 @@ function App() {
       shareImageObjectUrlRef.current = "";
     }
   }, [completeMoment?.id]);
-
-  const openGeneratedJpg = () => {
-    if (isPreparingShareImage) {
-      return;
-    }
-
-    setShareStatus("");
-    prepareShareImage({ preferShareCard: false }).then((preparedBlob) => {
-      if (!preparedBlob || !shareImageObjectUrlRef.current) {
-        setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
-        return;
-      }
-
-      window.open(shareImageObjectUrlRef.current, "_blank", "noopener,noreferrer");
-      setShareStatus("JPG se otevřelo v nové kartě. Na mobilu podržte obrázek a zvolte Uložit.");
-    });
-  };
 
   useEffect(() => {
     if (screen !== "complete") {
@@ -2200,7 +2124,7 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={handleAddAnotherMoment}>
                         Přidat další symbol
                       </button>
-                      <button className="wizard-continue wizard-continue--secondary-mobile" type="button" onClick={handleOpenPublicMap}>
+                      <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
                         Prohlédnout mapu osudových momentů
                       </button>
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
@@ -2209,32 +2133,8 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")}>
                         Stáhnout JPG
                       </button>
-                      <button className="wizard-continue wizard-continue--secondary-mobile" type="button" onClick={openGeneratedJpg}>
-                        Otevřít JPG
-                      </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
-                    {shareLinkUrl ? (
-                      <p className="completion-share-status">
-                        Odkaz pro sdílení: <a href={shareLinkUrl} target="_blank" rel="noopener noreferrer">{shareLinkUrl}</a>
-                      </p>
-                    ) : null}
-                    {shareLinkUrl ? (
-                      <button className="wizard-continue" type="button" onClick={handleCopyShareLink}>
-                        Kopírovat odkaz na moment
-                      </button>
-                    ) : null}
-                    {directDownloadUrl ? (
-                      <a
-                        className="wizard-continue"
-                        href={directDownloadUrl}
-                        download={directDownloadFilename || undefined}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Uložit JPG
-                      </a>
-                    ) : null}
                   </div>
                 )}
                 </section>
