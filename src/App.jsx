@@ -571,15 +571,15 @@ function App() {
         className: node.className,
       });
 
-      await waitForCompletionMapTiles();
+      node.classList.add("capture-desktop-export");
+      window.dispatchEvent(new Event("resize"));
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
         });
       });
 
-      node.classList.add("capture-desktop-export");
-      window.dispatchEvent(new Event("resize"));
+      await waitForCompletionMapTiles();
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
@@ -1102,14 +1102,14 @@ function App() {
       maxZoom: 19,
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
-      detectRetina: true,
+      detectRetina: false,
     }).addTo(map);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
       minZoom: 3,
       subdomains: ["a", "b", "c", "d"],
-      detectRetina: true,
+      detectRetina: false,
       pane: "overlayPane",
       zIndex: 650,
     }).addTo(map);
