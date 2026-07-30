@@ -595,6 +595,46 @@ function App() {
     });
   };
 
+  const waitForNodeImages = async (node, timeoutMs = 6000) => {
+    if (!node) {
+      return;
+    }
+
+    const images = Array.from(node.querySelectorAll("img"));
+    if (!images.length) {
+      return;
+    }
+
+    const waitForSingleImage = (image) =>
+      new Promise((resolve) => {
+        if (image.complete && image.naturalWidth > 0) {
+          resolve();
+          return;
+        }
+
+        let settled = false;
+        const finish = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          image.removeEventListener("load", finish);
+          image.removeEventListener("error", finish);
+          resolve();
+        };
+
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
+        window.setTimeout(finish, timeoutMs);
+
+        if (typeof image.decode === "function") {
+          image.decode().then(finish).catch(finish);
+        }
+      });
+
+    await Promise.all(images.map((image) => waitForSingleImage(image)));
+  };
+
   const prepareShareImage = async () => {
     console.log("Export started", {
       screen,
@@ -632,6 +672,9 @@ function App() {
       if (!usesShareCard) {
         await waitForCompletionMapTiles();
       }
+
+      await waitForNodeImages(node, isMobileCaptureDevice ? 9000 : 6000);
+
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
