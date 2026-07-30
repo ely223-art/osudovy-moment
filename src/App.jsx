@@ -851,22 +851,23 @@ function App() {
       }
 
       const openFacebookShare = (targetUrl = websiteUrl) => {
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+        const desktopShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+        const mobileShareUrl = `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
         // Mobile browsers are more reliable with same-tab navigation than async popups.
         if (isMobileDevice) {
-          window.location.href = facebookShareUrl;
+          window.location.href = mobileShareUrl;
           return;
         }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = facebookShareUrl;
+          preopenedFacebookWindow.location.href = desktopShareUrl;
           return;
         }
 
-        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+        const facebookWindow = window.open(desktopShareUrl, "_blank", "noopener,noreferrer");
         if (!facebookWindow) {
-          window.location.href = facebookShareUrl;
+          window.location.href = desktopShareUrl;
         }
       };
 
@@ -931,13 +932,14 @@ function App() {
           await waitForShareImageAvailability(uploadedShare.imageUrl);
         }
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
+        const desktopShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
+        const mobileShareUrl = `https://m.facebook.com/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = facebookShareUrl;
+          preopenedFacebookWindow.location.href = desktopShareUrl;
         } else {
-          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+          const facebookWindow = window.open(desktopShareUrl, "_blank", "noopener,noreferrer");
           if (!facebookWindow) {
-            window.location.href = facebookShareUrl;
+            window.location.href = isMobileDevice ? mobileShareUrl : desktopShareUrl;
           }
         }
 
