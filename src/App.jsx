@@ -1081,42 +1081,8 @@ function App() {
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
-    const shareViaNativeSheet = async (imageBlob, imageFilename, targetUrl) => {
-      if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        return false;
-      }
-
-      try {
-        const file = new File([imageBlob], imageFilename, { type: "image/jpeg" });
-        const shareData = {
-          title: "Osudový moment",
-          text: `Můj osudový moment: ${targetUrl}`,
-          url: targetUrl,
-          files: [file],
-        };
-
-        if (typeof navigator.canShare === "function" && !navigator.canShare(shareData)) {
-          return false;
-        }
-
-        await navigator.share(shareData);
-        return true;
-      } catch (shareError) {
-        // User cancel should not be treated as fatal.
-        if (shareError?.name === "AbortError") {
-          return true;
-        }
-
-        console.error("Native share failed", {
-          message: shareError?.message || String(shareError),
-          name: shareError?.name || null,
-        });
-        return false;
-      }
-    };
-
     const preopenedFacebookWindow =
-      mode === "share"
+      mode === "share" && !isMobileDevice
         ? window.open("about:blank", "_blank", "noopener,noreferrer")
         : null;
 
@@ -1132,8 +1098,14 @@ function App() {
         return;
       }
 
-      const openFacebookShare = (targetUrl = websiteUrl) => {
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+      const openFacebookShare = (targetUrl = websiteUrl, { sameTab = false } = {}) => {
+        const shareQuote = encodeURIComponent("Můj osudový moment");
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
+
+        if (sameTab) {
+          window.location.href = facebookShareUrl;
+          return;
+        }
 
         if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
           preopenedFacebookWindow.location.href = facebookShareUrl;
@@ -1155,20 +1127,7 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        if (isMobileDevice) {
-          const sharedNatively = await shareViaNativeSheet(blob, filename, facebookTargetUrl);
-          if (sharedNatively) {
-            if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-              preopenedFacebookWindow.close();
-            }
-            setShareStatus(
-              "Sdílení je připravené. Pokud jste vybrali Facebook, přidejte příspěvek přímo v aplikaci Facebook."
-            );
-            return;
-          }
-        }
-
-        openFacebookShare(facebookTargetUrl);
+        openFacebookShare(facebookTargetUrl, { sameTab: isMobileDevice });
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1224,29 +1183,7 @@ function App() {
         const facebookTargetUrl = uploadedShare?.shareUrl || websiteUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        if (isMobileDevice && shareImageBlobRef.current) {
-          const fallbackFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-          const sharedNatively = await shareViaNativeSheet(shareImageBlobRef.current, fallbackFilename, facebookTargetUrl);
-          if (sharedNatively) {
-            if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-              preopenedFacebookWindow.close();
-            }
-            setShareStatus(
-              "Sdílení je připravené. Pokud jste vybrali Facebook, přidejte příspěvek přímo v aplikaci Facebook."
-            );
-            return;
-          }
-        }
-
-        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookTargetUrl)}`;
-        if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-          preopenedFacebookWindow.location.href = facebookShareUrl;
-        } else {
-          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-          if (!facebookWindow) {
-            window.location.href = facebookShareUrl;
-          }
-        }
+        openFacebookShare(facebookTargetUrl, { sameTab: isMobileDevice });
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
