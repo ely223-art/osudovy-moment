@@ -96,6 +96,7 @@ function IconSymbol({ type, x, y }) {
 }
 
 function App() {
+  const screenCaptureRef = useRef(null);
   const mapContainerRef = useRef(null);
   const markerRef = useRef(null);
   const publicMapContainerRef = useRef(null);
@@ -129,6 +130,15 @@ function App() {
   const [shareStatus, setShareStatus] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
+
+  const isInAppSocialBrowser = useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return false;
+    }
+
+    const userAgent = navigator.userAgent || "";
+    return /FBAN|FBAV|FB_IAB|Instagram|Line\//i.test(userAgent);
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -445,10 +455,9 @@ function App() {
     }
 
     setIsPreparingShareImage(true);
-    completionCardRef.current.classList.add("is-exporting");
 
     try {
-      const node = completionCardRef.current;
+      const node = screenCaptureRef.current || completionCardRef.current;
       const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
@@ -456,6 +465,10 @@ function App() {
         backgroundColor: "#07111f",
         useCORS: true,
         allowTaint: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
+        windowHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
         logging: false,
         ignoreElements: (element) => {
           const classList = element?.classList;
@@ -468,7 +481,7 @@ function App() {
             classList.contains("completion-map-zoom")
           );
         },
-        scale: isMobileViewport ? Math.min(1.8, Math.max(1.2, pixelRatio)) : Math.min(2, Math.max(1.4, pixelRatio)),
+        scale: isMobileViewport ? Math.max(1, Math.min(1.5, pixelRatio)) : Math.max(1, Math.min(1.75, pixelRatio)),
       });
 
       const blob = await new Promise((resolve, reject) => {
@@ -497,7 +510,6 @@ function App() {
       console.error("Nepodařilo se připravit kartičku pro sdílení:", error);
       return null;
     } finally {
-      completionCardRef.current?.classList.remove("is-exporting");
       setIsPreparingShareImage(false);
     }
   };
@@ -580,10 +592,8 @@ function App() {
 
     setIsExporting(true);
     setShareStatus("");
-    completionCardRef.current?.classList.add("is-exporting");
 
     try {
-      const shareUrl = `${window.location.origin}/moment/${completeMoment.id}`;
       const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       let blob = shareImageBlobRef.current;
@@ -629,6 +639,18 @@ function App() {
         /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
       if (mode === "share") {
+        if (isInAppSocialBrowser) {
+          const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(websiteUrl);
+          }
+
+          window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+          setShareStatus("Facebook v interním prohlížeči nepovolí sdílení JPG přímo. Otevřel se Facebook share pro odkaz; pro fotku použijte Stáhnout JPG a přiložte ji ručně.");
+          return;
+        }
+
         if (canShareFiles) {
           try {
             await navigator.share({
@@ -718,7 +740,6 @@ function App() {
       console.error("Nepodařilo se vytvořit JPG kartičku:", error);
       setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
     } finally {
-      completionCardRef.current?.classList.remove("is-exporting");
       setIsExporting(false);
     }
   };
@@ -1090,7 +1111,7 @@ function App() {
 
   return (
     <div className="page-shell">
-      <div className="hero-surface">
+      <div className="hero-surface" ref={screenCaptureRef}>
         <div className="landscape" />
 
         {screen === "home" && (
