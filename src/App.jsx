@@ -46,8 +46,6 @@ const EXPORT_VIEWPORT_HEIGHT = 1800;
 const EXPORT_CARD_WIDTH = 840;
 const EXPORT_CARD_HEIGHT = 500;
 const EXPORT_CAPTURE_SCALE = 2;
-const SHARE_CARD_WIDTH = 1080;
-const SHARE_CARD_HEIGHT = 1350;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -855,14 +853,12 @@ function App() {
 
       const captureNode = node;
 
-      const captureWidth = Math.max(
-        1,
-        captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width) || (usesShareCard ? SHARE_CARD_WIDTH : EXPORT_CARD_WIDTH)
-      );
-      const captureHeight = Math.max(
-        1,
-        captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height) || (usesShareCard ? SHARE_CARD_HEIGHT : EXPORT_CARD_HEIGHT)
-      );
+      const captureWidth = usesShareCard
+        ? Math.max(1, captureNode.offsetWidth || Math.round(captureNode.getBoundingClientRect().width))
+        : EXPORT_CARD_WIDTH;
+      const captureHeight = usesShareCard
+        ? Math.max(1, captureNode.offsetHeight || Math.round(captureNode.getBoundingClientRect().height))
+        : EXPORT_CARD_HEIGHT;
       const captureScale = EXPORT_CAPTURE_SCALE;
 
       captureNode.classList.add("capture-freeze");
@@ -887,8 +883,8 @@ function App() {
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: usesShareCard ? captureWidth : EXPORT_CARD_WIDTH,
-          windowHeight: usesShareCard ? captureHeight : EXPORT_CARD_HEIGHT,
+          windowWidth: usesShareCard ? EXPORT_VIEWPORT_WIDTH : EXPORT_CARD_WIDTH,
+          windowHeight: usesShareCard ? EXPORT_VIEWPORT_HEIGHT : EXPORT_CARD_HEIGHT,
           ignoreElements: (element) => {
             const classList = element?.classList;
             if (!classList) {
@@ -918,9 +914,24 @@ function App() {
         });
       };
 
+      if (usesShareCard) {
+        try {
+          blob = await captureWithHtml2Canvas(true);
+        } catch (shareCanvasError) {
+          console.error("Share-card html2canvas (foreignObject) failed", {
+            message: shareCanvasError?.message || String(shareCanvasError),
+            name: shareCanvasError?.name || null,
+          });
+        }
+
+        if (!blob) {
+          blob = await captureWithHtml2Canvas(false);
+        }
+      }
+
       if (!blob && usesShareCard) {
         try {
-          // Primary renderer for the share card: preserves DOM transforms and mobile-like layout.
+        // Primary renderer: preserves DOM transforms and layout more faithfully.
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
@@ -942,25 +953,10 @@ function App() {
             },
           });
         } catch (primaryError) {
-          console.error("html-to-image capture failed for share-card", {
+          console.error("html-to-image capture failed, falling back to html2canvas", {
             message: primaryError?.message || String(primaryError),
             name: primaryError?.name || null,
           });
-        }
-      }
-
-      if (!blob && usesShareCard) {
-        try {
-          blob = await captureWithHtml2Canvas(true);
-        } catch (shareCanvasError) {
-          console.error("Share-card html2canvas (foreignObject) failed", {
-            message: shareCanvasError?.message || String(shareCanvasError),
-            name: shareCanvasError?.name || null,
-          });
-        }
-
-        if (!blob) {
-          blob = await captureWithHtml2Canvas(false);
         }
       }
 
@@ -1092,9 +1088,12 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
     try {
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: true }));
+      const blob = shareImageBlobRef.current || (await prepareShareImage({ preferShareCard: false }));
 
       if (!blob) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
@@ -1112,6 +1111,40 @@ function App() {
       };
 
       if (mode === "share") {
+        const supportsNativeFileShare =
+          typeof navigator !== "undefined" &&
+          typeof navigator.share === "function" &&
+          typeof navigator.canShare === "function";
+
+        if (isMobileDevice && supportsNativeFileShare) {
+          const jpgFile = new File([blob], filename, { type: "image/jpeg" });
+          if (!navigator.canShare({ files: [jpgFile] })) {
+            setShareStatus("Zařízení nepodporuje sdílení JPG.");
+            return;
+          }
+
+          try {
+            await navigator.share({ files: [jpgFile] });
+            return;
+          } catch (shareError) {
+            if (shareError?.name === "AbortError") {
+              return;
+            }
+
+            console.error("Native file share failed", {
+              message: shareError?.message || String(shareError),
+              name: shareError?.name || null,
+            });
+            setShareStatus("Sdílení JPG se nepodařilo.");
+            return;
+          }
+        }
+
+        if (isMobileDevice && !supportsNativeFileShare) {
+          setShareStatus("Zařízení nepodporuje sdílení JPG.");
+          return;
+        }
+
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev);
         if (uploadedShare?.imageUrl) {
@@ -1124,7 +1157,7 @@ function App() {
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(facebookTargetUrl);
+            await navigator.clipboard.writeText(websiteUrl);
           } catch (clipboardError) {
             console.error("Clipboard write failed", {
               message: clipboardError?.message || String(clipboardError),
@@ -1180,7 +1213,7 @@ function App() {
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(facebookTargetUrl);
+            await navigator.clipboard.writeText(websiteUrl);
           } catch (clipboardError) {
             console.error("Clipboard write failed", {
               message: clipboardError?.message || String(clipboardError),
@@ -1216,30 +1249,13 @@ function App() {
       return;
     }
 
-    prepareShareImage({ preferShareCard: true }).catch((error) => {
+    prepareShareImage({ preferShareCard: false }).catch((error) => {
       console.error("Background JPG pre-generation failed", {
         message: error?.message || String(error),
         name: error?.name || null,
       });
     });
   }, [screen, completeMoment?.id, animationComplete, isPreparingShareImage, shareImageReady]);
-
-  const copyShareLinkToClipboard = async () => {
-    if (!shareLinkUrl || typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareLinkUrl);
-      setShareStatus("Odkaz na náhled byl zkopírován.");
-    } catch (error) {
-      console.error("Copy share link failed", {
-        message: error?.message || String(error),
-        name: error?.name || null,
-      });
-      setShareStatus("Odkaz se nepodařilo zkopírovat. Zkuste dlouhý stisk na URL níže.");
-    }
-  };
 
   useEffect(() => {
     if (screen !== "complete") {
@@ -2121,25 +2137,6 @@ function App() {
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
-                    {shareLinkUrl ? (
-                      <div className="completion-share-link">
-                        <a
-                          className="completion-share-link__url"
-                          href={shareLinkUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {shareLinkUrl}
-                        </a>
-                        <button
-                          className="completion-share-link__copy"
-                          type="button"
-                          onClick={copyShareLinkToClipboard}
-                        >
-                          Kopírovat odkaz
-                        </button>
-                      </div>
-                    ) : null}
                   </div>
                 )}
                 </section>
