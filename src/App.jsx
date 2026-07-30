@@ -1790,7 +1790,7 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={handleAddAnotherMoment}>
                         Přidat další symbol
                       </button>
-                      <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
+                      <button className="wizard-continue wizard-continue--secondary-mobile" type="button" onClick={handleOpenPublicMap}>
                         Prohlédnout mapu osudových momentů
                       </button>
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
@@ -1799,7 +1799,7 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")}>
                         Stáhnout JPG
                       </button>
-                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg}>
+                      <button className="wizard-continue wizard-continue--secondary-mobile" type="button" onClick={openGeneratedJpg}>
                         Otevřít JPG
                       </button>
                     </div>

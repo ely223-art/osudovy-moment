@@ -1594,7 +1594,7 @@ a {
   .hero-layout {
     min-height: auto;
     gap: 20px;
-    padding: 164px 18px 28px;
+    padding: 120px 18px 22px;
   }
 
   .hero-title {
@@ -1738,6 +1738,10 @@ a {
     gap: 10px;
   }
 
+  .completion-actions .wizard-continue--secondary-mobile {
+    display: none;
+  }
+
   .completion-actions .wizard-continue {
     width: 100%;
     margin-top: 0;
@@ -1759,6 +1763,22 @@ a {
 
   .wizard-layout {
     padding-top: 94px;
+  }
+
+  .hero-layout {
+    padding-top: 104px;
+  }
+
+  .hero-actions {
+    gap: 8px;
+  }
+
+  .hero-button {
+    padding: 12px 20px;
+  }
+
+  .hero-button--secondary {
+    margin-left: 0;
   }
 
   .brand-logo {
