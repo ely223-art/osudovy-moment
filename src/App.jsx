@@ -799,6 +799,46 @@ function App() {
         });
       });
 
+      let mapSnapshotDataUrl = "";
+      if (usesCompletionCard) {
+        const liveMapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
+        if (liveMapNode) {
+          try {
+            const mapSnapshotCanvas = await html2canvas(liveMapNode, {
+              backgroundColor: null,
+              useCORS: true,
+              allowTaint: false,
+              width: Math.max(1, liveMapNode.offsetWidth || Math.round(liveMapNode.getBoundingClientRect().width)),
+              height: Math.max(1, liveMapNode.offsetHeight || Math.round(liveMapNode.getBoundingClientRect().height)),
+              scrollX: 0,
+              scrollY: 0,
+              imageTimeout: 15000,
+              removeContainer: true,
+              logging: false,
+              foreignObjectRendering: false,
+              windowWidth: EXPORT_VIEWPORT_WIDTH,
+              windowHeight: EXPORT_VIEWPORT_HEIGHT,
+              ignoreElements: (element) => {
+                const classList = element?.classList;
+                if (!classList) {
+                  return false;
+                }
+
+                return classList.contains("completion-map-zoom");
+              },
+              scale: 2,
+            });
+
+            mapSnapshotDataUrl = mapSnapshotCanvas.toDataURL("image/png");
+          } catch (mapSnapshotError) {
+            console.error("Map snapshot capture failed", {
+              message: mapSnapshotError?.message || String(mapSnapshotError),
+              name: mapSnapshotError?.name || null,
+            });
+          }
+        }
+      }
+
       let captureNode = node;
 
       if (usesCompletionCard) {
@@ -820,78 +860,22 @@ function App() {
         exportClone.setAttribute("aria-hidden", "true");
         document.body.appendChild(exportClone);
 
-        const exportMapContainer = exportClone.querySelector(".completion-map-wrapper");
-        if (
-          exportMapContainer &&
-          selectedPlace &&
-          Number.isFinite(Number(selectedPlace.latitude)) &&
-          Number.isFinite(Number(selectedPlace.longitude))
-        ) {
-          const latitude = Number(selectedPlace.latitude);
-          const longitude = Number(selectedPlace.longitude);
+        const exportMapShell = exportClone.querySelector(".completion-map-shell");
+        const exportMapWrapper = exportClone.querySelector(".completion-map-wrapper");
+        if (exportMapShell && exportMapWrapper && mapSnapshotDataUrl) {
+          exportMapWrapper.replaceChildren();
+          exportMapWrapper.style.position = "relative";
+          exportMapWrapper.style.background = "#050b14";
+          exportMapWrapper.style.overflow = "hidden";
 
-          exportMapContainer.style.width = "100%";
-          exportMapContainer.style.height = "500px";
-          exportMapContainer.style.minHeight = "400px";
-
-          if (exportMapContainer.firstChild) {
-            exportMapContainer.replaceChildren();
-          }
-
-          exportMap = L.map(exportMapContainer, {
-            zoomControl: false,
-            scrollWheelZoom: false,
-            doubleClickZoom: false,
-            dragging: true,
-            attributionControl: false,
-            worldCopyJump: true,
-            zoomSnap: 1,
-            zoomDelta: 1,
-            inertia: true,
-            inertiaDeceleration: 3000,
-            inertiaMaxSpeed: 1500,
-          }).setView([latitude, longitude], 9);
-
-          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
-            maxZoom: 19,
-            minZoom: 3,
-            subdomains: ["a", "b", "c", "d"],
-            detectRetina: false,
-            crossOrigin: true,
-          }).addTo(exportMap);
-
-          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
-            maxZoom: 19,
-            minZoom: 3,
-            subdomains: ["a", "b", "c", "d"],
-            detectRetina: false,
-            pane: "overlayPane",
-            zIndex: 650,
-            crossOrigin: true,
-          }).addTo(exportMap);
-
-          const exportMarkerLayer = L.DomUtil.create("div", "completion-map-overlay");
-          exportMap.getPane("overlayPane").appendChild(exportMarkerLayer);
-          exportMarkerLayer.style.zIndex = "560";
-
-          const exportMarkerElement = L.DomUtil.create("div", "completion-map-marker is-final");
-          exportMarkerElement.setAttribute("data-stage", "ready");
-          exportMarkerElement.innerHTML = renderMomentMarkerBody(selectedPlace.symbolImage);
-          exportMarkerLayer.appendChild(exportMarkerElement);
-
-          const updateExportMarkerPosition = () => {
-            const point = exportMap.latLngToContainerPoint([latitude, longitude]);
-            const boundedX = Math.max(24, Math.min(exportMapContainer.clientWidth - 24, point.x));
-            const boundedY = Math.max(24, Math.min(exportMapContainer.clientHeight - 24, point.y));
-
-            exportMarkerElement.style.left = `${boundedX}px`;
-            exportMarkerElement.style.top = `${boundedY}px`;
-          };
-
-          requestAnimationFrame(() => {
-            exportMap.invalidateSize();
-            updateExportMarkerPosition();
-          });
+          const snapshotImage = document.createElement("img");
+          snapshotImage.src = mapSnapshotDataUrl;
+          snapshotImage.alt = "Mapa osudového momentu";
+          snapshotImage.style.width = "100%";
+          snapshotImage.style.height = "100%";
+          snapshotImage.style.display = "block";
+          snapshotImage.style.objectFit = "cover";
+          exportMapWrapper.appendChild(snapshotImage);
         }
         captureNode = exportClone;
       }
@@ -901,11 +885,6 @@ function App() {
       const captureScale = 2;
 
       captureNode.classList.add("capture-freeze");
-
-      if (exportMap) {
-        const exportMapContainer = exportClone?.querySelector(".completion-map-wrapper");
-        await waitForCompletionMapTiles(exportMapContainer, 3200);
-      }
 
       console.log("Map ready", {
         mapReady,
@@ -1044,9 +1023,6 @@ function App() {
       completionCardRef.current?.classList.remove("is-exporting");
       if (exportClone?.parentNode) {
         exportClone.parentNode.removeChild(exportClone);
-      }
-      if (exportMap) {
-        exportMap.remove();
       }
       shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
