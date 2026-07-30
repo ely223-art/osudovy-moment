@@ -42,8 +42,8 @@ const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.92;
 const EXPORT_CAPTURE_SCALE = 2;
-const EXPORT_SHARE_WIDTH = 840;
-const EXPORT_SHARE_HEIGHT = 500;
+const EXPORT_SHARE_WIDTH = 1080;
+const EXPORT_SHARE_HEIGHT = 1350;
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -731,10 +731,10 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if (!exportCardRef.current || !completeMoment || isPreparingShareImage) {
+    if (!shareCardRef.current || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
-        reason: "Missing export card area or moment, or preparation already running",
-        hasExportCard: !!exportCardRef.current,
+        reason: "Missing share-card area or moment, or preparation already running",
+        hasShareCard: !!shareCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -745,8 +745,7 @@ function App() {
     let shareCardWasActivated = false;
 
     try {
-      const selectedPlace = completeMoment;
-      const node = exportCardRef.current;
+      const node = shareCardRef.current;
 
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
@@ -773,53 +772,6 @@ function App() {
           });
         }
       }
-
-      const latitude = parseCoordinate(selectedPlace?.latitude);
-      const longitude = parseCoordinate(selectedPlace?.longitude);
-
-      if (
-        Number.isFinite(latitude) &&
-        Number.isFinite(longitude) &&
-        (exportMapRef.current?.setView || completionMapRef.current?.setView)
-      ) {
-        await new Promise((resolve) => {
-          const map = exportMapRef.current || completionMapRef.current;
-          if (!map) {
-            resolve();
-            return;
-          }
-
-          let settled = false;
-          const finish = () => {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            map.off("moveend", finish);
-            resolve();
-          };
-
-          map.on("moveend", finish);
-          map.setView([latitude, longitude], 9, { animate: false });
-          window.setTimeout(finish, 450);
-        });
-      }
-
-      const map = exportMapRef.current || completionMapRef.current;
-      if (map?.invalidateSize) {
-        map.invalidateSize();
-      }
-
-      await new Promise((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
-      });
-
-      await waitForCompletionMapTiles(
-        node.querySelector(".completion-map-wrapper"),
-        5000
-      );
 
       await waitForNodeImages(node, 9000);
 
@@ -852,14 +804,8 @@ function App() {
 
       const captureNode = node;
 
-      const captureWidth = Math.max(
-        EXPORT_SHARE_WIDTH,
-        node.scrollWidth || node.offsetWidth || Math.round(node.getBoundingClientRect().width) || EXPORT_SHARE_WIDTH
-      );
-      const captureHeight = Math.max(
-        EXPORT_SHARE_HEIGHT,
-        node.scrollHeight || node.offsetHeight || Math.round(node.getBoundingClientRect().height) || EXPORT_SHARE_HEIGHT
-      );
+      const captureWidth = EXPORT_SHARE_WIDTH;
+      const captureHeight = EXPORT_SHARE_HEIGHT;
       const captureScale = EXPORT_CAPTURE_SCALE;
 
       captureNode.classList.add("capture-freeze");
@@ -917,6 +863,37 @@ function App() {
 
       if (!blob) {
         try {
+          // Primary renderer for share-card: stable on mobile and desktop.
+          blob = await htmlToImageToBlob(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            canvasWidth: captureWidth,
+            canvasHeight: captureHeight,
+            quality: EXPORT_JPEG_QUALITY,
+            type: "image/jpeg",
+            backgroundColor: "#07111f",
+            filter: (element) => {
+              const classList = element?.classList;
+              if (!classList) {
+                return true;
+              }
+
+              return !(
+                classList.contains("leaflet-control-container") ||
+                classList.contains("completion-map-zoom")
+              );
+            },
+          });
+        } catch (primaryError) {
+          console.error("html-to-image capture failed, falling back to html2canvas", {
+            message: primaryError?.message || String(primaryError),
+            name: primaryError?.name || null,
+          });
+        }
+      }
+
+      if (!blob) {
+        try {
           blob = await captureWithHtml2Canvas(true);
         } catch (shareCanvasError) {
           console.error("Share-card html2canvas (foreignObject) failed", {
@@ -928,26 +905,6 @@ function App() {
 
       if (!blob) {
         blob = await captureWithHtml2Canvas(false);
-      }
-
-      if (!blob) {
-        try {
-          // Last resort fallback.
-          blob = await htmlToImageToBlob(node, {
-            cacheBust: true,
-            pixelRatio: captureScale,
-            canvasWidth: captureWidth,
-            canvasHeight: captureHeight,
-            quality: EXPORT_JPEG_QUALITY,
-            type: "image/jpeg",
-            backgroundColor: "#07111f",
-          });
-        } catch (primaryError) {
-          console.error("html-to-image fallback failed", {
-            message: primaryError?.message || String(primaryError),
-            name: primaryError?.name || null,
-          });
-        }
       }
 
       console.log("JPG generated", {
@@ -1074,6 +1031,9 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
     let activeShareId = exportShareId;
     if (!activeShareId && typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       activeShareId = crypto.randomUUID();
@@ -1093,6 +1053,11 @@ function App() {
       const openFacebookShare = (targetUrl = websiteUrl) => {
         const shareQuote = encodeURIComponent("Můj osudový moment");
         const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
+
+        if (isMobileDevice) {
+          window.location.assign(facebookShareUrl);
+          return;
+        }
 
         const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
         if (!facebookWindow) {
