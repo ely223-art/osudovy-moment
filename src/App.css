@@ -1169,6 +1169,28 @@ a {
   display: none !important;
 }
 
+.is-exporting .completion-layout {
+  padding-top: 78px !important;
+}
+
+.is-exporting .completion-card {
+  padding: 24px !important;
+}
+
+.is-exporting .completion-map-wrapper {
+  height: 500px !important;
+  min-height: 400px !important;
+}
+
+.is-exporting .completion-map-wrapper .leaflet-container {
+  min-height: 400px !important;
+}
+
+.is-exporting .completion-actions .wizard-continue--secondary-mobile,
+.is-exporting .completion-actions .wizard-continue:nth-child(2) {
+  display: inline-flex !important;
+}
+
 .completion-error {
   margin: 0;
   color: #ffd89c;
