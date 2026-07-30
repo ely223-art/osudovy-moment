@@ -579,9 +579,10 @@ function App() {
       });
 
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
       const captureWidth = Math.max(1, node.offsetWidth || Math.round(node.getBoundingClientRect().width));
       const captureHeight = Math.max(1, node.offsetHeight || Math.round(node.getBoundingClientRect().height));
-      const captureScale = Math.max(1, Math.min(2, pixelRatio));
+      const captureScale = isMobileViewport ? 1 : Math.max(1, Math.min(2, pixelRatio));
 
       node.classList.add("capture-freeze");
 
@@ -863,6 +864,18 @@ function App() {
             : "Facebook sdílení se otevřelo pouze s odkazem."
         );
       } else {
+        const supportsNavigatorShare =
+          typeof navigator !== "undefined" &&
+          typeof navigator.share === "function";
+        let canShareFileDirectly = supportsNavigatorShare;
+        if (supportsNavigatorShare && typeof navigator.canShare === "function") {
+          try {
+            canShareFileDirectly = navigator.canShare({ files: [new File([blob], filename, { type: "image/jpeg" })] });
+          } catch {
+            canShareFileDirectly = false;
+          }
+        }
+
         if (isInAppSocialBrowser) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
           const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
@@ -873,18 +886,35 @@ function App() {
           return;
         }
 
-        if (isAppleMobile) {
+        const downloaded = triggerDownload();
+
+        if (isAppleMobile && !downloaded && canShareFileDirectly) {
+          try {
+            await navigator.share({
+              files: [new File([blob], filename, { type: "image/jpeg" })],
+              title: "Osudový moment JPG",
+            });
+            setShareStatus("Otevřelo se sdílení souboru. Pro stejný JPG jako na PC zvolte Uložit obrázek / Uložit do souborů.");
+            return;
+          } catch (shareError) {
+            console.error("Apple file share fallback failed", {
+              message: shareError?.message || String(shareError),
+              name: shareError?.name || null,
+            });
+          }
+        }
+
+        if (isAppleMobile && !downloaded) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
           const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
           if (!opened) {
             window.location.href = objectUrl;
           }
 
-          setShareStatus("JPG se otevřelo. Na iPhonu podržte obrázek a zvolte Uložit do fotek.");
+          setShareStatus("JPG se otevřelo. Pokud se nestáhlo přímo, podržte obrázek a uložte ho ručně.");
           return;
         }
 
-        const downloaded = triggerDownload();
         if (!downloaded) {
           const objectUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
           window.open(objectUrl, "_blank", "noopener,noreferrer");
