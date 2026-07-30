@@ -601,8 +601,7 @@ function App() {
     }
   };
 
-  const waitForCompletionMapTiles = async (timeoutMs = 3200) => {
-    const mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
+  const waitForCompletionMapTiles = async (mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper"), timeoutMs = 3200) => {
     if (!mapNode) {
       return;
     }
@@ -735,8 +734,10 @@ function App() {
     setIsPreparingShareImage(true);
     let shareCardWasActivated = false;
     let exportClone = null;
+    let exportMap = null;
 
     try {
+      const selectedPlace = completeMoment || selectedTown;
       const node = preferShareCard
         ? shareCardRef.current || completionCardRef.current || completionScreenRef.current
         : completionCardRef.current || completionScreenRef.current || shareCardRef.current;
@@ -815,6 +816,76 @@ function App() {
         exportClone.style.background = "#07111f";
         exportClone.setAttribute("aria-hidden", "true");
         document.body.appendChild(exportClone);
+
+        const exportMapContainer = exportClone.querySelector(".completion-map-wrapper");
+        if (
+          exportMapContainer &&
+          selectedPlace &&
+          Number.isFinite(Number(selectedPlace.latitude)) &&
+          Number.isFinite(Number(selectedPlace.longitude))
+        ) {
+          const latitude = Number(selectedPlace.latitude);
+          const longitude = Number(selectedPlace.longitude);
+
+          if (exportMapContainer.firstChild) {
+            exportMapContainer.replaceChildren();
+          }
+
+          exportMap = L.map(exportMapContainer, {
+            zoomControl: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            dragging: true,
+            attributionControl: false,
+            worldCopyJump: true,
+            zoomSnap: 1,
+            zoomDelta: 1,
+            inertia: true,
+            inertiaDeceleration: 3000,
+            inertiaMaxSpeed: 1500,
+          }).setView([latitude, longitude], 9);
+
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+            maxZoom: 19,
+            minZoom: 3,
+            subdomains: ["a", "b", "c", "d"],
+            detectRetina: false,
+            crossOrigin: true,
+          }).addTo(exportMap);
+
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
+            maxZoom: 19,
+            minZoom: 3,
+            subdomains: ["a", "b", "c", "d"],
+            detectRetina: false,
+            pane: "overlayPane",
+            zIndex: 650,
+            crossOrigin: true,
+          }).addTo(exportMap);
+
+          const exportMarkerLayer = L.DomUtil.create("div", "completion-map-overlay");
+          exportMap.getPane("overlayPane").appendChild(exportMarkerLayer);
+          exportMarkerLayer.style.zIndex = "560";
+
+          const exportMarkerElement = L.DomUtil.create("div", "completion-map-marker is-final");
+          exportMarkerElement.setAttribute("data-stage", "ready");
+          exportMarkerElement.innerHTML = renderMomentMarkerBody(selectedPlace.symbolImage);
+          exportMarkerLayer.appendChild(exportMarkerElement);
+
+          const updateExportMarkerPosition = () => {
+            const point = exportMap.latLngToContainerPoint([latitude, longitude]);
+            const boundedX = Math.max(24, Math.min(exportMapContainer.clientWidth - 24, point.x));
+            const boundedY = Math.max(24, Math.min(exportMapContainer.clientHeight - 24, point.y));
+
+            exportMarkerElement.style.left = `${boundedX}px`;
+            exportMarkerElement.style.top = `${boundedY}px`;
+          };
+
+          requestAnimationFrame(() => {
+            exportMap.invalidateSize();
+            updateExportMarkerPosition();
+          });
+        }
         captureNode = exportClone;
       }
 
@@ -823,6 +894,11 @@ function App() {
       const captureScale = 2;
 
       captureNode.classList.add("capture-freeze");
+
+      if (exportMap) {
+        const exportMapContainer = exportClone?.querySelector(".completion-map-wrapper");
+        await waitForCompletionMapTiles(exportMapContainer, 3200);
+      }
 
       console.log("Map ready", {
         mapReady,
@@ -961,6 +1037,9 @@ function App() {
       completionCardRef.current?.classList.remove("is-exporting");
       if (exportClone?.parentNode) {
         exportClone.parentNode.removeChild(exportClone);
+      }
+      if (exportMap) {
+        exportMap.remove();
       }
       shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
