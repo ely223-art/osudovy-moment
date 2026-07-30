@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 
 const extractShareId = (requestUrl) => {
-  const parsedUrl = new URL(requestUrl);
+  const parsedUrl = new URL(requestUrl, "https://osudovymoment.cz");
   const queryId = parsedUrl.searchParams.get("id");
   if (queryId) {
     return queryId;

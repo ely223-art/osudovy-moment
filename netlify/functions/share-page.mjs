@@ -1,5 +1,15 @@
+const toRequestUrl = (request) => {
+  try {
+    return new URL(request.url);
+  } catch {
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "osudovymoment.cz";
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    return new URL(request.url, `${proto}://${host}`);
+  }
+};
+
 const extractShareId = (requestUrl) => {
-  const url = new URL(requestUrl);
+  const url = new URL(requestUrl, "https://osudovymoment.cz");
   const queryId = url.searchParams.get("id");
   if (queryId) {
     return queryId;
@@ -18,7 +28,8 @@ const escapeHtml = (value = "") =>
 
 export default async (request) => {
   try {
-    const id = extractShareId(request.url);
+    const requestUrl = toRequestUrl(request);
+    const id = extractShareId(requestUrl.toString());
 
     if (!id) {
       return new Response("Missing id", { status: 400 });
