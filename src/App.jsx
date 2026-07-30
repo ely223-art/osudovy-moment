@@ -746,14 +746,32 @@ function App() {
           });
           setShareStatus("Odkaz na web byl sdílený.");
         } else {
+          console.log("Share started", {
+            type: "fallback",
+            mode,
+          });
+
           const downloaded = triggerDownload();
           if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(websiteUrl);
-            setShareStatus(
-              downloaded
-                ? "Obrázek byl stažen a odkaz byl zkopírován do schránky."
-                : "Odkaz na web byl zkopírován do schránky. Pokud obrázek nevidíte, použijte Otevřít JPG."
-            );
+            try {
+              await navigator.clipboard.writeText(websiteUrl);
+              setShareStatus(
+                downloaded
+                  ? "Obrázek byl stažen a odkaz byl zkopírován do schránky."
+                  : "Odkaz na web byl zkopírován do schránky. Pokud obrázek nevidíte, použijte Otevřít JPG."
+              );
+            } catch (clipboardError) {
+              console.error("Clipboard write failed", {
+                message: clipboardError?.message || String(clipboardError),
+                name: clipboardError?.name || null,
+              });
+
+              setShareStatus(
+                downloaded
+                  ? `Obrázek byl stažen. Odkaz pro sdílení: ${websiteUrl}`
+                  : `Odkaz pro sdílení: ${websiteUrl}`
+              );
+            }
           } else {
             setShareStatus(`Odkaz pro sdílení: ${websiteUrl}`);
           }
