@@ -131,6 +131,7 @@ function IconSymbol({ type, x, y }) {
 
 function App() {
   const mapContainerRef = useRef(null);
+  const completionMapRef = useRef(null);
   const markerRef = useRef(null);
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
@@ -761,6 +762,16 @@ function App() {
       }
 
       if (!usesShareCard) {
+        if (completionMapRef.current?.invalidateSize) {
+          completionMapRef.current.invalidateSize();
+        }
+
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+          });
+        });
+
         await waitForCompletionMapTiles();
       }
 
@@ -1238,6 +1249,8 @@ function App() {
       inertiaMaxSpeed: 1500,
     }).setView([latitude, longitude], 9);
 
+    completionMapRef.current = map;
+
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
       minZoom: 3,
@@ -1356,6 +1369,9 @@ function App() {
         container.replaceChildren();
       }
       map.remove();
+      if (completionMapRef.current === map) {
+        completionMapRef.current = null;
+      }
       markerRef.current = null;
       animationStartedRef.current = false;
     };
