@@ -100,8 +100,8 @@ function App() {
   const markerRef = useRef(null);
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
+  const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
-  const shareCardRef = useRef(null);
   const shareImageBlobRef = useRef(null);
   const shareImageObjectUrlRef = useRef("");
   const animationStartedRef = useRef(false);
@@ -128,9 +128,9 @@ function App() {
   const [townsLoading, setTownsLoading] = useState(false);
   const [townsError, setTownsError] = useState("");
   const [shareStatus, setShareStatus] = useState("");
-  const [isExporting, setIsExporting] = useState(false);
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
   const [shareImageReady, setShareImageReady] = useState(false);
+  const websiteUrl = "https://osudovymoment.cz";
 
   const isInAppSocialBrowser = useMemo(() => {
     if (typeof navigator === "undefined") {
@@ -450,16 +450,50 @@ function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
+  const waitForCompletionMapTiles = async (timeoutMs = 3200) => {
+    const mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper");
+    if (!mapNode) {
+      return;
+    }
+
+    const hasLoadedTiles = () => {
+      const tiles = mapNode.querySelectorAll("img.leaflet-tile");
+      if (!tiles.length) {
+        return false;
+      }
+
+      return Array.from(tiles).every((tile) => tile.complete && tile.naturalWidth > 0);
+    };
+
+    if (hasLoadedTiles()) {
+      return;
+    }
+
+    await new Promise((resolve) => {
+      const startedAt = Date.now();
+      const poll = () => {
+        if (hasLoadedTiles() || Date.now() - startedAt >= timeoutMs) {
+          resolve();
+          return;
+        }
+
+        window.setTimeout(poll, 80);
+      };
+
+      poll();
+    });
+  };
+
   const prepareShareImage = async () => {
     console.log("Export started", {
       screen,
       completeMomentId: completeMoment?.id || null,
     });
 
-    if ((!shareCardRef.current && !completionCardRef.current) || !completeMoment || isPreparingShareImage) {
+    if ((!completionScreenRef.current && !completionCardRef.current) || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
-        reason: "Missing export area or moment, or preparation already running",
-        hasShareCard: !!shareCardRef.current,
+        reason: "Missing completion area or moment, or preparation already running",
+        hasCompletionScreen: !!completionScreenRef.current,
         hasCompletionCard: !!completionCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
@@ -470,19 +504,16 @@ function App() {
     setIsPreparingShareImage(true);
 
     try {
-      const node = shareCardRef.current || completionCardRef.current;
+      const node = completionScreenRef.current || completionCardRef.current;
       console.log("Export area found", {
         className: node.className,
       });
 
-      const isMobileViewport = typeof window !== "undefined" && window.innerWidth <= 900;
-      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const captureWidth = shareCardRef.current ? 1080 : Math.max(1, Math.round(node.getBoundingClientRect().width));
-      const captureHeight = shareCardRef.current ? 1350 : Math.max(1, Math.round(node.getBoundingClientRect().height));
+      await waitForCompletionMapTiles();
 
-      if (shareCardRef.current) {
-        shareCardRef.current.classList.add("is-capturing");
-      }
+      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      const captureWidth = Math.max(1, Math.round(node.getBoundingClientRect().width));
+      const captureHeight = Math.max(1, Math.round(node.getBoundingClientRect().height));
 
       console.log("Map ready", {
         mapReady,
@@ -490,7 +521,7 @@ function App() {
       });
 
       const canvas = await html2canvas(node, {
-        backgroundColor: "#07111f",
+        backgroundColor: null,
         useCORS: true,
         allowTaint: false,
         width: captureWidth,
@@ -500,24 +531,6 @@ function App() {
         imageTimeout: 15000,
         removeContainer: true,
         logging: false,
-        onclone: (clonedDocument) => {
-          const style = clonedDocument.createElement("style");
-          style.textContent = `
-            * {
-              animation: none !important;
-              transition: none !important;
-            }
-            .completion-card {
-              transform: none !important;
-            }
-            .completion-map-marker__image,
-            .symbol-button__image {
-              image-rendering: auto !important;
-              transform: none !important;
-            }
-          `;
-          clonedDocument.head.appendChild(style);
-        },
         ignoreElements: (element) => {
           const classList = element?.classList;
           if (!classList) {
@@ -529,30 +542,16 @@ function App() {
             classList.contains("completion-map-zoom")
           );
         },
-        scale: isMobileViewport ? Math.max(1, Math.min(1.5, pixelRatio)) : Math.max(1, Math.min(1.75, pixelRatio)),
+        scale: Math.max(1, pixelRatio),
       });
 
-      let exportCanvas = canvas;
-      const maxWidth = 1440;
-      if (canvas.width > maxWidth) {
-        const ratio = maxWidth / canvas.width;
-        const resizedCanvas = document.createElement("canvas");
-        resizedCanvas.width = Math.round(canvas.width * ratio);
-        resizedCanvas.height = Math.round(canvas.height * ratio);
-        const context = resizedCanvas.getContext("2d");
-        if (context) {
-          context.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
-          exportCanvas = resizedCanvas;
-        }
-      }
-
       console.log("JPG generated", {
-        width: exportCanvas.width,
-        height: exportCanvas.height,
+        width: canvas.width,
+        height: canvas.height,
       });
 
       const blob = await new Promise((resolve, reject) => {
-        exportCanvas.toBlob(
+        canvas.toBlob(
           (result) => {
             if (!result) {
               reject(new Error("Nepodařilo se vytvořit JPG."));
@@ -561,7 +560,7 @@ function App() {
             resolve(result);
           },
           "image/jpeg",
-          0.86
+          1
         );
       });
 
@@ -570,8 +569,8 @@ function App() {
         type: blob?.type || null,
       });
 
-        shareImageBlobRef.current = blob;
-        setShareImageReady(true);
+      shareImageBlobRef.current = blob;
+      setShareImageReady(true);
 
       if (shareImageObjectUrlRef.current) {
         URL.revokeObjectURL(shareImageObjectUrlRef.current);
@@ -589,7 +588,6 @@ function App() {
       setShareImageReady(false);
       return null;
     } finally {
-      shareCardRef.current?.classList.remove("is-capturing");
       setIsPreparingShareImage(false);
     }
   };
@@ -670,24 +668,22 @@ function App() {
       return;
     }
 
-    setIsExporting(true);
+    if (isPreparingShareImage) {
+      return;
+    }
+
     setShareStatus("");
 
     try {
-      const websiteUrl = window.location.origin;
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
-      let blob = shareImageBlobRef.current;
+      const blob = await prepareShareImage();
       const isAppleMobile =
         typeof navigator !== "undefined" &&
         /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
       if (!blob) {
-        setShareStatus("Připravuji JPG...");
-        blob = await prepareShareImage();
-        if (!blob) {
-          setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
-          return;
-        }
+        setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
+        return;
       }
 
       const file = new File([blob], filename, { type: "image/jpeg" });
@@ -736,29 +732,6 @@ function App() {
       }
 
       if (mode === "share") {
-        if (isInAppSocialBrowser) {
-          const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
-          const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-
-          if (!facebookWindow) {
-            window.location.href = facebookShareUrl;
-          }
-
-          if (navigator.clipboard?.writeText) {
-            try {
-              await navigator.clipboard.writeText(websiteUrl);
-            } catch (clipboardError) {
-              console.error("Clipboard write failed", {
-                message: clipboardError?.message || String(clipboardError),
-                name: clipboardError?.name || null,
-              });
-            }
-          }
-
-          setShareStatus("Facebook v interním prohlížeči nepovolí sdílení JPG přímo. Otevřel se Facebook share pro odkaz; pro fotku použijte Stáhnout JPG a přiložte ji ručně.");
-          return;
-        }
-
         if (canShareFiles) {
           try {
             console.log("Share started", {
@@ -771,10 +744,10 @@ function App() {
 
             await navigator.share({
               files: [file],
-              title: "Osudový moment",
+              title: "Osudový moment - Facebook",
               text: `${completeMoment.nazev}\n${websiteUrl}`,
             });
-            setShareStatus("Kartička byla sdílená.");
+            setShareStatus("JPG obrazovky bylo sdíleno.");
           } catch (shareError) {
             console.error("Share error", {
               mode,
@@ -788,64 +761,10 @@ function App() {
               return;
             }
 
-            if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-              console.log("Share started", {
-                type: "url",
-                mode,
-              });
-
-              await navigator.share({
-                title: "Osudový moment",
-                text: `${completeMoment.nazev}\n${websiteUrl}`,
-                url: websiteUrl,
-              });
-              setShareStatus("Odkaz na web byl sdílený. Pro sdílení JPG použijte Stáhnout JPG nebo Otevřít JPG.");
-            } else {
-              throw shareError;
-            }
+            throw shareError;
           }
-        } else if (supportsShare) {
-          console.log("Share started", {
-            type: "url",
-            mode,
-          });
-
-          await navigator.share({
-            title: "Osudový moment",
-            text: `${completeMoment.nazev}\n${websiteUrl}`,
-            url: websiteUrl,
-          });
-          setShareStatus("Odkaz na web byl sdílený.");
         } else {
-          console.log("Share started", {
-            type: "fallback",
-            mode,
-          });
-
-          const downloaded = triggerDownload();
-          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-            try {
-              await navigator.clipboard.writeText(websiteUrl);
-              setShareStatus(
-                downloaded
-                  ? "Obrázek byl stažen a odkaz byl zkopírován do schránky."
-                  : "Odkaz na web byl zkopírován do schránky. Pokud obrázek nevidíte, použijte Otevřít JPG."
-              );
-            } catch (clipboardError) {
-              console.error("Clipboard write failed", {
-                message: clipboardError?.message || String(clipboardError),
-                name: clipboardError?.name || null,
-              });
-
-              setShareStatus(
-                downloaded
-                  ? `Obrázek byl stažen. Odkaz pro sdílení: ${websiteUrl}`
-                  : `Odkaz pro sdílení: ${websiteUrl}`
-              );
-            }
-          } else {
-            setShareStatus(`Odkaz pro sdílení: ${websiteUrl}`);
-          }
+          throw new Error("File share není dostupné");
         }
       } else {
         if (isInAppSocialBrowser) {
@@ -893,9 +812,38 @@ function App() {
         name: error?.name || null,
         stack: error?.stack || null,
       });
-      setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
-    } finally {
-      setIsExporting(false);
+
+      if (mode === "share") {
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+        const objectUrl = shareImageObjectUrlRef.current;
+
+        if (objectUrl) {
+          const imageTab = window.open(objectUrl, "_blank", "noopener,noreferrer");
+          if (!imageTab) {
+            window.location.href = objectUrl;
+          }
+        }
+
+        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+        if (!facebookWindow) {
+          window.location.href = facebookShareUrl;
+        }
+
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(websiteUrl);
+          } catch (clipboardError) {
+            console.error("Clipboard write failed", {
+              message: clipboardError?.message || String(clipboardError),
+              name: clipboardError?.name || null,
+            });
+          }
+        }
+
+        setShareStatus("Otevřelo se JPG obrazovky i Facebook sdílení odkazu na osudovymoment.cz. Na Facebook přiložte otevřený JPG.");
+      } else {
+        setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
+      }
     }
   };
 
@@ -910,30 +858,21 @@ function App() {
   }, [completeMoment?.id]);
 
   const openGeneratedJpg = () => {
-    const objectUrl = shareImageObjectUrlRef.current;
-    if (!objectUrl) {
-      setShareStatus("Připravuji JPG...");
-      prepareShareImage().then((preparedBlob) => {
-        if (!preparedBlob || !shareImageObjectUrlRef.current) {
-          setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
-          return;
-        }
-
-        window.open(shareImageObjectUrlRef.current, "_blank", "noopener,noreferrer");
-        setShareStatus("JPG se otevřelo v nové kartě. Na mobilu podržte obrázek a zvolte Uložit.");
-      });
+    if (isPreparingShareImage) {
       return;
     }
 
-    window.open(objectUrl, "_blank", "noopener,noreferrer");
-    setShareStatus("JPG se otevřelo v nové kartě. Na mobilu podržte obrázek a zvolte Uložit.");
-  };
+    setShareStatus("");
+    prepareShareImage().then((preparedBlob) => {
+      if (!preparedBlob || !shareImageObjectUrlRef.current) {
+        setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
+        return;
+      }
 
-  useEffect(() => {
-    if (screen === "complete" && completeMoment && animationComplete) {
-      prepareShareImage();
-    }
-  }, [screen, completeMoment?.id, animationComplete]);
+      window.open(shareImageObjectUrlRef.current, "_blank", "noopener,noreferrer");
+      setShareStatus("JPG se otevřelo v nové kartě. Na mobilu podržte obrázek a zvolte Uložit.");
+    });
+  };
 
   useEffect(() => {
     if (screen !== "complete") {
@@ -1641,21 +1580,22 @@ function App() {
 
         {screen === "complete" && completeMoment && (
           <>
-            <header className="top-left" aria-label="Logo aplikace">
-              <img className="brand-logo" src={logo} alt="Logo Osudový moment" />
-            </header>
+            <div className="completion-screen" ref={completionScreenRef}>
+              <header className="top-left" aria-label="Logo aplikace">
+                <img className="brand-logo" src={logo} alt="Logo Osudový moment" />
+              </header>
 
-            <button
-              className="wizard-back"
-              type="button"
-              onClick={() => setScreen("next")}
-              aria-label="Zpět na detaily okamžiku"
-            >
-              <span aria-hidden="true">←</span>
-            </button>
+              <button
+                className="wizard-back"
+                type="button"
+                onClick={() => setScreen("next")}
+                aria-label="Zpět na detaily okamžiku"
+              >
+                <span aria-hidden="true">←</span>
+              </button>
 
-            <main className="wizard-layout completion-layout">
-              <section className="wizard-card completion-card" ref={completionCardRef}>
+              <main className="wizard-layout completion-layout">
+                <section className="wizard-card completion-card" ref={completionCardRef}>
                 <div className="completion-map-shell">
                   <div className={`map-animated-surface ${animationComplete ? "is-ready" : ""}`}>
                     {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
@@ -1703,51 +1643,22 @@ function App() {
                       <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
                         Prohlédnout mapu osudových momentů
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")} disabled={isExporting || isPreparingShareImage}>
-                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Sdílet"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
+                        Sdílet na Facebook
                       </button>
-                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")} disabled={isExporting || isPreparingShareImage}>
-                        {isExporting || isPreparingShareImage ? "Probíhá…" : "Stáhnout JPG"}
+                      <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")}>
+                        Stáhnout JPG
                       </button>
-                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg} disabled={isPreparingShareImage}>
-                        {isPreparingShareImage ? "Připravuji…" : "Otevřít JPG"}
+                      <button className="wizard-continue" type="button" onClick={openGeneratedJpg}>
+                        Otevřít JPG
                       </button>
                     </div>
                     {shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
                   </div>
                 )}
-              </section>
-            </main>
-
-            <div className="share-card" ref={shareCardRef} aria-hidden="true">
-              <div className="share-card__inner">
-                <div className="share-card__header">
-                  <img className="share-card__logo" src={logo} alt="" />
-                  <div className="share-card__title">Osudovy moment</div>
-                </div>
-
-                <div className="share-card__map">
-                  <img className="share-card__map-image" src="/mapa.png" alt="" />
-                  <div className="share-card__map-overlay">
-                    <div className="share-map__line" />
-                    <div className="share-map__point" />
-                    <div className="share-map__symbol">
-                      <img src={completeMoment.symbolImage || "/ostatni.png"} alt="" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="share-card__body">
-                  <div className="share-card__place">{completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}</div>
-                  <div className="share-card__name">{completeMoment.nazev}</div>
-                  {completeMoment.datum ? <div className="share-card__date">{completeMoment.datum}</div> : null}
-                  {completeMoment.prikaz ? <div className="share-card__note">{completeMoment.prikaz}</div> : null}
-                </div>
-
-                <div className="share-card__footer">osudovymoment.cz</div>
-              </div>
+                </section>
+              </main>
             </div>
-
           </>
         )}
       </div>
