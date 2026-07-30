@@ -659,7 +659,7 @@ function App() {
     try {
       const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
       const isMobileCaptureDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-      const node = shareCardRef.current || completionCardRef.current || completionScreenRef.current;
+      const node = completionCardRef.current || completionScreenRef.current || shareCardRef.current;
       const usesShareCard = node === shareCardRef.current;
       console.log("Export area found", {
         className: node.className,
@@ -669,6 +669,8 @@ function App() {
       if (usesShareCard) {
         node.classList.add("is-capturing");
         shareCardWasActivated = true;
+      } else {
+        node.classList.add("is-exporting");
       }
 
       if (!usesShareCard) {
@@ -801,6 +803,8 @@ function App() {
       if (shareCardWasActivated) {
         shareCardRef.current?.classList.remove("is-capturing");
       }
+      completionCardRef.current?.classList.remove("is-exporting");
+      completionScreenRef.current?.classList.remove("is-exporting");
       shareCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
