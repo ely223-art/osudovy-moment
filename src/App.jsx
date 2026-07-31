@@ -1343,36 +1343,23 @@ function App() {
     const buildFacebookShareUrl = (targetUrl = websiteUrl) =>
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
-    const openFacebookShare = (targetUrl = websiteUrl, preopenedWindow = null) => {
+    const openFacebookShare = (targetUrl = websiteUrl) => {
       const facebookShareUrl = buildFacebookShareUrl(targetUrl);
 
-      if (preopenedWindow && !preopenedWindow.closed) {
-        try {
-          preopenedWindow.location.replace(facebookShareUrl);
-          preopenedWindow.focus?.();
-          return;
-        } catch (windowNavError) {
-          console.error("Preopened Facebook window navigation failed", {
-            message: windowNavError?.message || String(windowNavError),
-            name: windowNavError?.name || null,
-          });
-        }
+      if (isMobileDevice) {
+        window.location.assign(facebookShareUrl);
+        return;
       }
 
       const facebookWindow = window.open(
         facebookShareUrl,
         "_blank",
-        isMobileDevice ? "" : "noopener,noreferrer"
+        "noopener,noreferrer"
       );
       if (!facebookWindow) {
         window.location.assign(facebookShareUrl);
       }
     };
-
-    let preopenedFacebookWindow = null;
-    if (mode === "share" && isMobileDevice) {
-      preopenedFacebookWindow = window.open("about:blank", "_blank");
-    }
 
     let activeShareId = exportShareId;
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -1411,9 +1398,6 @@ function App() {
           { client: "desktop" }
         );
         if (!uploadedShare?.shareUrl) {
-          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-            preopenedFacebookWindow.close();
-          }
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
             setShareLinkUrl(fallbackMomentUrl);
@@ -1433,7 +1417,7 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl, preopenedFacebookWindow);
+        openFacebookShare(facebookTargetUrl);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1506,9 +1490,6 @@ function App() {
         const attemptToken = `${Date.now()}`;
         const debugCode = activeShareId ? activeShareId.slice(0, 8) : attemptToken.slice(-8);
         if (!uploadedShare?.shareUrl) {
-          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
-            preopenedFacebookWindow.close();
-          }
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
             setShareLinkUrl(fallbackMomentUrl);
@@ -1527,7 +1508,7 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl, preopenedFacebookWindow);
+        openFacebookShare(facebookTargetUrl);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1722,6 +1703,18 @@ function App() {
         ) : null}
 
         {showActions && shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
+        {showActions && shareLinkUrl ? (
+          <p className="completion-share-status">
+            <a
+              className="wizard-continue"
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLinkUrl)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Otevrit sdileni na Facebooku
+            </a>
+          </p>
+        ) : null}
       </div>
     </>
   );
