@@ -691,7 +691,7 @@ function App() {
 
   const waitForCompletionMapTiles = async (mapNode = completionCardRef.current?.querySelector(".completion-map-wrapper"), timeoutMs = 3200) => {
     if (!mapNode) {
-      return;
+      return false;
     }
 
     const hasLoadedTiles = () => {
@@ -704,7 +704,7 @@ function App() {
     };
 
     if (hasLoadedTiles()) {
-      return;
+      return true;
     }
 
     await new Promise((resolve) => {
@@ -720,6 +720,8 @@ function App() {
 
       poll();
     });
+
+    return hasLoadedTiles();
   };
 
   const waitForNodeImages = async (node, timeoutMs = 6000) => {
@@ -1038,10 +1040,6 @@ function App() {
         });
       }
 
-      const exportMapNode = node.querySelector(".completion-map-wrapper--export") || node.querySelector(".completion-map-wrapper");
-      await waitForCompletionMapTiles(exportMapNode, 7000);
-      await waitForNodeImages(node, 9000);
-
       if (typeof document !== "undefined" && document.fonts?.ready) {
         try {
           await document.fonts.ready;
@@ -1096,6 +1094,31 @@ function App() {
           });
         }
       }
+
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+
+      const exportMapNode = node.querySelector(".completion-map-wrapper--export") || node.querySelector(".completion-map-wrapper");
+      let mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 7000);
+
+      if (!mapTilesReady && exportMapRef.current && typeof exportMapRef.current.invalidateSize === "function") {
+        try {
+          exportMapRef.current.invalidateSize();
+        } catch (mapSizeRetryError) {
+          console.error("Export map second invalidateSize failed", {
+            message: mapSizeRetryError?.message || String(mapSizeRetryError),
+            name: mapSizeRetryError?.name || null,
+          });
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 260));
+        mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 3200);
+      }
+
+      await waitForNodeImages(node, 9000);
 
       if (isMobileDevice) {
         await new Promise((resolve) => window.setTimeout(resolve, 320));
@@ -1370,7 +1393,7 @@ function App() {
           blob,
           completeMoment.nazev,
           activeShareId,
-          { client: isMobileDevice ? "mobile" : "desktop" }
+          { client: "desktop" }
         );
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
@@ -1413,7 +1436,7 @@ function App() {
           blob,
           completeMoment.nazev,
           activeShareId,
-          { client: isMobileDevice ? "mobile" : "desktop" }
+          { client: "desktop" }
         );
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
@@ -1459,7 +1482,7 @@ function App() {
             shareImageBlobRef.current,
             completeMoment.nazev,
             activeShareId,
-            { client: isMobileDevice ? "mobile" : "desktop" }
+            { client: "desktop" }
           )
           : null;
         const attemptToken = `${Date.now()}`;
