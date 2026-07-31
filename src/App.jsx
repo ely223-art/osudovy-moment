@@ -777,9 +777,7 @@ function App() {
 
       const tileList = Array.from(tiles);
       const loadedCount = tileList.filter((tile) => tile.complete && tile.naturalWidth > 0).length;
-      const brokenCount = tileList.filter((tile) => tile.complete && tile.naturalWidth === 0).length;
-      const minimumTileCount = Math.max(3, Math.ceil(requiredTileCount * 0.5));
-      return loadedCount >= minimumTileCount && brokenCount === 0;
+      return tileList.length >= requiredTileCount && loadedCount === tileList.length;
     };
 
     if (hasLoadedTiles()) {
@@ -1043,22 +1041,6 @@ function App() {
         mapTilesReady = await waitForCompletionMapTiles(exportMapNode, isMobileDevice ? 5200 : 2800);
       }
 
-      if (!mapTilesReady && isMobileDevice) {
-        if (exportMapRef.current && typeof exportMapRef.current.invalidateSize === "function") {
-          try {
-            exportMapRef.current.invalidateSize();
-          } catch (mapSizeMobileRetryError) {
-            console.error("Export map mobile retry invalidateSize failed", {
-              message: mapSizeMobileRetryError?.message || String(mapSizeMobileRetryError),
-              name: mapSizeMobileRetryError?.name || null,
-            });
-          }
-        }
-
-        await new Promise((resolve) => window.setTimeout(resolve, 1100));
-        mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 12000);
-      }
-
       await waitForNodeImages(node, 9000);
 
       if (isMobileDevice) {
@@ -1067,7 +1049,7 @@ function App() {
 
       node.classList.add("capture-freeze");
 
-      const captureWithHtml2Canvas = async (foreignObjectRendering, scaleOverride = captureScale) => {
+      const captureWithHtml2Canvas = async (foreignObjectRendering) => {
         const canvas = await html2canvas(node, {
           backgroundColor: "#07111f",
           useCORS: true,
@@ -1082,7 +1064,7 @@ function App() {
           foreignObjectRendering,
           windowWidth: captureWidth,
           windowHeight: captureHeight,
-          scale: scaleOverride,
+          scale: captureScale,
         });
 
         return new Promise((resolve, reject) => {
