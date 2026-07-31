@@ -1318,11 +1318,9 @@ function App() {
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
     const openFacebookShare = (targetUrl = websiteUrl) => {
-      const quoteText = encodeURIComponent("Muj osudovy moment");
-      const hashtag = encodeURIComponent("#osudovymoment");
       const facebookShareUrl = isMobileDevice
-        ? `https://m.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`
-        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`;
+        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`
+        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
       if (isMobileDevice) {
         window.location.assign(facebookShareUrl);
@@ -1381,14 +1379,11 @@ function App() {
           return;
         }
         if (uploadedShare?.imageUrl) {
-          const [imageReady, pageReady] = await Promise.all([
-            waitForShareImageAvailability(uploadedShare.imageUrl, 12000),
-            waitForSharePageAvailability(uploadedShare.shareUrl, 12000),
-          ]);
-          if (!imageReady || !pageReady) {
-            setShareStatus("Facebook náhled se ještě připravuje. Zkuste sdílení znovu za pár sekund.");
-            return;
-          }
+          // Warm up the endpoints without blocking the user flow on mobile browsers.
+          await Promise.all([
+            waitForShareImageAvailability(uploadedShare.imageUrl, 4000),
+            waitForSharePageAvailability(uploadedShare.shareUrl, 4000),
+          ]).catch(() => null);
         }
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
@@ -1416,7 +1411,16 @@ function App() {
           activeShareId
         );
         if (uploadedDownload?.imageUrl) {
-          await waitForShareImageAvailability(uploadedDownload.imageUrl);
+          await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
+
+          if (isMobileDevice) {
+            const mobileImageUrl = appendVersionQuery(uploadedDownload.imageUrl, attemptToken);
+            setDirectDownloadLink(mobileImageUrl, filename, false);
+            window.location.assign(mobileImageUrl);
+            setShareStatus("JPG otevreno. Na iPhonu dlouze podrzte obrazek a ulozte ho do fotek.");
+            return;
+          }
+
           const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
           const serverDownloadUrl = appendVersionQuery(
             buildServerDownloadUrl(uploadedDownload.imageUrl, uniqueFilename),
@@ -1465,14 +1469,10 @@ function App() {
           return;
         }
         if (uploadedShare?.imageUrl) {
-          const [imageReady, pageReady] = await Promise.all([
-            waitForShareImageAvailability(uploadedShare.imageUrl, 12000),
-            waitForSharePageAvailability(uploadedShare.shareUrl, 12000),
-          ]);
-          if (!imageReady || !pageReady) {
-            setShareStatus("Facebook náhled se ještě připravuje. Zkuste sdílení znovu za pár sekund.");
-            return;
-          }
+          await Promise.all([
+            waitForShareImageAvailability(uploadedShare.imageUrl, 4000),
+            waitForSharePageAvailability(uploadedShare.shareUrl, 4000),
+          ]).catch(() => null);
         }
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
