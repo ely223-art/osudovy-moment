@@ -45,9 +45,6 @@ const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-const isGoogleInAppBrowser = (userAgent = "") =>
-  isMobileUserAgent(userAgent) &&
-  /\bGSA\//i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -780,7 +777,9 @@ function App() {
 
       const tileList = Array.from(tiles);
       const loadedCount = tileList.filter((tile) => tile.complete && tile.naturalWidth > 0).length;
-      return tileList.length >= requiredTileCount && loadedCount === tileList.length;
+      const brokenCount = tileList.filter((tile) => tile.complete && tile.naturalWidth === 0).length;
+      const minimumTileCount = Math.max(3, Math.ceil(requiredTileCount * 0.5));
+      return loadedCount >= minimumTileCount && brokenCount === 0;
     };
 
     if (hasLoadedTiles()) {
@@ -891,7 +890,6 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const prefersGoogleCanvasCapture = isGoogleInAppBrowser(userAgent);
     const baseCaptureNode = exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
@@ -1045,20 +1043,20 @@ function App() {
         mapTilesReady = await waitForCompletionMapTiles(exportMapNode, isMobileDevice ? 5200 : 2800);
       }
 
-      if (!mapTilesReady && prefersGoogleCanvasCapture) {
+      if (!mapTilesReady && isMobileDevice) {
         if (exportMapRef.current && typeof exportMapRef.current.invalidateSize === "function") {
           try {
             exportMapRef.current.invalidateSize();
-          } catch (mapSizeGoogleRetryError) {
-            console.error("Export map Google retry invalidateSize failed", {
-              message: mapSizeGoogleRetryError?.message || String(mapSizeGoogleRetryError),
-              name: mapSizeGoogleRetryError?.name || null,
+          } catch (mapSizeMobileRetryError) {
+            console.error("Export map mobile retry invalidateSize failed", {
+              message: mapSizeMobileRetryError?.message || String(mapSizeMobileRetryError),
+              name: mapSizeMobileRetryError?.name || null,
             });
           }
         }
 
-        await new Promise((resolve) => window.setTimeout(resolve, 900));
-        mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 9000);
+        await new Promise((resolve) => window.setTimeout(resolve, 1100));
+        mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 12000);
       }
 
       await waitForNodeImages(node, 9000);
@@ -1093,17 +1091,6 @@ function App() {
       };
 
       let blob = null;
-
-      if (prefersGoogleCanvasCapture) {
-        try {
-          blob = await captureWithHtml2Canvas(false, 1);
-        } catch (googleCanvasError) {
-          console.error("Google app html2canvas primary capture failed", {
-            message: googleCanvasError?.message || String(googleCanvasError),
-            name: googleCanvasError?.name || null,
-          });
-        }
-      }
 
       if (!blob) {
         try {
