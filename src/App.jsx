@@ -810,6 +810,21 @@ function App() {
       const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
       const isMobileDevice = isMobileUserAgent(userAgent);
 
+      if (exportMapRef.current && typeof exportMapRef.current.invalidateSize === "function") {
+        try {
+          exportMapRef.current.invalidateSize();
+        } catch (mapSizeError) {
+          console.error("Export map invalidateSize failed", {
+            message: mapSizeError?.message || String(mapSizeError),
+            name: mapSizeError?.name || null,
+          });
+        }
+      }
+
+      if (isMobileDevice) {
+        await new Promise((resolve) => window.setTimeout(resolve, 220));
+      }
+
       node.classList.add("capture-freeze");
 
       const captureWithHtml2Canvas = async (foreignObjectRendering) => {
@@ -1054,6 +1069,16 @@ function App() {
     }
 
     try {
+      if (isMobileDevice) {
+        // Mobile devices are sensitive to stale hidden-canvas snapshots; force fresh capture on action.
+        shareImageBlobRef.current = null;
+        setShareImageReady(false);
+        if (shareImageObjectUrlRef.current) {
+          URL.revokeObjectURL(shareImageObjectUrlRef.current);
+          shareImageObjectUrlRef.current = "";
+        }
+      }
+
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const blob = shareImageBlobRef.current || (await prepareShareImage());
 
@@ -1187,6 +1212,11 @@ function App() {
 
   useEffect(() => {
     if (screen !== "complete" || !completeMoment || !animationComplete || isPreparingShareImage || shareImageReady) {
+      return;
+    }
+
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    if (isMobileUserAgent(userAgent)) {
       return;
     }
 

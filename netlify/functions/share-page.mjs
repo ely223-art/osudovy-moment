@@ -43,7 +43,7 @@ export default async (request) => {
     const origin = requestUrl.origin;
     const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
     const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
-    const appLandingUrl = `${origin}/?share=${encodeURIComponent(safeId)}`;
+    const appLandingUrl = `${origin}/`;
     const title = "Osudovy moment";
     const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
 
@@ -100,13 +100,6 @@ export default async (request) => {
       <p>Odkaz s náhledem momentu je připraven.</p>
       <p>Pokud se aplikace neotevřela automaticky, pokračujte na: <a href="${escapeHtml(appLandingUrl)}">${escapeHtml(appLandingUrl)}</a></p>
     </div>
-    <script>
-      const ua = navigator.userAgent || "";
-      const isCrawler = /(facebookexternalhit|Facebot|Twitterbot|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot|Googlebot)/i.test(ua);
-      if (!isCrawler) {
-        window.location.replace(${JSON.stringify(appLandingUrl)});
-      }
-    </script>
   </body>
 </html>`;
 
