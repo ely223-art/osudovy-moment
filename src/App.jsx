@@ -1340,24 +1340,39 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const openFacebookShare = (targetUrl = websiteUrl) => {
-      const facebookShareUrl = isMobileDevice
-        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`
-        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+    const buildFacebookShareUrl = (targetUrl = websiteUrl) =>
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
-      if (isMobileDevice) {
-        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
-        if (!facebookWindow) {
-          window.location.assign(facebookShareUrl);
+    const openFacebookShare = (targetUrl = websiteUrl, preopenedWindow = null) => {
+      const facebookShareUrl = buildFacebookShareUrl(targetUrl);
+
+      if (preopenedWindow && !preopenedWindow.closed) {
+        try {
+          preopenedWindow.location.replace(facebookShareUrl);
+          preopenedWindow.focus?.();
+          return;
+        } catch (windowNavError) {
+          console.error("Preopened Facebook window navigation failed", {
+            message: windowNavError?.message || String(windowNavError),
+            name: windowNavError?.name || null,
+          });
         }
-        return;
       }
 
-      const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+      const facebookWindow = window.open(
+        facebookShareUrl,
+        "_blank",
+        isMobileDevice ? "" : "noopener,noreferrer"
+      );
       if (!facebookWindow) {
-        window.location.href = facebookShareUrl;
+        window.location.assign(facebookShareUrl);
       }
     };
+
+    let preopenedFacebookWindow = null;
+    if (mode === "share" && isMobileDevice) {
+      preopenedFacebookWindow = window.open("about:blank", "_blank");
+    }
 
     let activeShareId = exportShareId;
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -1396,6 +1411,9 @@ function App() {
           { client: "desktop" }
         );
         if (!uploadedShare?.shareUrl) {
+          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+            preopenedFacebookWindow.close();
+          }
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
             setShareLinkUrl(fallbackMomentUrl);
@@ -1415,7 +1433,7 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl);
+        openFacebookShare(facebookTargetUrl, preopenedFacebookWindow);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1488,6 +1506,9 @@ function App() {
         const attemptToken = `${Date.now()}`;
         const debugCode = activeShareId ? activeShareId.slice(0, 8) : attemptToken.slice(-8);
         if (!uploadedShare?.shareUrl) {
+          if (preopenedFacebookWindow && !preopenedFacebookWindow.closed) {
+            preopenedFacebookWindow.close();
+          }
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
             setShareLinkUrl(fallbackMomentUrl);
@@ -1506,7 +1527,7 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl);
+        openFacebookShare(facebookTargetUrl, preopenedFacebookWindow);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
