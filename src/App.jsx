@@ -1325,7 +1325,10 @@ function App() {
         : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
       if (isMobileDevice) {
-        window.location.assign(facebookShareUrl);
+        const facebookWindow = window.open(facebookShareUrl, "_blank", "noopener,noreferrer");
+        if (!facebookWindow) {
+          window.location.assign(facebookShareUrl);
+        }
         return;
       }
 

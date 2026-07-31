@@ -174,25 +174,38 @@ export default async (request) => {
         const sourceHeight = sourceMeta.height || SHARE_HEIGHT;
 
         if (shareClient === "mobile") {
-          const mobileTopCrop = sourceHeight > SHARE_HEIGHT
-            ? Math.max(0, Math.floor(sourceHeight * 0.28))
-            : 0;
-          const mobileCropHeight = Math.max(1, sourceHeight - mobileTopCrop);
+          const targetAspect = SHARE_WIDTH / SHARE_HEIGHT;
+          const sourceAspect = sourceWidth / Math.max(1, sourceHeight);
+
+          let extractLeft = 0;
+          let extractTop = 0;
+          let extractWidth = sourceWidth;
+          let extractHeight = sourceHeight;
+
+          if (sourceAspect > targetAspect) {
+            // Input is wider than target: keep full height and center horizontal crop.
+            extractWidth = Math.max(1, Math.round(sourceHeight * targetAspect));
+            extractLeft = Math.max(0, Math.floor((sourceWidth - extractWidth) / 2));
+          } else if (sourceAspect < targetAspect) {
+            // Input is taller than target: keep bottom part where the card is rendered in mobile captures.
+            extractHeight = Math.max(1, Math.round(sourceWidth / targetAspect));
+            extractTop = Math.max(0, sourceHeight - extractHeight);
+          }
 
           let mobileNormalized = source;
-          if (mobileTopCrop > 0 && sourceWidth > 0) {
+          if (extractLeft > 0 || extractTop > 0 || extractWidth !== sourceWidth || extractHeight !== sourceHeight) {
             mobileNormalized = source.extract({
-              left: 0,
-              top: mobileTopCrop,
-              width: sourceWidth,
-              height: mobileCropHeight,
+              left: extractLeft,
+              top: extractTop,
+              width: extractWidth,
+              height: extractHeight,
             });
           }
 
           imageBuffer = await mobileNormalized
             .resize(SHARE_WIDTH, SHARE_HEIGHT, {
               fit: "cover",
-              position: "south",
+              position: "center",
               withoutEnlargement: false,
             })
             .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
