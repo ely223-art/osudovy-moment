@@ -635,6 +635,21 @@ function App() {
     setDirectDownloadFilename("");
   };
 
+  const appendVersionQuery = (url, token) => {
+    if (!url) {
+      return "";
+    }
+
+    try {
+      const parsed = new URL(url, websiteUrl);
+      parsed.searchParams.set("v", String(token || Date.now()));
+      return parsed.toString();
+    } catch {
+      const separator = url.includes("?") ? "&" : "?";
+      return `${url}${separator}v=${encodeURIComponent(String(token || Date.now()))}`;
+    }
+  };
+
   const triggerServerDownload = (downloadUrl, options = {}) => {
     const { sameTab = false } = options;
 
@@ -1329,6 +1344,8 @@ function App() {
 
       const filename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}.jpg`;
       const blob = shareImageBlobRef.current || (await prepareShareImage(activeShareId));
+      const attemptToken = `${Date.now()}`;
+      const debugCode = activeShareId ? activeShareId.slice(0, 8) : attemptToken.slice(-8);
 
       if (!blob) {
         setShareStatus("JPG se nepodařilo připravit. Zkuste to znovu.");
@@ -1336,16 +1353,17 @@ function App() {
       }
 
       if (mode === "share") {
-        setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
+        setShareStatus(`Připravuji odkaz s náhledem vašeho momentu pro Facebook… (${debugCode})`);
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
-            setShareLinkUrl(fallbackMomentUrl);
-            openFacebookShare(fallbackMomentUrl);
-            setShareStatus("Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment.");
+            const fallbackWithVersion = appendVersionQuery(fallbackMomentUrl, attemptToken);
+            setShareLinkUrl(fallbackWithVersion);
+            openFacebookShare(fallbackWithVersion);
+            setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
           } else {
-            setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+            setShareStatus(`Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu. (${debugCode})`);
           }
           return;
         }
@@ -1359,7 +1377,7 @@ function App() {
             return;
           }
         }
-        const facebookTargetUrl = uploadedShare.shareUrl;
+        const facebookTargetUrl = appendVersionQuery(uploadedShare.shareUrl, attemptToken);
         setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
@@ -1376,14 +1394,17 @@ function App() {
         }
 
         setShareStatus(
-          "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+          `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
         );
       } else {
         const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
           const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
-          const serverDownloadUrl = buildServerDownloadUrl(uploadedDownload.imageUrl, uniqueFilename);
+          const serverDownloadUrl = appendVersionQuery(
+            buildServerDownloadUrl(uploadedDownload.imageUrl, uniqueFilename),
+            attemptToken
+          );
           setDirectDownloadLink(serverDownloadUrl, filename, false);
           const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
             sameTab: true,
@@ -1410,14 +1431,17 @@ function App() {
         const uploadedShare = hasCachedBlob
           ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev, activeShareId)
           : null;
+        const attemptToken = `${Date.now()}`;
+        const debugCode = activeShareId ? activeShareId.slice(0, 8) : attemptToken.slice(-8);
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
-            setShareLinkUrl(fallbackMomentUrl);
-            openFacebookShare(fallbackMomentUrl);
-            setShareStatus("Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment.");
+            const fallbackWithVersion = appendVersionQuery(fallbackMomentUrl, attemptToken);
+            setShareLinkUrl(fallbackWithVersion);
+            openFacebookShare(fallbackWithVersion);
+            setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
           } else {
-            setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+            setShareStatus(`Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu. (${debugCode})`);
           }
           return;
         }
@@ -1431,7 +1455,7 @@ function App() {
             return;
           }
         }
-        const facebookTargetUrl = uploadedShare.shareUrl;
+        const facebookTargetUrl = appendVersionQuery(uploadedShare.shareUrl, attemptToken);
         setShareLinkUrl(facebookTargetUrl);
 
         openFacebookShare(facebookTargetUrl);
@@ -1448,7 +1472,7 @@ function App() {
         }
 
         setShareStatus(
-          "Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu."
+          `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
         );
       } else {
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
