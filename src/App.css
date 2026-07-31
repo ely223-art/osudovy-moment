@@ -1299,10 +1299,6 @@ a {
   min-height: 0 !important;
 }
 
-.completion-card.is-exporting .completion-map-marker {
-  transform: translate(-50%, -50%) !important;
-}
-
 .completion-card.is-exporting .completion-map-shell .map-animated-surface {
   min-height: 0;
   height: 100%;

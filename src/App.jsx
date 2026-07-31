@@ -41,7 +41,7 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.96;
-const EXPORT_CAPTURE_SCALE = 2;
+const EXPORT_CAPTURE_SCALE = 1;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
@@ -1073,7 +1073,7 @@ function App() {
 
       const captureWidth = EXPORT_SHARE_WIDTH;
       const captureHeight = EXPORT_SHARE_HEIGHT;
-      const captureScale = isMobileDevice ? 1 : EXPORT_CAPTURE_SCALE;
+      const captureScale = EXPORT_CAPTURE_SCALE;
 
       previousNodeInlineStyles = {
         position: node.style.position,
