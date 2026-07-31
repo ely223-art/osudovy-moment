@@ -1320,9 +1320,8 @@ function App() {
     const openFacebookShare = (targetUrl = websiteUrl) => {
       const quoteText = encodeURIComponent("Muj osudovy moment");
       const hashtag = encodeURIComponent("#osudovymoment");
-      const facebookShareUrl = isMobileDevice
-        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`
-        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`;
+      const encodedTarget = encodeURIComponent(targetUrl);
+      const facebookShareUrl = `https://www.facebook.com/dialog/share?app_id=966242223397117&display=popup&href=${encodedTarget}&redirect_uri=${encodedTarget}&quote=${quoteText}&hashtag=${hashtag}`;
 
       if (isMobileDevice) {
         window.location.assign(facebookShareUrl);
