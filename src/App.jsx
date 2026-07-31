@@ -942,11 +942,15 @@ function App() {
         }
       }
 
-      const hasMissingImage = Array.from(node.querySelectorAll("img")).some(
+      const missingImages = Array.from(node.querySelectorAll("img")).filter(
         (image) => !(image.complete && image.naturalWidth > 0)
       );
-      if (hasMissingImage) {
-        throw new Error("Share-card images are not fully loaded for export.");
+      if (missingImages.length > 0) {
+        console.warn("Share-card images are still pending, continuing export", {
+          count: missingImages.length,
+          images: missingImages.map((image) => image.currentSrc || image.src || "unknown"),
+        });
+        await waitForNodeImages(node, 1400);
       }
 
       await new Promise((resolve) => {
