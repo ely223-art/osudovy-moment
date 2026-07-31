@@ -505,16 +505,23 @@ function App() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
-  const uploadShareImageForFacebook = async (blob, title, forcedShareId = "") => {
+  const uploadShareImageForFacebook = async (blob, title, forcedShareId = "", options = {}) => {
     const maxAttempts = 3;
     let lastError = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         const headers = {
-          "content-type": "image/jpeg",
+          "content-type": options.renderMode === "template" ? "application/octet-stream" : "image/jpeg",
           "x-share-title": encodeURIComponent(title || "Osudovy moment"),
         };
+
+        if (options.renderMode === "template") {
+          headers["x-share-render"] = "template";
+          headers["x-share-place"] = encodeURIComponent(options.place || "");
+          headers["x-share-symbol"] = encodeURIComponent(options.symbol || "");
+          headers["x-share-url"] = encodeURIComponent(options.shareUrl || "");
+        }
 
         if (forcedShareId) {
           headers["x-share-id"] = encodeURIComponent(forcedShareId);
@@ -523,7 +530,7 @@ function App() {
         const response = await fetch("/.netlify/functions/create-share-link", {
           method: "POST",
           headers,
-          body: blob,
+          body: blob || new Blob(["template"], { type: "application/octet-stream" }),
         });
 
         if (!response.ok) {
@@ -1354,7 +1361,19 @@ function App() {
 
       if (mode === "share") {
         setShareStatus(`Připravuji odkaz s náhledem vašeho momentu pro Facebook… (${debugCode})`);
-        const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
+        const uploadedShare = await uploadShareImageForFacebook(
+          blob,
+          completeMoment.nazev,
+          activeShareId,
+          isMobileDevice
+            ? {
+              renderMode: "template",
+              place: completeMoment.obec || "",
+              symbol: completeMoment.symbolLabel || selectedSymbol?.label || "",
+              shareUrl: `${websiteUrl}/s/${encodeURIComponent(activeShareId || "")}`,
+            }
+            : {}
+        );
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
@@ -1397,7 +1416,19 @@ function App() {
           `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
         );
       } else {
-        const uploadedDownload = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
+        const uploadedDownload = await uploadShareImageForFacebook(
+          blob,
+          completeMoment.nazev,
+          activeShareId,
+          isMobileDevice
+            ? {
+              renderMode: "template",
+              place: completeMoment.obec || "",
+              symbol: completeMoment.symbolLabel || selectedSymbol?.label || "",
+              shareUrl: `${websiteUrl}/s/${encodeURIComponent(activeShareId || "")}`,
+            }
+            : {}
+        );
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
           const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
@@ -1429,7 +1460,19 @@ function App() {
       if (mode === "share") {
         const hasCachedBlob = !!shareImageBlobRef.current;
         const uploadedShare = hasCachedBlob
-          ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev, activeShareId)
+          ? await uploadShareImageForFacebook(
+            shareImageBlobRef.current,
+            completeMoment.nazev,
+            activeShareId,
+            isMobileDevice
+              ? {
+                renderMode: "template",
+                place: completeMoment.obec || "",
+                symbol: completeMoment.symbolLabel || selectedSymbol?.label || "",
+                shareUrl: `${websiteUrl}/s/${encodeURIComponent(activeShareId || "")}`,
+              }
+              : {}
+          )
           : null;
         const attemptToken = `${Date.now()}`;
         const debugCode = activeShareId ? activeShareId.slice(0, 8) : attemptToken.slice(-8);
