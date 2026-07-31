@@ -1510,8 +1510,13 @@ function App() {
 
           const mobileBlobUrl = URL.createObjectURL(blob);
           setDirectDownloadLink(mobileBlobUrl, filename, true);
-          window.location.assign(mobileBlobUrl);
-          setShareStatus("JPG otevreno. Pokud se neotevrelo sdileni, ulozte nebo sdilejte obrazek primo z telefonu.");
+          const openedBlobTab = window.open(mobileBlobUrl, "_blank", "noopener,noreferrer");
+          if (!openedBlobTab) {
+            setShareStatus("Tento prohlížeč nepodporuje přímé stažení. Otevřete stránku v Safari nebo Chrome.");
+            return;
+          }
+
+          setShareStatus("JPG otevřeno v nové kartě. Uložte obrázek přes nabídku prohlížeče.");
           return;
         }
 
