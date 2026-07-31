@@ -1317,6 +1317,27 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
+    const tryNativeMobileShare = async (targetUrl) => {
+      if (!isMobileDevice || typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        return false;
+      }
+
+      try {
+        await navigator.share({
+          title: "Osudovy moment",
+          text: "Muj osudovy moment",
+          url: targetUrl,
+        });
+        return true;
+      } catch (nativeShareError) {
+        console.error("Native mobile share failed", {
+          message: nativeShareError?.message || String(nativeShareError),
+          name: nativeShareError?.name || null,
+        });
+        return false;
+      }
+    };
+
     const openFacebookShare = (targetUrl = websiteUrl) => {
       const quoteText = encodeURIComponent("Muj osudovy moment");
       const hashtag = encodeURIComponent("#osudovymoment");
@@ -1394,6 +1415,12 @@ function App() {
         const facebookTargetUrl = appendVersionQuery(uploadedShare.shareUrl, attemptToken);
         setShareLinkUrl(facebookTargetUrl);
 
+        const sharedViaNative = await tryNativeMobileShare(facebookTargetUrl);
+        if (sharedViaNative) {
+          setShareStatus(`Sdileni otevreno pres mobilni nabidku. (${debugCode})`);
+          return;
+        }
+
         openFacebookShare(facebookTargetUrl);
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -1460,6 +1487,13 @@ function App() {
           if (activeShareId || exportShareId) {
             const fallbackWithVersion = appendVersionQuery(fallbackMomentUrl, attemptToken);
             setShareLinkUrl(fallbackWithVersion);
+
+            const sharedViaNative = await tryNativeMobileShare(fallbackWithVersion);
+            if (sharedViaNative) {
+              setShareStatus(`Sdileni otevreno pres mobilni nabidku. (${debugCode})`);
+              return;
+            }
+
             openFacebookShare(fallbackWithVersion);
             setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
           } else {
@@ -1479,6 +1513,12 @@ function App() {
         }
         const facebookTargetUrl = appendVersionQuery(uploadedShare.shareUrl, attemptToken);
         setShareLinkUrl(facebookTargetUrl);
+
+        const sharedViaNative = await tryNativeMobileShare(facebookTargetUrl);
+        if (sharedViaNative) {
+          setShareStatus(`Sdileni otevreno pres mobilni nabidku. (${debugCode})`);
+          return;
+        }
 
         openFacebookShare(facebookTargetUrl);
 

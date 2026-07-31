@@ -53,8 +53,9 @@ const detectBlackTopOffset = async (inputBuffer) => {
     const metadata = await image.metadata();
     const width = metadata.width || 0;
     const height = metadata.height || 0;
+    const channels = metadata.channels || 3;
 
-    if (!width || !height) {
+    if (!width || !height || channels < 3) {
       return 0;
     }
 
@@ -64,11 +65,10 @@ const detectBlackTopOffset = async (inputBuffer) => {
       .raw()
       .toBuffer();
 
-    const channels = 3;
     const stepX = Math.max(1, Math.floor(width / 120));
     const sampleCount = Math.max(1, Math.floor(width / stepX));
-    const rowThreshold = Math.max(3, Math.floor(sampleCount * 0.3));
-    const luminanceThreshold = 22;
+    const rowThreshold = Math.max(3, Math.floor(sampleCount * 0.35));
+    const luminanceThreshold = 20;
 
     for (let y = 0; y < sampleHeight; y += 1) {
       let brightSamples = 0;
@@ -77,7 +77,8 @@ const detectBlackTopOffset = async (inputBuffer) => {
         const r = sampleBuffer[index];
         const g = sampleBuffer[index + 1];
         const b = sampleBuffer[index + 2];
-        if (r > luminanceThreshold || g > luminanceThreshold || b > luminanceThreshold) {
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (luminance > luminanceThreshold) {
           brightSamples += 1;
         }
       }
