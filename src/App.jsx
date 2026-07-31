@@ -45,7 +45,6 @@ const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-const isGoogleAppBrowser = (userAgent = "") => /\bGSA\//i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -889,7 +888,6 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const prefersGoogleCanvasCapture = isGoogleAppBrowser(userAgent);
     const baseCaptureNode = exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
@@ -1051,7 +1049,7 @@ function App() {
 
       node.classList.add("capture-freeze");
 
-      const captureWithHtml2Canvas = async (foreignObjectRendering, scaleOverride = captureScale) => {
+      const captureWithHtml2Canvas = async (foreignObjectRendering) => {
         const canvas = await html2canvas(node, {
           backgroundColor: "#07111f",
           useCORS: true,
@@ -1066,7 +1064,7 @@ function App() {
           foreignObjectRendering,
           windowWidth: captureWidth,
           windowHeight: captureHeight,
-          scale: scaleOverride,
+          scale: captureScale,
         });
 
         return new Promise((resolve, reject) => {
@@ -1075,17 +1073,6 @@ function App() {
       };
 
       let blob = null;
-
-      if (prefersGoogleCanvasCapture) {
-        try {
-          blob = await captureWithHtml2Canvas(false, 1);
-        } catch (googleCanvasError) {
-          console.error("Google app html2canvas primary capture failed", {
-            message: googleCanvasError?.message || String(googleCanvasError),
-            name: googleCanvasError?.name || null,
-          });
-        }
-      }
 
       if (!blob) {
         try {
