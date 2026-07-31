@@ -506,40 +506,51 @@ function App() {
       .replace(/(^-|-$)/g, "") || "osudovy-moment";
 
   const uploadShareImageForFacebook = async (blob, title, forcedShareId = "") => {
-    try {
-      const headers = {
-        "content-type": "image/jpeg",
-        "x-share-title": encodeURIComponent(title || "Osudovy moment"),
-      };
+    const maxAttempts = 3;
+    let lastError = null;
 
-      if (forcedShareId) {
-        headers["x-share-id"] = encodeURIComponent(forcedShareId);
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const headers = {
+          "content-type": "image/jpeg",
+          "x-share-title": encodeURIComponent(title || "Osudovy moment"),
+        };
+
+        if (forcedShareId) {
+          headers["x-share-id"] = encodeURIComponent(forcedShareId);
+        }
+
+        const response = await fetch("/.netlify/functions/create-share-link", {
+          method: "POST",
+          headers,
+          body: blob,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Upload failed: ${response.status} ${errorText}`);
+        }
+
+        const payload = await response.json();
+        if (!payload?.shareUrl) {
+          throw new Error("Upload response is missing shareUrl");
+        }
+
+        return payload;
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => window.setTimeout(resolve, 260 * attempt));
+        }
       }
-
-      const response = await fetch("/.netlify/functions/create-share-link", {
-        method: "POST",
-        headers,
-        body: blob,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed: ${response.status} ${errorText}`);
-      }
-
-      const payload = await response.json();
-      if (!payload?.shareUrl) {
-        throw new Error("Upload response is missing shareUrl");
-      }
-
-      return payload;
-    } catch (error) {
-      console.error("Facebook image upload failed", {
-        message: error?.message || String(error),
-        name: error?.name || null,
-      });
-      return null;
     }
+
+    console.error("Facebook image upload failed", {
+      message: lastError?.message || String(lastError),
+      name: lastError?.name || null,
+    });
+
+    return null;
   };
 
   const waitForShareImageAvailability = async (imageUrl, timeoutMs = 9000) => {
@@ -755,6 +766,7 @@ function App() {
     setIsPreparingShareImage(true);
     let captureNode = null;
     let captureSurface = null;
+    let previousNodeInlineStyles = null;
 
     try {
       const node = exportCardRef.current;
@@ -809,6 +821,24 @@ function App() {
       const captureScale = EXPORT_CAPTURE_SCALE;
       const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
       const isMobileDevice = isMobileUserAgent(userAgent);
+      const scrollX = typeof window !== "undefined" ? window.scrollX || 0 : 0;
+      const scrollY = typeof window !== "undefined" ? window.scrollY || 0 : 0;
+
+      previousNodeInlineStyles = {
+        position: node.style.position,
+        left: node.style.left,
+        top: node.style.top,
+        margin: node.style.margin,
+        transform: node.style.transform,
+        zIndex: node.style.zIndex,
+      };
+
+      node.style.position = "fixed";
+      node.style.left = "0";
+      node.style.top = "0";
+      node.style.margin = "0";
+      node.style.transform = "none";
+      node.style.zIndex = "2147483646";
 
       if (exportMapRef.current && typeof exportMapRef.current.invalidateSize === "function") {
         try {
@@ -834,8 +864,8 @@ function App() {
           allowTaint: false,
           width: captureWidth,
           height: captureHeight,
-          scrollX: 0,
-          scrollY: 0,
+          scrollX: -scrollX,
+          scrollY: -scrollY,
           imageTimeout: 15000,
           removeContainer: true,
           logging: false,
@@ -953,6 +983,16 @@ function App() {
       if (captureNode) {
         captureNode.classList.remove("is-capturing");
       }
+
+      if (captureNode && previousNodeInlineStyles) {
+        captureNode.style.position = previousNodeInlineStyles.position;
+        captureNode.style.left = previousNodeInlineStyles.left;
+        captureNode.style.top = previousNodeInlineStyles.top;
+        captureNode.style.margin = previousNodeInlineStyles.margin;
+        captureNode.style.transform = previousNodeInlineStyles.transform;
+        captureNode.style.zIndex = previousNodeInlineStyles.zIndex;
+      }
+
       captureSurface?.classList.remove("is-capturing");
       exportCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
