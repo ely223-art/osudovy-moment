@@ -810,191 +810,6 @@ function App() {
     return results.every(Boolean);
   };
 
-  const buildMobileCanvasShareBlob = async (shareId = "") => {
-    if (typeof document === "undefined" || !completeMoment) {
-      return null;
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = EXPORT_SHARE_WIDTH;
-    canvas.height = EXPORT_SHARE_HEIGHT;
-    const context = canvas.getContext("2d", { alpha: false });
-
-    if (!context) {
-      return null;
-    }
-
-    const drawRoundedRect = (x, y, width, height, radius) => {
-      context.beginPath();
-      context.moveTo(x + radius, y);
-      context.lineTo(x + width - radius, y);
-      context.quadraticCurveTo(x + width, y, x + width, y + radius);
-      context.lineTo(x + width, y + height - radius);
-      context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      context.lineTo(x + radius, y + height);
-      context.quadraticCurveTo(x, y + height, x, y + height - radius);
-      context.lineTo(x, y + radius);
-      context.quadraticCurveTo(x, y, x + radius, y);
-      context.closePath();
-    };
-
-    const drawTextBlock = (text, x, y, maxWidth, lineHeight, maxLines = 3) => {
-      const words = String(text || "").split(/\s+/).filter(Boolean);
-      const lines = [];
-      let current = "";
-
-      words.forEach((word) => {
-        const candidate = current ? `${current} ${word}` : word;
-        if (context.measureText(candidate).width <= maxWidth || !current) {
-          current = candidate;
-          return;
-        }
-
-        lines.push(current);
-        current = word;
-      });
-
-      if (current) {
-        lines.push(current);
-      }
-
-      lines.slice(0, maxLines).forEach((line, index) => {
-        context.fillText(line, x, y + index * lineHeight);
-      });
-    };
-
-    context.fillStyle = "#07111f";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    const pageGradient = context.createLinearGradient(0, 0, 0, canvas.height);
-    pageGradient.addColorStop(0, "#0a1628");
-    pageGradient.addColorStop(1, "#07111f");
-    context.fillStyle = pageGradient;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    const mapX = 36;
-    const mapY = 34;
-    const mapW = 676;
-    const mapH = 562;
-
-    drawRoundedRect(mapX, mapY, mapW, mapH, 22);
-    context.fillStyle = "#0b1728";
-    context.fill();
-
-    context.save();
-    drawRoundedRect(mapX, mapY, mapW, mapH, 22);
-    context.clip();
-
-    const mapGradient = context.createLinearGradient(mapX, mapY, mapX + mapW, mapY + mapH);
-    mapGradient.addColorStop(0, "#10253d");
-    mapGradient.addColorStop(1, "#071324");
-    context.fillStyle = mapGradient;
-    context.fillRect(mapX, mapY, mapW, mapH);
-
-    context.strokeStyle = "rgba(255,255,255,0.07)";
-    context.lineWidth = 1;
-    for (let gx = mapX + 20; gx < mapX + mapW; gx += 42) {
-      context.beginPath();
-      context.moveTo(gx, mapY);
-      context.lineTo(gx, mapY + mapH);
-      context.stroke();
-    }
-    for (let gy = mapY + 20; gy < mapY + mapH; gy += 42) {
-      context.beginPath();
-      context.moveTo(mapX, gy);
-      context.lineTo(mapX + mapW, gy);
-      context.stroke();
-    }
-
-    const markerX = mapX + mapW * 0.54;
-    const markerY = mapY + mapH * 0.54;
-
-    const glow = context.createRadialGradient(markerX, markerY, 10, markerX, markerY, 86);
-    glow.addColorStop(0, "rgba(255,214,120,0.9)");
-    glow.addColorStop(1, "rgba(255,214,120,0)");
-    context.fillStyle = glow;
-    context.beginPath();
-    context.arc(markerX, markerY, 90, 0, Math.PI * 2);
-    context.fill();
-
-    context.strokeStyle = "rgba(255,214,120,0.95)";
-    context.lineWidth = 3;
-    context.beginPath();
-    context.moveTo(markerX, markerY + 8);
-    context.lineTo(markerX, markerY + 82);
-    context.stroke();
-
-    context.fillStyle = "#ffd472";
-    context.beginPath();
-    context.arc(markerX, markerY, 12, 0, Math.PI * 2);
-    context.fill();
-
-    if (completeMoment.symbolImage) {
-      try {
-        const image = new Image();
-        image.crossOrigin = "anonymous";
-        image.decoding = "sync";
-        const loaded = await new Promise((resolve) => {
-          image.onload = () => resolve(true);
-          image.onerror = () => resolve(false);
-          image.src = completeMoment.symbolImage;
-        });
-
-        if (loaded) {
-          const symbolSize = 110;
-          const sx = markerX - symbolSize / 2;
-          const sy = markerY - 154;
-          context.drawImage(image, sx, sy, symbolSize, symbolSize);
-        }
-      } catch (imageError) {
-        console.error("Mobile canvas symbol draw failed", {
-          message: imageError?.message || String(imageError),
-          name: imageError?.name || null,
-        });
-      }
-    }
-
-    context.restore();
-
-    const rightX = 748;
-    const rightY = 68;
-    const rightW = 416;
-
-    context.fillStyle = "#f3ead8";
-    context.font = "600 58px serif";
-    drawTextBlock("Vas osudovy moment", rightX, rightY, rightW, 64, 2);
-    context.font = "600 56px serif";
-    context.fillText("prave zazaril", rightX, rightY + 126);
-
-    context.fillStyle = "rgba(247,239,226,0.84)";
-    context.font = "400 26px sans-serif";
-    context.fillText(completeMoment.obec || "", rightX, rightY + 176);
-
-    drawRoundedRect(rightX, rightY + 196, rightW, 256, 14);
-    context.fillStyle = "rgba(255,255,255,0.05)";
-    context.fill();
-    context.strokeStyle = "rgba(255,234,197,0.2)";
-    context.lineWidth = 1;
-    context.stroke();
-
-    context.fillStyle = "rgba(247,239,226,0.66)";
-    context.font = "600 18px sans-serif";
-    context.fillText("SYMBOL", rightX + 16, rightY + 238);
-    context.fillText("NAZEV", rightX + 16, rightY + 308);
-    context.fillText("WEB", rightX + 16, rightY + 378);
-
-    context.fillStyle = "#f7efe2";
-    context.font = "500 26px sans-serif";
-    drawTextBlock(completeMoment.symbolLabel || "", rightX + 16, rightY + 270, rightW - 24, 30, 1);
-    drawTextBlock(completeMoment.nazev || "", rightX + 16, rightY + 340, rightW - 24, 30, 1);
-    context.font = "400 20px sans-serif";
-    drawTextBlock(`${websiteUrl}/s/${encodeURIComponent(shareId || exportShareId || "")}`, rightX + 16, rightY + 410, rightW - 24, 24, 3);
-
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob || null), "image/jpeg", EXPORT_JPEG_QUALITY);
-    });
-  };
-
   const prepareShareImage = async (shareId = "") => {
     console.log("Export started", {
       screen,
@@ -1163,7 +978,6 @@ function App() {
       };
 
       let blob = null;
-      let usedPrimaryRenderer = false;
 
       try {
         blob = await htmlToImageToBlob(node, {
@@ -1175,7 +989,6 @@ function App() {
           type: "image/jpeg",
           backgroundColor: "#07111f",
         });
-        usedPrimaryRenderer = true;
       } catch (primaryCaptureError) {
         console.error("html-to-image capture failed, falling back to html2canvas", {
           message: primaryCaptureError?.message || String(primaryCaptureError),
@@ -1202,13 +1015,6 @@ function App() {
             message: foreignObjectError?.message || String(foreignObjectError),
             name: foreignObjectError?.name || null,
           });
-        }
-      }
-
-      if (isMobileDevice && !usedPrimaryRenderer) {
-        const mobileFallbackBlob = await buildMobileCanvasShareBlob(shareId);
-        if (mobileFallbackBlob) {
-          blob = mobileFallbackBlob;
         }
       }
 
