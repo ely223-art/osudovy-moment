@@ -177,7 +177,24 @@ function App() {
   const [directDownloadFilename, setDirectDownloadFilename] = useState("");
   const [isPreparingShareImage, setIsPreparingShareImage] = useState(false);
   const [shareImageReady, setShareImageReady] = useState(false);
+  const [sharedMomentId, setSharedMomentId] = useState("");
+  const [sharedMomentImageError, setSharedMomentImageError] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const rawShareId = (params.get("share") || params.get("id") || "").trim();
+    const safeShareId = rawShareId.replace(/[^a-zA-Z0-9-]/g, "");
+
+    if (safeShareId) {
+      setSharedMomentId(safeShareId);
+      setSharedMomentImageError(false);
+    }
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -1193,6 +1210,22 @@ function App() {
     return `${websiteUrl}/s/${encodeURIComponent(exportShareId)}`;
   }, [exportShareId]);
 
+  const sharedMomentUrl = useMemo(() => {
+    if (!sharedMomentId) {
+      return "";
+    }
+
+    return `${websiteUrl}/s/${encodeURIComponent(sharedMomentId)}`;
+  }, [sharedMomentId]);
+
+  const sharedMomentImageUrl = useMemo(() => {
+    if (!sharedMomentId) {
+      return "";
+    }
+
+    return `${websiteUrl}/.netlify/functions/share-image?id=${encodeURIComponent(sharedMomentId)}`;
+  }, [sharedMomentId]);
+
   const renderExportCardContent = () => (
     <>
       <div className="completion-map-shell completion-map-shell--export">
@@ -1789,6 +1822,28 @@ function App() {
                   <br />
                   Malý bod s velkým příběhem.
                 </p>
+
+                {sharedMomentId ? (
+                  <section className="shared-moment-card" aria-label="Sdílený moment">
+                    <p className="shared-moment-card__title">Otevřeli jste sdílený moment</p>
+                    <p className="shared-moment-card__subtitle">Pokud jste přišli z Facebooku, tady je jeho náhled.</p>
+                    {sharedMomentImageError ? (
+                      <a className="shared-moment-card__link" href={sharedMomentUrl}>
+                        Otevřít sdílený odkaz
+                      </a>
+                    ) : (
+                      <a className="shared-moment-card__preview" href={sharedMomentUrl}>
+                        <img
+                          className="shared-moment-card__image"
+                          src={sharedMomentImageUrl}
+                          alt="Náhled sdíleného momentu"
+                          loading="eager"
+                          onError={() => setSharedMomentImageError(true)}
+                        />
+                      </a>
+                    )}
+                  </section>
+                ) : null}
 
                 <div className="hero-actions">
                   <button
