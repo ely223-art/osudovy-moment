@@ -41,7 +41,7 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const EXPORT_JPEG_QUALITY = 0.96;
-const EXPORT_CAPTURE_SCALE = 1;
+const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
@@ -1074,17 +1074,6 @@ function App() {
 
       let blob = null;
 
-      if (isMobileDevice) {
-        try {
-          blob = await captureWithHtml2Canvas(false);
-        } catch (mobileCanvasError) {
-          console.error("Mobile html2canvas primary capture failed", {
-            message: mobileCanvasError?.message || String(mobileCanvasError),
-            name: mobileCanvasError?.name || null,
-          });
-        }
-      }
-
       if (!blob) {
         try {
           blob = await htmlToImageToBlob(node, {
@@ -1413,15 +1402,29 @@ function App() {
             }
           }
 
-          const mobileBlobUrl = URL.createObjectURL(blob);
-          setDirectDownloadLink(mobileBlobUrl, filename, true);
-          const openedBlobTab = window.open(mobileBlobUrl, "_blank", "noopener,noreferrer");
-          if (!openedBlobTab) {
-            setShareStatus("Tento prohlížeč nepodporuje přímé stažení. Otevřete stránku v Safari nebo Chrome.");
+          const uploadedDownload = await uploadShareImageForFacebook(
+            blob,
+            completeMoment.nazev,
+            activeShareId,
+            { client: "mobile" }
+          );
+          if (uploadedDownload?.imageUrl) {
+            await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
+
+            const mobileDownloadUrl = appendVersionQuery(
+              buildServerDownloadUrl(uploadedDownload.imageUrl, filename) || uploadedDownload.imageUrl,
+              attemptToken
+            );
+            setDirectDownloadLink(mobileDownloadUrl, filename, false);
+            window.location.assign(mobileDownloadUrl);
+            setShareStatus("JPG otevřeno pro stažení. V mobilním Chrome případně použijte menu a zvolte Stáhnout.");
             return;
           }
 
-          setShareStatus("JPG otevřeno v nové kartě. Uložte obrázek přes nabídku prohlížeče.");
+          const mobileBlobUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(mobileBlobUrl, filename, mobileBlobUrl.startsWith("blob:"));
+          window.location.assign(mobileBlobUrl);
+          setShareStatus("JPG otevřeno. Pokud se nestáhne samo, použijte nabídku prohlížeče nebo podržte obrázek.");
           return;
         }
 
@@ -1440,40 +1443,6 @@ function App() {
           setShareStatus("Stahuji JPG v plne kvalite.");
           return;
         }
-
-        const uploadedDownload = await uploadShareImageForFacebook(
-          blob,
-          completeMoment.nazev,
-          activeShareId,
-          { client: "desktop" }
-        );
-        if (uploadedDownload?.imageUrl) {
-          await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
-
-          if (isMobileClient) {
-            const mobileImageUrl = appendVersionQuery(uploadedDownload.imageUrl, attemptToken);
-            setDirectDownloadLink(mobileImageUrl, filename, false);
-            window.location.assign(mobileImageUrl);
-            setShareStatus("JPG otevreno. Na iPhonu dlouze podrzte obrazek a ulozte ho do fotek.");
-            return;
-          }
-
-          const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
-          const serverDownloadUrl = appendVersionQuery(
-            buildServerDownloadUrl(uploadedDownload.imageUrl, uniqueFilename),
-            attemptToken
-          );
-          setDirectDownloadLink(serverDownloadUrl, filename, false);
-          const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
-            sameTab: true,
-          });
-          if (downloadedFromServer) {
-            setShareStatus("Otevírám stejné serverové JPG pro všechna zařízení.");
-            return;
-          }
-        }
-
-        setShareStatus("Nepodařilo se připravit serverové JPG pro stažení. Zkuste to prosím znovu.");
       }
     } catch (error) {
       console.error("Nepodařilo se vytvořit JPG kartičku:", error);
