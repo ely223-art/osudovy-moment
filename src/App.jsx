@@ -1321,7 +1321,7 @@ function App() {
       const quoteText = encodeURIComponent("Muj osudovy moment");
       const hashtag = encodeURIComponent("#osudovymoment");
       const facebookShareUrl = isMobileDevice
-        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`
+        ? `https://m.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`
         : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`;
 
       if (isMobileDevice) {
@@ -1374,8 +1374,7 @@ function App() {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
             setShareLinkUrl(fallbackMomentUrl);
-            openFacebookShare(fallbackMomentUrl);
-            setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
+            setShareStatus(`Nepodařilo se připravit Facebook náhled. Zkuste sdílení znovu za pár sekund. (${debugCode})`);
           } else {
             setShareStatus(`Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu. (${debugCode})`);
           }
@@ -1459,8 +1458,7 @@ function App() {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
             setShareLinkUrl(fallbackMomentUrl);
-            openFacebookShare(fallbackMomentUrl);
-            setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
+            setShareStatus(`Nepodařilo se připravit Facebook náhled. Zkuste sdílení znovu za pár sekund. (${debugCode})`);
           } else {
             setShareStatus(`Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu. (${debugCode})`);
           }

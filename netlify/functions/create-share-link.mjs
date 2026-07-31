@@ -67,8 +67,8 @@ const detectBlackTopOffset = async (inputBuffer) => {
 
     const stepX = Math.max(1, Math.floor(width / 120));
     const sampleCount = Math.max(1, Math.floor(width / stepX));
-    const rowThreshold = Math.max(3, Math.floor(sampleCount * 0.35));
-    const luminanceThreshold = 20;
+    const rowThreshold = Math.max(3, Math.floor(sampleCount * 0.2));
+    const luminanceThreshold = 8;
 
     let consecutiveContentRows = 0;
     const requiredConsecutiveRows = 12;
