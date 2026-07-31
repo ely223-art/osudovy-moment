@@ -1914,6 +1914,10 @@ a {
     transform: translate(14%, -50%);
   }
 
+  .completion-card.is-exporting .completion-map-marker {
+    transform: translate(-50%, -50%);
+  }
+
   .completion-actions {
     display: flex;
     flex-wrap: wrap;
