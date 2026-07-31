@@ -1492,6 +1492,36 @@ function App() {
           );
         }
       } else {
+        if (isMobileClient) {
+          if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File !== "undefined") {
+            try {
+              const sharedFile = new File([blob], filename, { type: "image/jpeg" });
+              const canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare({ files: [sharedFile] });
+
+              if (canShareFiles) {
+                await navigator.share({
+                  title: "Osudovy moment",
+                  text: "Muj osudovy moment #osudovymoment",
+                  files: [sharedFile],
+                });
+                setShareStatus("JPG je pripraveno a otevreno v mobilnim sdileni.");
+                return;
+              }
+            } catch (nativeShareError) {
+              console.error("Native JPG share failed", {
+                message: nativeShareError?.message || String(nativeShareError),
+                name: nativeShareError?.name || null,
+              });
+            }
+          }
+
+          const mobileBlobUrl = URL.createObjectURL(blob);
+          setDirectDownloadLink(mobileBlobUrl, filename, true);
+          window.location.assign(mobileBlobUrl);
+          setShareStatus("JPG otevreno. Pokud se neotevrelo sdileni, ulozte nebo sdilejte obrazek primo z telefonu.");
+          return;
+        }
+
         if (!isMobileClient) {
           const desktopBlobUrl = URL.createObjectURL(blob);
           setDirectDownloadLink(desktopBlobUrl, filename, true);
@@ -1518,28 +1548,6 @@ function App() {
           await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
 
           if (isMobileClient) {
-            if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File !== "undefined") {
-              try {
-                const sharedFile = new File([blob], filename, { type: "image/jpeg" });
-                const canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare({ files: [sharedFile] });
-
-                if (canShareFiles) {
-                  await navigator.share({
-                    title: "Osudovy moment",
-                    text: "Muj osudovy moment #osudovymoment",
-                    files: [sharedFile],
-                  });
-                  setShareStatus("JPG je pripraveno a otevreno v mobilnim sdileni.");
-                  return;
-                }
-              } catch (nativeShareError) {
-                console.error("Native JPG share failed", {
-                  message: nativeShareError?.message || String(nativeShareError),
-                  name: nativeShareError?.name || null,
-                });
-              }
-            }
-
             const mobileImageUrl = appendVersionQuery(uploadedDownload.imageUrl, attemptToken);
             setDirectDownloadLink(mobileImageUrl, filename, false);
             window.location.assign(mobileImageUrl);
