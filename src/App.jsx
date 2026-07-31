@@ -46,6 +46,58 @@ const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
+const blobToDataUrl = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error("Nepodařilo se převést obrázek na data URL."));
+    reader.readAsDataURL(blob);
+  });
+
+const canvasToJpegBlob = async (canvas, quality = EXPORT_JPEG_QUALITY) => {
+  const dataUrl = canvas.toDataURL("image/jpeg", quality);
+  const response = await fetch(dataUrl);
+  const jpegBlob = await response.blob();
+  if (jpegBlob.type !== "image/jpeg") {
+    throw new Error("Nepodařilo se vytvořit JPEG výstup.");
+  }
+  return jpegBlob;
+};
+
+const normalizeShareBlobToJpeg = async (blob, quality = EXPORT_JPEG_QUALITY) => {
+  if (!blob || blob.type === "image/jpeg") {
+    return blob;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const loadedImage = new Image();
+      loadedImage.onload = () => resolve(loadedImage);
+      loadedImage.onerror = () => reject(new Error("Nepodařilo se načíst exportovaný obrázek."));
+      loadedImage.src = objectUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Nepodařilo se připravit JPEG konverzi.");
+    }
+
+    context.fillStyle = "#07111f";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0);
+
+    return canvasToJpegBlob(canvas, quality);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
+
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
   const normalizedBase = base.endsWith("/") ? base : `${base}/`;
@@ -869,6 +921,27 @@ function App() {
         }
       }
 
+      const exportSymbolImage = node.querySelector(".completion-map-marker__image");
+      if (exportSymbolImage) {
+        const exportSymbolImageUrl = exportSymbolImage.currentSrc || exportSymbolImage.src || "";
+        if (exportSymbolImageUrl && !exportSymbolImageUrl.startsWith("data:")) {
+          try {
+            const exportSymbolResponse = await fetch(exportSymbolImageUrl, { cache: "force-cache" });
+            if (exportSymbolResponse.ok) {
+              const exportSymbolBlob = await exportSymbolResponse.blob();
+              const exportSymbolDataUrl = await blobToDataUrl(exportSymbolBlob);
+              exportSymbolImage.src = exportSymbolDataUrl;
+              exportSymbolImage.removeAttribute("srcset");
+            }
+          } catch (symbolImageError) {
+            console.warn("Failed to inline export symbol image", {
+              message: symbolImageError?.message || String(symbolImageError),
+              name: symbolImageError?.name || null,
+            });
+          }
+        }
+      }
+
       const hasMissingImage = Array.from(node.querySelectorAll("img")).some(
         (image) => !(image.complete && image.naturalWidth > 0)
       );
@@ -963,17 +1036,7 @@ function App() {
         });
 
         return new Promise((resolve, reject) => {
-          canvas.toBlob(
-            (result) => {
-              if (!result) {
-                reject(new Error("Nepodařilo se vytvořit JPG."));
-                return;
-              }
-              resolve(result);
-            },
-            "image/jpeg",
-            EXPORT_JPEG_QUALITY
-          );
+          canvasToJpegBlob(canvas, EXPORT_JPEG_QUALITY).then(resolve).catch(reject);
         });
       };
 
@@ -1022,9 +1085,12 @@ function App() {
         throw new Error("Nepodařilo se připravit JPG.");
       }
 
+      blob = await normalizeShareBlobToJpeg(blob, EXPORT_JPEG_QUALITY);
+
       console.log("JPG generated", {
         width: Math.round(captureWidth * captureScale),
         height: Math.round(captureHeight * captureScale),
+        type: blob.type,
       });
 
       shareImageBlobRef.current = blob;
