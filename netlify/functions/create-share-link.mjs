@@ -6,6 +6,55 @@ const SHARE_ID_PATTERN = /^[a-zA-Z0-9-]{8,120}$/;
 const SHARE_WIDTH = 1200;
 const SHARE_HEIGHT = 630;
 
+const detectBlackTopOffset = async (inputBuffer) => {
+  try {
+    const image = sharp(inputBuffer, { failOn: "none" }).rotate();
+    const metadata = await image.metadata();
+    const width = metadata.width || 0;
+    const height = metadata.height || 0;
+
+    if (!width || !height) {
+      return 0;
+    }
+
+    const sampleHeight = Math.min(height, 1400);
+    const sampleBuffer = await image
+      .extract({ left: 0, top: 0, width, height: sampleHeight })
+      .raw()
+      .toBuffer();
+
+    const channels = 3;
+    const stepX = Math.max(1, Math.floor(width / 80));
+    const rowThreshold = Math.max(2, Math.floor(width / stepX) * 0.08);
+    const luminanceThreshold = 14;
+
+    for (let y = 0; y < sampleHeight; y += 1) {
+      let brightSamples = 0;
+      for (let x = 0; x < width; x += stepX) {
+        const index = (y * width + x) * channels;
+        const r = sampleBuffer[index];
+        const g = sampleBuffer[index + 1];
+        const b = sampleBuffer[index + 2];
+        if (r > luminanceThreshold || g > luminanceThreshold || b > luminanceThreshold) {
+          brightSamples += 1;
+        }
+      }
+
+      if (brightSamples >= rowThreshold) {
+        return y;
+      }
+    }
+
+    return 0;
+  } catch (error) {
+    console.error("black band detection failed", {
+      message: error?.message || String(error),
+      name: error?.name || null,
+    });
+    return 0;
+  }
+};
+
 const jsonResponse = (statusCode, payload) => ({
   status: statusCode,
   headers: {
@@ -39,13 +88,28 @@ export default async (request) => {
 
     let imageBuffer = rawImageBuffer;
     try {
-      imageBuffer = await sharp(rawImageBuffer, { failOn: "none" })
-        .rotate()
+      const source = sharp(rawImageBuffer, { failOn: "none" }).rotate();
+      const sourceMeta = await source.metadata();
+      const sourceWidth = sourceMeta.width || SHARE_WIDTH;
+      const sourceHeight = sourceMeta.height || SHARE_HEIGHT;
+      const topOffset = await detectBlackTopOffset(rawImageBuffer);
+      const effectiveTopOffset = topOffset > 24 ? Math.min(topOffset, Math.max(0, sourceHeight - 1)) : 0;
+      const cropHeight = Math.max(1, sourceHeight - effectiveTopOffset);
+
+      let normalized = source;
+      if (effectiveTopOffset > 0 && sourceWidth > 0 && cropHeight > 0) {
+        normalized = source.extract({
+          left: 0,
+          top: effectiveTopOffset,
+          width: sourceWidth,
+          height: cropHeight,
+        });
+      }
+
+      imageBuffer = await normalized
         .resize(SHARE_WIDTH, SHARE_HEIGHT, {
           fit: "cover",
-          // If mobile capture contains a black band at the top, keeping the bottom
-          // area prioritizes visible card content.
-          position: "south",
+          position: "centre",
           withoutEnlargement: false,
         })
         .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
