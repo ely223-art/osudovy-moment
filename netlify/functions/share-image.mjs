@@ -44,7 +44,7 @@ export default async (request) => {
         "content-type": "image/jpeg",
         "cache-control": shouldDownload
           ? "no-store, no-transform"
-          : "public, max-age=31536000, immutable",
+          : "public, max-age=120, must-revalidate",
         "content-disposition": shouldDownload
           ? `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(safeFilename)}`
           : "inline",

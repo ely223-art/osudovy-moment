@@ -818,11 +818,9 @@ function App() {
 
       const captureWidth = EXPORT_SHARE_WIDTH;
       const captureHeight = EXPORT_SHARE_HEIGHT;
-      const captureScale = EXPORT_CAPTURE_SCALE;
       const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
       const isMobileDevice = isMobileUserAgent(userAgent);
-      const scrollX = typeof window !== "undefined" ? window.scrollX || 0 : 0;
-      const scrollY = typeof window !== "undefined" ? window.scrollY || 0 : 0;
+      const captureScale = isMobileDevice ? 1 : EXPORT_CAPTURE_SCALE;
 
       previousNodeInlineStyles = {
         position: node.style.position,
@@ -864,8 +862,8 @@ function App() {
           allowTaint: false,
           width: captureWidth,
           height: captureHeight,
-          scrollX: -scrollX,
-          scrollY: -scrollY,
+          scrollX: 0,
+          scrollY: 0,
           imageTimeout: 15000,
           removeContainer: true,
           logging: false,
@@ -1102,7 +1100,7 @@ function App() {
     };
 
     let activeShareId = exportShareId;
-    if (!activeShareId && typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       activeShareId = crypto.randomUUID();
       setExportShareId(activeShareId);
       await new Promise((resolve) => requestAnimationFrame(resolve));
