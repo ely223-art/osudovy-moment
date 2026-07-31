@@ -1318,7 +1318,11 @@ function App() {
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
     const openFacebookShare = (targetUrl = websiteUrl) => {
-      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+      const quoteText = encodeURIComponent("Muj osudovy moment");
+      const hashtag = encodeURIComponent("#osudovymoment");
+      const facebookShareUrl = isMobileDevice
+        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`
+        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`;
 
       if (isMobileDevice) {
         window.location.assign(facebookShareUrl);
