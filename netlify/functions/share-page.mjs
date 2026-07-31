@@ -53,12 +53,15 @@ export default async (request) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
+    <link rel="canonical" href="${escapeHtml(sharePageUrl)}" />
+    <meta property="fb:app_id" content="966242223397117" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Osudovy moment" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${escapeHtml(sharePageUrl)}" />
     <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    <meta property="og:image:url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
@@ -68,7 +71,7 @@ export default async (request) => {
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
     <meta name="description" content="${escapeHtml(description)}" />
-    <meta name="robots" content="noindex,nofollow" />
+    <meta name="robots" content="index,follow" />
     <style>
       :root { color-scheme: dark; }
       body {

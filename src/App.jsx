@@ -1341,7 +1341,9 @@ function App() {
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
     const buildFacebookShareUrl = (targetUrl = websiteUrl) =>
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+      isMobileDevice
+        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`
+        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
     const openFacebookShare = (targetUrl = websiteUrl) => {
       const facebookShareUrl = buildFacebookShareUrl(targetUrl);
@@ -1707,7 +1709,11 @@ function App() {
           <p className="completion-share-status">
             <a
               className="wizard-continue"
-              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLinkUrl)}`}
+              href={
+                isMobileDevice
+                  ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(shareLinkUrl)}`
+                  : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLinkUrl)}`
+              }
               target="_blank"
               rel="noopener noreferrer"
             >
