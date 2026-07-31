@@ -180,6 +180,13 @@ function App() {
   const [sharedMomentId, setSharedMomentId] = useState("");
   const [sharedMomentImageError, setSharedMomentImageError] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
+  const isMobileClient = useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return false;
+    }
+
+    return isMobileUserAgent(navigator.userAgent || "");
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1338,17 +1345,15 @@ function App() {
     setShareLinkUrl("");
     clearDirectDownloadLink();
 
-    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isMobileDevice = isMobileUserAgent(userAgent);
     const buildFacebookShareUrl = (targetUrl = websiteUrl) =>
-      isMobileDevice
+      isMobileClient
         ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}`
         : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
     const openFacebookShare = (targetUrl = websiteUrl) => {
       const facebookShareUrl = buildFacebookShareUrl(targetUrl);
 
-      if (isMobileDevice) {
+      if (isMobileClient) {
         window.location.assign(facebookShareUrl);
         return;
       }
@@ -1364,7 +1369,7 @@ function App() {
     };
 
     const openNativeMobileShare = async (targetUrl = websiteUrl) => {
-      if (!isMobileDevice || typeof navigator === "undefined" || typeof navigator.share !== "function") {
+      if (!isMobileClient || typeof navigator === "undefined" || typeof navigator.share !== "function") {
         return false;
       }
 
@@ -1392,7 +1397,7 @@ function App() {
     }
 
     try {
-      if (isMobileDevice) {
+      if (isMobileClient) {
         // Mobile devices are sensitive to stale hidden-canvas snapshots; force fresh capture on action.
         shareImageBlobRef.current = null;
         setShareImageReady(false);
@@ -1440,7 +1445,7 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        if (isMobileDevice) {
+        if (isMobileClient) {
           const sharedViaNativeSheet = await openNativeMobileShare(facebookTargetUrl);
           if (sharedViaNativeSheet) {
             setShareStatus(`Odkaz je pripraven a otevren v mobilnim sdileni. Pokud Facebook nevidite, pouzijte tlacitko krok 2. (${debugCode})`);
@@ -1462,7 +1467,7 @@ function App() {
           }
         }
 
-        if (!isMobileDevice) {
+        if (!isMobileClient) {
           setShareStatus(
             `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
           );
@@ -1477,7 +1482,29 @@ function App() {
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
 
-          if (isMobileDevice) {
+          if (isMobileClient) {
+            if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File !== "undefined") {
+              try {
+                const sharedFile = new File([blob], filename, { type: "image/jpeg" });
+                const canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare({ files: [sharedFile] });
+
+                if (canShareFiles) {
+                  await navigator.share({
+                    title: "Osudovy moment",
+                    text: "Muj osudovy moment #osudovymoment",
+                    files: [sharedFile],
+                  });
+                  setShareStatus("JPG je pripraveno a otevreno v mobilnim sdileni.");
+                  return;
+                }
+              } catch (nativeShareError) {
+                console.error("Native JPG share failed", {
+                  message: nativeShareError?.message || String(nativeShareError),
+                  name: nativeShareError?.name || null,
+                });
+              }
+            }
+
             const mobileImageUrl = appendVersionQuery(uploadedDownload.imageUrl, attemptToken);
             setDirectDownloadLink(mobileImageUrl, filename, false);
             window.location.assign(mobileImageUrl);
@@ -1542,7 +1569,7 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        if (isMobileDevice) {
+        if (isMobileClient) {
           const sharedViaNativeSheet = await openNativeMobileShare(facebookTargetUrl);
           if (sharedViaNativeSheet) {
             setShareStatus(`Odkaz je pripraven a otevren v mobilnim sdileni. Pokud Facebook nevidite, pouzijte tlacitko krok 2. (${debugCode})`);
@@ -1564,7 +1591,7 @@ function App() {
           }
         }
 
-        if (!isMobileDevice) {
+        if (!isMobileClient) {
           setShareStatus(
             `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
           );
@@ -1738,22 +1765,24 @@ function App() {
             <button className="wizard-continue" type="button" onClick={handleOpenPublicMap}>
               Prohlédnout mapu osudových momentů
             </button>
-            <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
-              Sdílet na Facebook
-            </button>
+            {!isMobileClient ? (
+              <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("share")}>
+                Sdílet na Facebook
+              </button>
+            ) : null}
             <button className="wizard-continue" type="button" onClick={() => exportCompletionCard("download")}>
-              Stáhnout JPG
+              {isMobileClient ? "Stahnout / Sdilet JPG" : "Stáhnout JPG"}
             </button>
           </div>
         ) : null}
 
         {showActions && shareStatus ? <p className="completion-share-status">{shareStatus}</p> : null}
-        {showActions && shareLinkUrl ? (
+        {showActions && shareLinkUrl && !isMobileClient ? (
           <p className="completion-share-status">
             <a
               className="wizard-continue"
               href={
-                isMobileDevice
+                isMobileClient
                   ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(shareLinkUrl)}`
                   : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLinkUrl)}`
               }
