@@ -40,7 +40,7 @@ const parseCoordinate = (value) => {
 
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
-const EXPORT_JPEG_QUALITY = 0.92;
+const EXPORT_JPEG_QUALITY = 0.96;
 const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
@@ -1168,6 +1168,25 @@ function App() {
 
       let blob = null;
 
+      if (!isMobileDevice) {
+        try {
+          blob = await htmlToImageToBlob(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            canvasWidth: captureWidth,
+            canvasHeight: captureHeight,
+            quality: EXPORT_JPEG_QUALITY,
+            type: "image/jpeg",
+            backgroundColor: "#07111f",
+          });
+        } catch (desktopPrimaryError) {
+          console.error("Desktop html-to-image capture failed, falling back to html2canvas", {
+            message: desktopPrimaryError?.message || String(desktopPrimaryError),
+            name: desktopPrimaryError?.name || null,
+          });
+        }
+      }
+
       try {
         if (!blob) {
           blob = await captureWithHtml2Canvas(false);
@@ -1190,7 +1209,7 @@ function App() {
         }
       }
 
-      if (!blob) {
+      if (!blob && isMobileDevice) {
         try {
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
