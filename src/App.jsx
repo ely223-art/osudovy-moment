@@ -1363,6 +1363,27 @@ function App() {
       }
     };
 
+    const openNativeMobileShare = async (targetUrl = websiteUrl) => {
+      if (!isMobileDevice || typeof navigator === "undefined" || typeof navigator.share !== "function") {
+        return false;
+      }
+
+      try {
+        await navigator.share({
+          title: "Osudovy moment",
+          text: "Muj osudovy moment",
+          url: targetUrl,
+        });
+        return true;
+      } catch (shareError) {
+        console.error("Native mobile share failed", {
+          message: shareError?.message || String(shareError),
+          name: shareError?.name || null,
+        });
+        return false;
+      }
+    };
+
     let activeShareId = exportShareId;
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       activeShareId = crypto.randomUUID();
@@ -1420,7 +1441,12 @@ function App() {
         setShareLinkUrl(facebookTargetUrl);
 
         if (isMobileDevice) {
-          setShareStatus(`Odkaz je pripraven. Klepnete na tlacitko "Otevrit sdileni na Facebooku" niz. (${debugCode})`);
+          const sharedViaNativeSheet = await openNativeMobileShare(facebookTargetUrl);
+          if (sharedViaNativeSheet) {
+            setShareStatus(`Odkaz je pripraven a otevren v mobilnim sdileni. Pokud Facebook nevidite, pouzijte tlacitko krok 2. (${debugCode})`);
+          } else {
+            setShareStatus(`Odkaz je pripraven. Klepnete na tlacitko "Otevrit sdileni na Facebooku" niz. (${debugCode})`);
+          }
         } else {
           openFacebookShare(facebookTargetUrl);
         }
@@ -1517,7 +1543,12 @@ function App() {
         setShareLinkUrl(facebookTargetUrl);
 
         if (isMobileDevice) {
-          setShareStatus(`Odkaz je pripraven. Klepnete na tlacitko "Otevrit sdileni na Facebooku" niz. (${debugCode})`);
+          const sharedViaNativeSheet = await openNativeMobileShare(facebookTargetUrl);
+          if (sharedViaNativeSheet) {
+            setShareStatus(`Odkaz je pripraven a otevren v mobilnim sdileni. Pokud Facebook nevidite, pouzijte tlacitko krok 2. (${debugCode})`);
+          } else {
+            setShareStatus(`Odkaz je pripraven. Klepnete na tlacitko "Otevrit sdileni na Facebooku" niz. (${debugCode})`);
+          }
         } else {
           openFacebookShare(facebookTargetUrl);
         }
