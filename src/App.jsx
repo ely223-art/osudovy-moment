@@ -1419,7 +1419,11 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl);
+        if (isMobileDevice) {
+          setShareStatus(`Odkaz je pripraven. Klepnete na tlacitko "Otevrit sdileni na Facebooku" niz. (${debugCode})`);
+        } else {
+          openFacebookShare(facebookTargetUrl);
+        }
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1432,9 +1436,11 @@ function App() {
           }
         }
 
-        setShareStatus(
-          `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
-        );
+        if (!isMobileDevice) {
+          setShareStatus(
+            `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
+          );
+        }
       } else {
         const uploadedDownload = await uploadShareImageForFacebook(
           blob,
@@ -1510,7 +1516,11 @@ function App() {
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
 
-        openFacebookShare(facebookTargetUrl);
+        if (isMobileDevice) {
+          setShareStatus(`Odkaz je pripraven. Klepnete na tlacitko "Otevrit sdileni na Facebooku" niz. (${debugCode})`);
+        } else {
+          openFacebookShare(facebookTargetUrl);
+        }
 
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
           try {
@@ -1523,9 +1533,11 @@ function App() {
           }
         }
 
-        setShareStatus(
-          `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
-        );
+        if (!isMobileDevice) {
+          setShareStatus(
+            `Facebook sdílení je připravené jako odkaz s náhledem vašeho momentu. (${debugCode})`
+          );
+        }
       } else {
         setShareStatus("Nepodařilo se vytvořit kartičku. Zkuste to znovu.");
       }
@@ -1717,7 +1729,7 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Otevrit sdileni na Facebooku
+              Otevrit sdileni na Facebooku (krok 2)
             </a>
           </p>
         ) : null}
