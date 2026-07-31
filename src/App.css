@@ -77,7 +77,7 @@ a {
   gap: clamp(18px, 3vw, 32px);
   min-height: min(72vh, 640px);
   padding: 76px 44px 28px;
-  transform: translateY(-18px);
+  transform: translateY(-32px);
 }
 
 .hero-copy {
@@ -1819,7 +1819,7 @@ a {
 
   .wizard-layout {
     min-height: auto;
-    padding: 84px 14px 22px;
+    padding: 98px 14px 22px;
   }
 
   .wizard-card {
@@ -1940,7 +1940,7 @@ a {
   }
 
   .wizard-layout {
-    padding-top: 68px;
+    padding-top: 86px;
   }
 
   .hero-actions {
