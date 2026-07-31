@@ -1473,6 +1473,22 @@ function App() {
           );
         }
       } else {
+        if (!isMobileClient) {
+          const desktopBlobUrl = URL.createObjectURL(blob);
+          setDirectDownloadLink(desktopBlobUrl, filename, true);
+
+          const link = document.createElement("a");
+          link.href = desktopBlobUrl;
+          link.download = filename;
+          link.rel = "noopener";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+
+          setShareStatus("Stahuji JPG v plne kvalite.");
+          return;
+        }
+
         const uploadedDownload = await uploadShareImageForFacebook(
           blob,
           completeMoment.nazev,
