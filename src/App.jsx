@@ -1054,7 +1054,7 @@ function App() {
 
       node.classList.add("capture-freeze");
 
-      const captureWithHtml2Canvas = async (foreignObjectRendering) => {
+      const captureWithHtml2Canvas = async (foreignObjectRendering, scaleOverride = captureScale) => {
         const canvas = await html2canvas(node, {
           backgroundColor: "#07111f",
           useCORS: true,
@@ -1069,7 +1069,7 @@ function App() {
           foreignObjectRendering,
           windowWidth: captureWidth,
           windowHeight: captureHeight,
-          scale: captureScale,
+          scale: scaleOverride,
         });
 
         return new Promise((resolve, reject) => {
@@ -1081,7 +1081,7 @@ function App() {
 
       if (prefersChromeCanvasCapture) {
         try {
-          blob = await captureWithHtml2Canvas(false);
+          blob = await captureWithHtml2Canvas(false, 1);
         } catch (mobileCanvasError) {
           console.error("Mobile Chrome html2canvas primary capture failed", {
             message: mobileCanvasError?.message || String(mobileCanvasError),
