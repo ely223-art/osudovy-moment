@@ -1164,23 +1164,21 @@ function App() {
 
       let blob = null;
 
-      if (!isMobileDevice) {
-        try {
-          blob = await htmlToImageToBlob(node, {
-            cacheBust: true,
-            pixelRatio: captureScale,
-            canvasWidth: captureWidth,
-            canvasHeight: captureHeight,
-            quality: EXPORT_JPEG_QUALITY,
-            type: "image/jpeg",
-            backgroundColor: "#07111f",
-          });
-        } catch (desktopPrimaryError) {
-          console.error("Desktop html-to-image capture failed, falling back to html2canvas", {
-            message: desktopPrimaryError?.message || String(desktopPrimaryError),
-            name: desktopPrimaryError?.name || null,
-          });
-        }
+      try {
+        blob = await htmlToImageToBlob(node, {
+          cacheBust: true,
+          pixelRatio: captureScale,
+          canvasWidth: captureWidth,
+          canvasHeight: captureHeight,
+          quality: EXPORT_JPEG_QUALITY,
+          type: "image/jpeg",
+          backgroundColor: "#07111f",
+        });
+      } catch (primaryCaptureError) {
+        console.error("html-to-image capture failed, falling back to html2canvas", {
+          message: primaryCaptureError?.message || String(primaryCaptureError),
+          name: primaryCaptureError?.name || null,
+        });
       }
 
       try {
@@ -1201,25 +1199,6 @@ function App() {
           console.error("Share-card html2canvas (foreignObject) failed, trying html-to-image", {
             message: foreignObjectError?.message || String(foreignObjectError),
             name: foreignObjectError?.name || null,
-          });
-        }
-      }
-
-      if (!blob && isMobileDevice) {
-        try {
-          blob = await htmlToImageToBlob(node, {
-            cacheBust: true,
-            pixelRatio: captureScale,
-            canvasWidth: captureWidth,
-            canvasHeight: captureHeight,
-            quality: EXPORT_JPEG_QUALITY,
-            type: "image/jpeg",
-            backgroundColor: "#07111f",
-          });
-        } catch (primaryError) {
-          console.error("html-to-image capture failed", {
-            message: primaryError?.message || String(primaryError),
-            name: primaryError?.name || null,
           });
         }
       }
