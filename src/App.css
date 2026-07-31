@@ -76,7 +76,7 @@ a {
   align-items: center;
   gap: clamp(18px, 3vw, 32px);
   min-height: min(72vh, 640px);
-  padding: 88px 44px 28px;
+  padding: 76px 44px 28px;
 }
 
 .hero-copy {
@@ -1774,7 +1774,7 @@ a {
   .hero-layout {
     min-height: auto;
     gap: 20px;
-    padding: 102px 18px 18px;
+    padding: 114px 18px 18px;
   }
 
   .hero-title {
@@ -1925,7 +1925,7 @@ a {
 
 @media (max-width: 430px) {
   .hero-layout {
-    padding-top: 96px;
+    padding-top: 108px;
   }
 
   .hero-title {
