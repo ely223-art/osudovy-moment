@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { toBlob as htmlToImageToBlob } from "html-to-image";
+import { toBlob as htmlToImageToBlob, toCanvas as htmlToImageToCanvas } from "html-to-image";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
@@ -62,6 +62,42 @@ const canvasToJpegBlob = async (canvas, quality = EXPORT_JPEG_QUALITY) => {
     throw new Error("Nepodařilo se vytvořit JPEG výstup.");
   }
   return jpegBlob;
+};
+
+const computeAspectRatio = (width, height) => {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || height <= 0) {
+    return null;
+  }
+
+  return Number((width / height).toFixed(6));
+};
+
+const readBlobImageDimensions = async (blob) => {
+  if (!blob) {
+    return null;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const loadedImage = new Image();
+      loadedImage.onload = () => resolve(loadedImage);
+      loadedImage.onerror = () => reject(new Error("Nepodařilo se načíst blob pro diagnostiku exportu."));
+      loadedImage.src = objectUrl;
+    });
+
+    const width = image.naturalWidth || image.width || 0;
+    const height = image.naturalHeight || image.height || 0;
+
+    return {
+      width,
+      height,
+      aspectRatio: computeAspectRatio(width, height),
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 };
 
 const normalizeShareBlobToJpeg = async (blob, quality = EXPORT_JPEG_QUALITY) => {
@@ -205,6 +241,7 @@ function App() {
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
   const exportCardRef = useRef(null);
+  const exportMobileCardRef = useRef(null);
   const exportMapContainerRef = useRef(null);
   const exportMapRef = useRef(null);
   const shareImageBlobRef = useRef(null);
@@ -881,7 +918,7 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const baseCaptureNode = exportCardRef.current;
+    const baseCaptureNode = isMobileDevice ? exportMobileCardRef.current : exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
@@ -979,6 +1016,19 @@ function App() {
       const captureWidth = Math.max(1, Math.round(captureRect.width || EXPORT_SHARE_WIDTH));
       const captureHeight = Math.max(1, Math.round(captureRect.height || EXPORT_SHARE_HEIGHT));
       const captureScale = EXPORT_CAPTURE_SCALE;
+      const domAspectRatio = computeAspectRatio(captureRect.width, captureRect.height);
+
+      console.log("[export-diagnostics] dom", {
+        rectWidth: captureRect.width,
+        rectHeight: captureRect.height,
+        roundedWidth: captureWidth,
+        roundedHeight: captureHeight,
+        aspectRatio: domAspectRatio,
+        targetWidth: EXPORT_SHARE_WIDTH,
+        targetHeight: EXPORT_SHARE_HEIGHT,
+        targetAspectRatio: computeAspectRatio(EXPORT_SHARE_WIDTH, EXPORT_SHARE_HEIGHT),
+        captureScale,
+      });
 
       previousNodeInlineStyles = {
         position: node.style.position,
@@ -1057,9 +1107,28 @@ function App() {
           scale: captureScale,
         });
 
-        return new Promise((resolve, reject) => {
+        console.log("[export-diagnostics] html2canvas-canvas", {
+          foreignObjectRendering,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          canvasAspectRatio: computeAspectRatio(canvas.width, canvas.height),
+        });
+
+        const html2CanvasBlob = await new Promise((resolve, reject) => {
           canvasToJpegBlob(canvas, EXPORT_JPEG_QUALITY).then(resolve).catch(reject);
         });
+
+        const html2CanvasBlobMetrics = await readBlobImageDimensions(html2CanvasBlob);
+        console.log("[export-diagnostics] html2canvas-blob", {
+          foreignObjectRendering,
+          type: html2CanvasBlob?.type || null,
+          size: html2CanvasBlob?.size || null,
+          width: html2CanvasBlobMetrics?.width || null,
+          height: html2CanvasBlobMetrics?.height || null,
+          aspectRatio: html2CanvasBlobMetrics?.aspectRatio || null,
+        });
+
+        return html2CanvasBlob;
       };
 
       let blob = null;
@@ -1077,6 +1146,18 @@ function App() {
 
       if (!blob) {
         try {
+          const htmlToImageCanvas = await htmlToImageToCanvas(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            backgroundColor: "#07111f",
+          });
+
+          console.log("[export-diagnostics] html-to-image-canvas", {
+            canvasWidth: htmlToImageCanvas.width,
+            canvasHeight: htmlToImageCanvas.height,
+            canvasAspectRatio: computeAspectRatio(htmlToImageCanvas.width, htmlToImageCanvas.height),
+          });
+
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
@@ -1084,6 +1165,17 @@ function App() {
             type: "image/jpeg",
             backgroundColor: "#07111f",
           });
+
+          if (blob) {
+            const htmlToImageBlobMetrics = await readBlobImageDimensions(blob);
+            console.log("[export-diagnostics] html-to-image-blob", {
+              type: blob.type,
+              size: blob.size,
+              width: htmlToImageBlobMetrics?.width || null,
+              height: htmlToImageBlobMetrics?.height || null,
+              aspectRatio: htmlToImageBlobMetrics?.aspectRatio || null,
+            });
+          }
         } catch (primaryCaptureError) {
           console.error("html-to-image capture failed, falling back to html2canvas", {
             message: primaryCaptureError?.message || String(primaryCaptureError),
@@ -1119,6 +1211,20 @@ function App() {
       }
 
       blob = await normalizeShareBlobToJpeg(blob, EXPORT_JPEG_QUALITY);
+
+      const finalBlobMetrics = await readBlobImageDimensions(blob);
+      console.log("[export-diagnostics] final-jpg", {
+        type: blob?.type || null,
+        size: blob?.size || null,
+        width: finalBlobMetrics?.width || null,
+        height: finalBlobMetrics?.height || null,
+        aspectRatio: finalBlobMetrics?.aspectRatio || null,
+        domAspectRatio,
+        aspectDelta:
+          finalBlobMetrics?.aspectRatio !== null && domAspectRatio !== null
+            ? Number((finalBlobMetrics.aspectRatio - domAspectRatio).toFixed(6))
+            : null,
+      });
 
       console.log("JPG generated", {
         width: Math.round(captureWidth * captureScale),
@@ -1160,6 +1266,7 @@ function App() {
 
       captureSurface?.classList.remove("is-capturing");
       exportCardRef.current?.classList.remove("capture-freeze");
+      exportMobileCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
@@ -1627,6 +1734,36 @@ function App() {
 
         {renderMomentSummary()}
       </div>
+    </>
+  );
+
+  const renderMobileExportCardContent = () => (
+    <>
+      <header className="mobile-export-header">
+        <img className="mobile-export-logo" src={logo} alt="Logo Osudový moment" />
+        <p className="mobile-export-kicker">Osudový moment</p>
+      </header>
+
+      <div className="mobile-export-map-shell">
+        <div className="map-animated-surface is-ready">
+          {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
+            <div className="completion-map-wrapper completion-map-wrapper--export" ref={exportMapContainerRef} />
+          ) : (
+            <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="mobile-export-content">
+        <h2 className="mobile-export-title">{completeMoment.nazev || "Váš osudový moment"}</h2>
+        <p className="mobile-export-place">{formatMomentLocation(completeMoment)}</p>
+        <p className="mobile-export-obec">Obec: {completeMoment.obec || "—"}</p>
+        {completeMoment.prikaz ? <p className="mobile-export-story">{completeMoment.prikaz}</p> : null}
+      </div>
+
+      <footer className="mobile-export-footer">
+        <span className="mobile-export-url">{exportMomentUrl}</span>
+      </footer>
     </>
   );
 
@@ -2561,11 +2698,19 @@ function App() {
               </main>
             </div>
 
-            <div className="export-render-surface" aria-hidden="true">
-              <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
-                {renderExportCardContent()}
-              </section>
-            </div>
+            {isMobileClient ? (
+              <div className="export-render-surface export-render-surface--mobile" aria-hidden="true">
+                <section className="wizard-card completion-card is-exporting-mobile" ref={exportMobileCardRef}>
+                  {renderMobileExportCardContent()}
+                </section>
+              </div>
+            ) : (
+              <div className="export-render-surface" aria-hidden="true">
+                <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
+                  {renderExportCardContent()}
+                </section>
+              </div>
+            )}
           </>
         )}
       </div>

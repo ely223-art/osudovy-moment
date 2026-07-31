@@ -1346,6 +1346,111 @@ a {
   z-index: 2147483000;
 }
 
+.export-render-surface--mobile {
+  width: 1080px;
+  height: 1350px;
+}
+
+.completion-card.is-exporting-mobile {
+  width: 1080px !important;
+  min-width: 1080px !important;
+  max-width: 1080px !important;
+  height: 1350px !important;
+  min-height: 1350px !important;
+  max-height: 1350px !important;
+  padding: 56px 56px 52px !important;
+  display: grid !important;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 28px;
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 84% 8%, rgba(212, 168, 99, 0.2), rgba(212, 168, 99, 0) 45%),
+    linear-gradient(180deg, #07111f 0%, #081a2f 100%);
+}
+
+.mobile-export-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mobile-export-logo {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  display: block;
+}
+
+.mobile-export-kicker {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2.1rem;
+  letter-spacing: 0.03em;
+  color: #f7efe2;
+}
+
+.mobile-export-map-shell {
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid rgba(247, 239, 226, 0.2);
+  min-height: 580px;
+  height: 100%;
+}
+
+.completion-card.is-exporting-mobile .map-animated-surface,
+.completion-card.is-exporting-mobile .completion-map-wrapper,
+.completion-card.is-exporting-mobile .completion-map-wrapper .leaflet-container {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.mobile-export-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #f7efe2;
+}
+
+.mobile-export-title {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 3.1rem;
+  line-height: 1.03;
+  color: #fff6e8;
+}
+
+.mobile-export-place,
+.mobile-export-obec {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.35;
+  color: rgba(247, 239, 226, 0.92);
+}
+
+.mobile-export-story {
+  margin: 4px 0 0;
+  font-size: 1.22rem;
+  line-height: 1.52;
+  color: rgba(247, 239, 226, 0.86);
+  max-height: 210px;
+  overflow: hidden;
+}
+
+.mobile-export-footer {
+  border-top: 1px solid rgba(247, 239, 226, 0.24);
+  padding-top: 18px;
+}
+
+.mobile-export-url {
+  display: block;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  color: rgba(247, 239, 226, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .share-card {
   position: fixed;
   left: 0;
