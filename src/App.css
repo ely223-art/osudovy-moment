@@ -77,7 +77,7 @@ a {
   gap: clamp(18px, 3vw, 32px);
   min-height: min(72vh, 640px);
   padding: 76px 44px 28px;
-  transform: translateY(-32px);
+  transform: translateY(-42px);
 }
 
 .hero-copy {
@@ -1763,7 +1763,7 @@ a {
   }
 
   .top-left {
-    top: 16px;
+    top: 8px;
     left: 16px;
   }
 
