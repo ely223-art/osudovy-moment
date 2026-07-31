@@ -1032,10 +1032,6 @@ function App() {
       node.classList.add("is-capturing");
       captureSurface?.classList.add("is-capturing");
 
-      if (isMobileDevice) {
-        node.classList.add("is-exporting");
-      }
-
       const exportCardImageElements = Array.from(node.querySelectorAll("img"));
       const exportCardImageSources = exportCardImageElements
         .map((image) => image.currentSrc || image.src)
@@ -1258,9 +1254,6 @@ function App() {
     } finally {
       if (captureNode) {
         captureNode.classList.remove("is-capturing");
-        if (isMobileDevice) {
-          captureNode.classList.remove("is-exporting");
-        }
       }
 
       if (captureNode && previousNodeInlineStyles) {
