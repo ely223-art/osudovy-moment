@@ -6,6 +6,33 @@ const SHARE_ID_PATTERN = /^[a-zA-Z0-9-]{8,120}$/;
 const SHARE_WIDTH = 1200;
 const SHARE_HEIGHT = 630;
 
+const buildFallbackShareImage = async (title = "Osudovy moment") => {
+  const safeTitle = String(title || "Osudovy moment")
+    .replace(/[&<>"']/g, "")
+    .slice(0, 80);
+
+  const svg = `
+<svg width="${SHARE_WIDTH}" height="${SHARE_HEIGHT}" viewBox="0 0 ${SHARE_WIDTH} ${SHARE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1a2e" />
+      <stop offset="100%" stop-color="#081323" />
+    </linearGradient>
+  </defs>
+  <rect width="${SHARE_WIDTH}" height="${SHARE_HEIGHT}" fill="url(#bg)" />
+  <rect x="34" y="34" width="690" height="562" rx="24" fill="#10233a" stroke="rgba(255,234,197,0.18)" />
+  <circle cx="378" cy="315" r="74" fill="rgba(255,214,120,0.35)" />
+  <circle cx="378" cy="315" r="11" fill="#ffd777" />
+  <rect x="758" y="74" width="408" height="482" rx="18" fill="rgba(255,255,255,0.04)" stroke="rgba(255,234,197,0.2)" />
+  <text x="782" y="156" fill="#f7efe2" font-size="60" font-weight="600" font-family="Georgia, serif">Osudovy moment</text>
+  <text x="782" y="224" fill="#f7efe2" font-size="60" font-weight="600" font-family="Georgia, serif">prave zazaril</text>
+  <text x="782" y="304" fill="rgba(247,239,226,0.92)" font-size="34" font-weight="500" font-family="Arial, sans-serif">${safeTitle}</text>
+  <text x="782" y="542" fill="rgba(247,239,226,0.70)" font-size="24" font-weight="400" font-family="Arial, sans-serif">osudovymoment.cz</text>
+</svg>`;
+
+  return sharp(Buffer.from(svg)).jpeg({ quality: 92, mozjpeg: true }).toBuffer();
+};
+
 const detectBlackTopOffset = async (inputBuffer) => {
   try {
     const image = sharp(inputBuffer, { failOn: "none" }).rotate();
@@ -86,6 +113,9 @@ export default async (request) => {
       return responseWithJson(413, { error: "Image payload is too large" });
     }
 
+    const titleHeader = request.headers.get("x-share-title") || "Osudovy moment";
+    const title = decodeURIComponent(titleHeader).slice(0, 120);
+
     let imageBuffer = rawImageBuffer;
     try {
       const source = sharp(rawImageBuffer, { failOn: "none" }).rotate();
@@ -114,16 +144,16 @@ export default async (request) => {
         })
         .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
         .toBuffer();
+
+      // Validate final encoded JPEG to avoid saving corrupted data.
+      await sharp(imageBuffer).metadata();
     } catch (normalizeError) {
-      console.error("share image normalization failed, storing original payload", {
+      console.error("share image normalization failed, using fallback image", {
         message: normalizeError?.message || String(normalizeError),
         name: normalizeError?.name || null,
       });
-      imageBuffer = rawImageBuffer;
+      imageBuffer = await buildFallbackShareImage(title);
     }
-
-    const titleHeader = request.headers.get("x-share-title") || "Osudovy moment";
-    const title = decodeURIComponent(titleHeader).slice(0, 120);
 
     const requestedShareIdHeader = request.headers.get("x-share-id") || "";
     const requestedShareId = decodeURIComponent(requestedShareIdHeader).trim();
