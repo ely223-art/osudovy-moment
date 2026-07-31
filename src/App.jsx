@@ -45,8 +45,6 @@ const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-const prefersCanvasCaptureForMobile = (userAgent = "") =>
-  isMobileUserAgent(userAgent) && /\bGSA\/|; wv\)|\bwv\b/i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -890,7 +888,6 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const preferCanvasCapture = prefersCanvasCaptureForMobile(userAgent);
     const baseCaptureNode = exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
@@ -1076,17 +1073,6 @@ function App() {
       };
 
       let blob = null;
-
-      if (preferCanvasCapture) {
-        try {
-          blob = await captureWithHtml2Canvas(false);
-        } catch (mobileCanvasError) {
-          console.error("Mobile webview html2canvas primary capture failed", {
-            message: mobileCanvasError?.message || String(mobileCanvasError),
-            name: mobileCanvasError?.name || null,
-          });
-        }
-      }
 
       if (!blob) {
         try {
