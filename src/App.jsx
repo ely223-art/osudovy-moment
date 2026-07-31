@@ -1048,16 +1048,12 @@ function App() {
           backgroundColor: "#07111f",
           useCORS: true,
           allowTaint: false,
-          width: captureWidth,
-          height: captureHeight,
           scrollX: 0,
           scrollY: 0,
           imageTimeout: 15000,
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: captureWidth,
-          windowHeight: captureHeight,
           scale: captureScale,
         });
 
