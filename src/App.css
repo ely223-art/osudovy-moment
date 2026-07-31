@@ -1,6 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Petit+Formal+Script&display=swap');
-
-:root {
+﻿:root {
   color-scheme: dark;
 }
 
@@ -77,8 +75,8 @@ a {
   grid-template-columns: minmax(0, 1fr) minmax(320px, 760px);
   align-items: center;
   gap: clamp(18px, 3vw, 32px);
-  min-height: min(78vh, 700px);
-  padding: 112px 44px 36px;
+  min-height: min(72vh, 640px);
+  padding: 88px 44px 28px;
 }
 
 .hero-copy {
@@ -1776,7 +1774,7 @@ a {
   .hero-layout {
     min-height: auto;
     gap: 20px;
-    padding: 92px 18px 18px;
+    padding: 102px 18px 18px;
   }
 
   .hero-title {
@@ -1927,7 +1925,7 @@ a {
 
 @media (max-width: 430px) {
   .hero-layout {
-    padding-top: 84px;
+    padding-top: 96px;
   }
 
   .hero-title {
