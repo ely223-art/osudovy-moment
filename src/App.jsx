@@ -1163,6 +1163,7 @@ function App() {
       };
 
       let blob = null;
+      let usedPrimaryRenderer = false;
 
       try {
         blob = await htmlToImageToBlob(node, {
@@ -1174,6 +1175,7 @@ function App() {
           type: "image/jpeg",
           backgroundColor: "#07111f",
         });
+        usedPrimaryRenderer = true;
       } catch (primaryCaptureError) {
         console.error("html-to-image capture failed, falling back to html2canvas", {
           message: primaryCaptureError?.message || String(primaryCaptureError),
@@ -1200,6 +1202,13 @@ function App() {
             message: foreignObjectError?.message || String(foreignObjectError),
             name: foreignObjectError?.name || null,
           });
+        }
+      }
+
+      if (isMobileDevice && !usedPrimaryRenderer) {
+        const mobileFallbackBlob = await buildMobileCanvasShareBlob(shareId);
+        if (mobileFallbackBlob) {
+          blob = mobileFallbackBlob;
         }
       }
 
