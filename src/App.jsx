@@ -1317,32 +1317,12 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const tryNativeMobileShare = async (targetUrl) => {
-      if (!isMobileDevice || typeof navigator === "undefined" || typeof navigator.share !== "function") {
-        return false;
-      }
-
-      try {
-        await navigator.share({
-          title: "Osudovy moment",
-          text: "Muj osudovy moment",
-          url: targetUrl,
-        });
-        return true;
-      } catch (nativeShareError) {
-        console.error("Native mobile share failed", {
-          message: nativeShareError?.message || String(nativeShareError),
-          name: nativeShareError?.name || null,
-        });
-        return false;
-      }
-    };
-
     const openFacebookShare = (targetUrl = websiteUrl) => {
       const quoteText = encodeURIComponent("Muj osudovy moment");
       const hashtag = encodeURIComponent("#osudovymoment");
-      const encodedTarget = encodeURIComponent(targetUrl);
-      const facebookShareUrl = `https://www.facebook.com/dialog/share?app_id=966242223397117&display=popup&href=${encodedTarget}&redirect_uri=${encodedTarget}&quote=${quoteText}&hashtag=${hashtag}`;
+      const facebookShareUrl = isMobileDevice
+        ? `https://m.facebook.com/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`
+        : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}&quote=${quoteText}&hashtag=${hashtag}`;
 
       if (isMobileDevice) {
         window.location.assign(facebookShareUrl);
@@ -1393,9 +1373,8 @@ function App() {
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
-            const fallbackWithVersion = appendVersionQuery(fallbackMomentUrl, attemptToken);
-            setShareLinkUrl(fallbackWithVersion);
-            openFacebookShare(fallbackWithVersion);
+            setShareLinkUrl(fallbackMomentUrl);
+            openFacebookShare(fallbackMomentUrl);
             setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
           } else {
             setShareStatus(`Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu. (${debugCode})`);
@@ -1412,14 +1391,8 @@ function App() {
             return;
           }
         }
-        const facebookTargetUrl = appendVersionQuery(uploadedShare.shareUrl, attemptToken);
+        const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
-
-        const sharedViaNative = await tryNativeMobileShare(facebookTargetUrl);
-        if (sharedViaNative) {
-          setShareStatus(`Sdileni otevreno pres mobilni nabidku. (${debugCode})`);
-          return;
-        }
 
         openFacebookShare(facebookTargetUrl);
 
@@ -1485,16 +1458,8 @@ function App() {
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
           if (activeShareId || exportShareId) {
-            const fallbackWithVersion = appendVersionQuery(fallbackMomentUrl, attemptToken);
-            setShareLinkUrl(fallbackWithVersion);
-
-            const sharedViaNative = await tryNativeMobileShare(fallbackWithVersion);
-            if (sharedViaNative) {
-              setShareStatus(`Sdileni otevreno pres mobilni nabidku. (${debugCode})`);
-              return;
-            }
-
-            openFacebookShare(fallbackWithVersion);
+            setShareLinkUrl(fallbackMomentUrl);
+            openFacebookShare(fallbackMomentUrl);
             setShareStatus(`Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment. (${debugCode})`);
           } else {
             setShareStatus(`Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu. (${debugCode})`);
@@ -1511,14 +1476,8 @@ function App() {
             return;
           }
         }
-        const facebookTargetUrl = appendVersionQuery(uploadedShare.shareUrl, attemptToken);
+        const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
-
-        const sharedViaNative = await tryNativeMobileShare(facebookTargetUrl);
-        if (sharedViaNative) {
-          setShareStatus(`Sdileni otevreno pres mobilni nabidku. (${debugCode})`);
-          return;
-        }
 
         openFacebookShare(facebookTargetUrl);
 
