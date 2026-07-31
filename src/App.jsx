@@ -1067,6 +1067,17 @@ function App() {
 
       let blob = null;
 
+      if (isMobileDevice) {
+        try {
+          blob = await captureWithHtml2Canvas(false);
+        } catch (mobileCanvasError) {
+          console.error("Mobile html2canvas primary capture failed", {
+            message: mobileCanvasError?.message || String(mobileCanvasError),
+            name: mobileCanvasError?.name || null,
+          });
+        }
+      }
+
       if (!blob) {
         try {
           blob = await htmlToImageToBlob(node, {
