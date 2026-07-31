@@ -994,7 +994,7 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const baseCaptureNode = isMobileDevice ? completionCardRef.current : exportCardRef.current;
+    const baseCaptureNode = exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
@@ -1019,7 +1019,7 @@ function App() {
       }
 
       captureNode = node;
-      captureSurface = isMobileDevice ? null : node.closest(".export-render-surface");
+      captureSurface = node.closest(".export-render-surface");
       node.classList.add("is-capturing");
       captureSurface?.classList.add("is-capturing");
 
@@ -1038,6 +1038,8 @@ function App() {
         });
       }
 
+      const exportMapNode = node.querySelector(".completion-map-wrapper--export") || node.querySelector(".completion-map-wrapper");
+      await waitForCompletionMapTiles(exportMapNode, 7000);
       await waitForNodeImages(node, 9000);
 
       if (typeof document !== "undefined" && document.fonts?.ready) {
@@ -1096,7 +1098,7 @@ function App() {
       }
 
       if (isMobileDevice) {
-        await new Promise((resolve) => window.setTimeout(resolve, 220));
+        await new Promise((resolve) => window.setTimeout(resolve, 320));
       }
 
       node.classList.add("capture-freeze");
@@ -1135,10 +1137,6 @@ function App() {
       };
 
       let blob = null;
-
-      if (isMobileDevice) {
-        blob = await buildMobileCanvasShareBlob(shareId);
-      }
 
       try {
         if (!blob) {
