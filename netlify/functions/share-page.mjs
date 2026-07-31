@@ -43,6 +43,7 @@ export default async (request) => {
     const origin = requestUrl.origin;
     const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
     const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
+    const appLandingUrl = `${origin}/`;
     const title = "Osudovy moment";
     const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";
 
@@ -66,10 +67,46 @@ export default async (request) => {
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+    <meta name="description" content="${escapeHtml(description)}" />
     <meta name="robots" content="noindex,nofollow" />
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #081221;
+        color: #f6efe2;
+      }
+      .card {
+        width: min(100%, 520px);
+        border: 1px solid rgba(255, 234, 197, 0.25);
+        border-radius: 16px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      a {
+        color: #ffe4ae;
+        text-decoration: underline;
+        word-break: break-word;
+      }
+    </style>
   </head>
   <body>
-    <p>Odkaz s náhledem momentu.</p>
+    <div class="card">
+      <p>Odkaz s náhledem momentu je připraven.</p>
+      <p>Pokud se aplikace neotevřela automaticky, pokračujte na: <a href="${escapeHtml(appLandingUrl)}">${escapeHtml(appLandingUrl)}</a></p>
+    </div>
+    <script>
+      const ua = navigator.userAgent || "";
+      const isCrawler = /(facebookexternalhit|Facebot|Twitterbot|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot|Googlebot)/i.test(ua);
+      if (!isCrawler) {
+        window.location.replace(${JSON.stringify(appLandingUrl)});
+      }
+    </script>
   </body>
 </html>`;
 

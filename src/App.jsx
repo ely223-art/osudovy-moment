@@ -44,6 +44,7 @@ const EXPORT_JPEG_QUALITY = 0.92;
 const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
+const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
 const buildPublicAssetUrl = (assetPath = "") => {
   const base = import.meta.env.BASE_URL || "/";
@@ -736,6 +737,7 @@ function App() {
 
     setIsPreparingShareImage(true);
     let captureNode = null;
+    let captureSurface = null;
 
     try {
       const node = exportCardRef.current;
@@ -744,7 +746,9 @@ function App() {
       }
 
       captureNode = node;
+      captureSurface = node.closest(".export-render-surface");
       node.classList.add("is-capturing");
+      captureSurface?.classList.add("is-capturing");
 
       const exportCardImageElements = Array.from(node.querySelectorAll("img"));
       const exportCardImageSources = exportCardImageElements
@@ -786,6 +790,8 @@ function App() {
       const captureWidth = EXPORT_SHARE_WIDTH;
       const captureHeight = EXPORT_SHARE_HEIGHT;
       const captureScale = EXPORT_CAPTURE_SCALE;
+      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+      const isMobileDevice = isMobileUserAgent(userAgent);
 
       node.classList.add("capture-freeze");
 
@@ -824,8 +830,29 @@ function App() {
 
       let blob = null;
 
+      if (isMobileDevice) {
+        try {
+          blob = await htmlToImageToBlob(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            canvasWidth: captureWidth,
+            canvasHeight: captureHeight,
+            quality: EXPORT_JPEG_QUALITY,
+            type: "image/jpeg",
+            backgroundColor: "#07111f",
+          });
+        } catch (mobilePrimaryError) {
+          console.error("Mobile html-to-image capture failed, trying html2canvas", {
+            message: mobilePrimaryError?.message || String(mobilePrimaryError),
+            name: mobilePrimaryError?.name || null,
+          });
+        }
+      }
+
       try {
-        blob = await captureWithHtml2Canvas(false);
+        if (!blob) {
+          blob = await captureWithHtml2Canvas(false);
+        }
       } catch (shareCanvasError) {
         console.error("Share-card html2canvas failed, trying foreignObject", {
           message: shareCanvasError?.message || String(shareCanvasError),
@@ -894,6 +921,7 @@ function App() {
       if (captureNode) {
         captureNode.classList.remove("is-capturing");
       }
+      captureSurface?.classList.remove("is-capturing");
       exportCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
@@ -986,13 +1014,9 @@ function App() {
     clearDirectDownloadLink();
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+    const isMobileDevice = isMobileUserAgent(userAgent);
     const openFacebookShare = (targetUrl = websiteUrl) => {
-      const shareQuote = encodeURIComponent("Můj osudový moment");
-      const facebookBaseUrl = isMobileDevice
-        ? "https://m.facebook.com/sharer.php"
-        : "https://www.facebook.com/sharer/sharer.php";
-      const facebookShareUrl = `${facebookBaseUrl}?u=${encodeURIComponent(targetUrl)}&quote=${shareQuote}`;
+      const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
 
       if (isMobileDevice) {
         window.location.assign(facebookShareUrl);
@@ -1025,7 +1049,14 @@ function App() {
         setShareStatus("Připravuji odkaz s náhledem vašeho momentu pro Facebook...");
         const uploadedShare = await uploadShareImageForFacebook(blob, completeMoment.nazev, activeShareId);
         if (!uploadedShare?.shareUrl) {
-          setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+          const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
+          if (activeShareId || exportShareId) {
+            setShareLinkUrl(fallbackMomentUrl);
+            openFacebookShare(fallbackMomentUrl);
+            setShareStatus("Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment.");
+          } else {
+            setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+          }
           return;
         }
         if (uploadedShare?.imageUrl) {
@@ -1083,7 +1114,14 @@ function App() {
           ? await uploadShareImageForFacebook(shareImageBlobRef.current, completeMoment.nazev, activeShareId)
           : null;
         if (!uploadedShare?.shareUrl) {
-          setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+          const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
+          if (activeShareId || exportShareId) {
+            setShareLinkUrl(fallbackMomentUrl);
+            openFacebookShare(fallbackMomentUrl);
+            setShareStatus("Náhled se nepodařilo připravit, ale sdílím funkční odkaz na váš moment.");
+          } else {
+            setShareStatus("Nepodařilo se připravit odkaz pro Facebook. Zkuste to prosím znovu.");
+          }
           return;
         }
         if (uploadedShare?.imageUrl) {
