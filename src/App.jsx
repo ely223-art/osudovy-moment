@@ -516,6 +516,8 @@ function App() {
           "x-share-title": encodeURIComponent(title || "Osudovy moment"),
         };
 
+        headers["x-share-client"] = options.client || "desktop";
+
         if (options.renderMode === "template") {
           headers["x-share-render"] = "template";
           headers["x-share-place"] = encodeURIComponent(options.place || "");
@@ -1366,7 +1368,8 @@ function App() {
         const uploadedShare = await uploadShareImageForFacebook(
           blob,
           completeMoment.nazev,
-          activeShareId
+          activeShareId,
+          { client: isMobileDevice ? "mobile" : "desktop" }
         );
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
@@ -1408,7 +1411,8 @@ function App() {
         const uploadedDownload = await uploadShareImageForFacebook(
           blob,
           completeMoment.nazev,
-          activeShareId
+          activeShareId,
+          { client: isMobileDevice ? "mobile" : "desktop" }
         );
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
@@ -1453,7 +1457,8 @@ function App() {
           ? await uploadShareImageForFacebook(
             shareImageBlobRef.current,
             completeMoment.nazev,
-            activeShareId
+            activeShareId,
+            { client: isMobileDevice ? "mobile" : "desktop" }
           )
           : null;
         const attemptToken = `${Date.now()}`;

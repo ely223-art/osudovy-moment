@@ -133,6 +133,7 @@ export default async (request) => {
     const shareUrlHeader = request.headers.get("x-share-url") || "";
     const shareUrl = decodeURIComponent(shareUrlHeader).slice(0, 260);
     const renderMode = (request.headers.get("x-share-render") || "").toLowerCase();
+    const shareClient = (request.headers.get("x-share-client") || "desktop").toLowerCase();
 
     const requestedShareIdHeader = request.headers.get("x-share-id") || "";
     const requestedShareId = decodeURIComponent(requestedShareIdHeader).trim();
@@ -171,6 +172,34 @@ export default async (request) => {
         const sourceMeta = await source.metadata();
         const sourceWidth = sourceMeta.width || SHARE_WIDTH;
         const sourceHeight = sourceMeta.height || SHARE_HEIGHT;
+
+        if (shareClient === "mobile") {
+          const mobileTopCrop = sourceHeight > SHARE_HEIGHT
+            ? Math.max(0, Math.floor(sourceHeight * 0.28))
+            : 0;
+          const mobileCropHeight = Math.max(1, sourceHeight - mobileTopCrop);
+
+          let mobileNormalized = source;
+          if (mobileTopCrop > 0 && sourceWidth > 0) {
+            mobileNormalized = source.extract({
+              left: 0,
+              top: mobileTopCrop,
+              width: sourceWidth,
+              height: mobileCropHeight,
+            });
+          }
+
+          imageBuffer = await mobileNormalized
+            .resize(SHARE_WIDTH, SHARE_HEIGHT, {
+              fit: "cover",
+              position: "south",
+              withoutEnlargement: false,
+            })
+            .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
+            .toBuffer();
+
+          await sharp(imageBuffer).metadata();
+        } else {
         const topOffset = await detectBlackTopOffset(rawImageBuffer);
         const effectiveTopOffset = topOffset > 24 ? Math.min(topOffset, Math.max(0, sourceHeight - 1)) : 0;
         const cropHeight = Math.max(1, sourceHeight - effectiveTopOffset);
@@ -193,6 +222,8 @@ export default async (request) => {
           })
           .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
           .toBuffer();
+
+        }
 
         // Validate final encoded JPEG to avoid saving corrupted data.
         await sharp(imageBuffer).metadata();
