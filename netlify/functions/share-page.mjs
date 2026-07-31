@@ -42,7 +42,7 @@ export default async (request) => {
 
     const origin = requestUrl.origin;
     const sharePageUrl = `${origin}/s/${encodeURIComponent(safeId)}`;
-    const imageUrl = `${origin}/.netlify/functions/share-image?id=${encodeURIComponent(safeId)}`;
+    const imageUrl = `${origin}/i/${encodeURIComponent(safeId)}.jpg`;
     const appLandingUrl = `${origin}/`;
     const title = "Osudovy moment";
     const description = "Osudovy moment vytvoreny v aplikaci osudovymoment.cz";

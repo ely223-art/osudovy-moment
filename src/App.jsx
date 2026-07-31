@@ -583,6 +583,36 @@ function App() {
     return false;
   };
 
+  const waitForSharePageAvailability = async (shareUrl, timeoutMs = 9000) => {
+    if (!shareUrl) {
+      return false;
+    }
+
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+      try {
+        const probeUrl = `${shareUrl}${shareUrl.includes("?") ? "&" : "?"}cb=${Date.now()}`;
+        const response = await fetch(probeUrl, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          return true;
+        }
+      } catch (probeError) {
+        console.error("Share page probe failed", {
+          message: probeError?.message || String(probeError),
+          name: probeError?.name || null,
+        });
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
+
+    return false;
+  };
+
   const setDirectDownloadLink = (url, filename, isObjectUrl = false) => {
     const previous = directDownloadRef.current;
     if (previous.isObjectUrl && previous.url && previous.url !== url) {
@@ -753,10 +783,15 @@ function App() {
       completeMomentId: completeMoment?.id || null,
     });
 
-    if (!exportCardRef.current || !completeMoment || isPreparingShareImage) {
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isMobileDevice = isMobileUserAgent(userAgent);
+    const baseCaptureNode = isMobileDevice ? completionCardRef.current : exportCardRef.current;
+
+    if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
-        reason: "Missing export-card area or moment, or preparation already running",
+        reason: "Missing export/completion card area or moment, or preparation already running",
         hasExportCard: !!exportCardRef.current,
+        hasCompletionCard: !!completionCardRef.current,
         hasCompleteMoment: !!completeMoment,
         isPreparingShareImage,
       });
@@ -769,15 +804,19 @@ function App() {
     let previousNodeInlineStyles = null;
 
     try {
-      const node = exportCardRef.current;
+      const node = baseCaptureNode;
       if (!node) {
         throw new Error("Nepodařilo se najít kartu pro export.");
       }
 
       captureNode = node;
-      captureSurface = node.closest(".export-render-surface");
+      captureSurface = isMobileDevice ? null : node.closest(".export-render-surface");
       node.classList.add("is-capturing");
       captureSurface?.classList.add("is-capturing");
+
+      if (isMobileDevice) {
+        node.classList.add("is-exporting");
+      }
 
       const exportCardImageElements = Array.from(node.querySelectorAll("img"));
       const exportCardImageSources = exportCardImageElements
@@ -818,8 +857,6 @@ function App() {
 
       const captureWidth = EXPORT_SHARE_WIDTH;
       const captureHeight = EXPORT_SHARE_HEIGHT;
-      const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-      const isMobileDevice = isMobileUserAgent(userAgent);
       const captureScale = isMobileDevice ? 1 : EXPORT_CAPTURE_SCALE;
 
       previousNodeInlineStyles = {
@@ -980,6 +1017,9 @@ function App() {
     } finally {
       if (captureNode) {
         captureNode.classList.remove("is-capturing");
+        if (isMobileDevice) {
+          captureNode.classList.remove("is-exporting");
+        }
       }
 
       if (captureNode && previousNodeInlineStyles) {
@@ -1140,7 +1180,14 @@ function App() {
           return;
         }
         if (uploadedShare?.imageUrl) {
-          await waitForShareImageAvailability(uploadedShare.imageUrl);
+          const [imageReady, pageReady] = await Promise.all([
+            waitForShareImageAvailability(uploadedShare.imageUrl, 12000),
+            waitForSharePageAvailability(uploadedShare.shareUrl, 12000),
+          ]);
+          if (!imageReady || !pageReady) {
+            setShareStatus("Facebook náhled se ještě připravuje. Zkuste sdílení znovu za pár sekund.");
+            return;
+          }
         }
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
@@ -1205,7 +1252,14 @@ function App() {
           return;
         }
         if (uploadedShare?.imageUrl) {
-          await waitForShareImageAvailability(uploadedShare.imageUrl);
+          const [imageReady, pageReady] = await Promise.all([
+            waitForShareImageAvailability(uploadedShare.imageUrl, 12000),
+            waitForSharePageAvailability(uploadedShare.shareUrl, 12000),
+          ]);
+          if (!imageReady || !pageReady) {
+            setShareStatus("Facebook náhled se ještě připravuje. Zkuste sdílení znovu za pár sekund.");
+            return;
+          }
         }
         const facebookTargetUrl = uploadedShare.shareUrl;
         setShareLinkUrl(facebookTargetUrl);
