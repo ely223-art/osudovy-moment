@@ -878,12 +878,12 @@ a {
 
 @media (max-width: 768px) {
   .completion-map-wrapper {
-    height: 420px;
-    min-height: 420px;
+    height: 500px;
+    min-height: 400px;
   }
 
   .completion-map-wrapper .leaflet-container {
-    min-height: 420px;
+    min-height: 400px;
   }
 }
 
@@ -1914,10 +1914,6 @@ a {
     transform: translate(14%, -50%);
   }
 
-  .completion-card.is-exporting .completion-map-marker {
-    transform: translate(-50%, -50%);
-  }
-
   .completion-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1969,13 +1965,13 @@ a {
   }
 
   .completion-map-wrapper {
-    height: 340px;
-    min-height: 300px;
+    height: 500px;
+    min-height: 400px;
   }
 
   .completion-map-zoom {
-    top: 10px;
-    right: 10px;
+    top: 14px;
+    right: 14px;
   }
 }
 

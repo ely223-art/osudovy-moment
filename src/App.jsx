@@ -129,6 +129,17 @@ const resolveImageUrl = (source = "", fallback = "") => {
   }
 };
 
+const formatMomentLocation = (moment = {}) => {
+  const locationParts = [moment.obec, moment.okres, moment.kraj].filter(Boolean);
+  const locationText = locationParts.join(" · ");
+
+  if (moment.stat) {
+    return locationText ? `${locationText} · ${moment.stat}` : moment.stat;
+  }
+
+  return locationText;
+};
+
 function renderMomentMarkerBody(symbolImage) {
   return `
     <span class="completion-map-marker__glow"></span>
@@ -753,13 +764,20 @@ function App() {
       return false;
     }
 
+    const requiredTileCount = Math.max(
+      6,
+      Math.ceil((Math.max(mapNode.clientWidth, 1) * Math.max(mapNode.clientHeight, 1)) / (256 * 256) * 1.2)
+    );
+
     const hasLoadedTiles = () => {
       const tiles = mapNode.querySelectorAll("img.leaflet-tile");
       if (!tiles.length) {
         return false;
       }
 
-      return Array.from(tiles).every((tile) => tile.complete && tile.naturalWidth > 0);
+      const tileList = Array.from(tiles);
+      const loadedCount = tileList.filter((tile) => tile.complete && tile.naturalWidth > 0).length;
+      return tileList.length >= requiredTileCount && loadedCount === tileList.length;
     };
 
     if (hasLoadedTiles()) {
@@ -953,6 +971,11 @@ function App() {
         await waitForNodeImages(node, 1400);
       }
 
+      const exportMarkerImage = node.querySelector(".completion-map-marker__image");
+      if (exportMarkerImage && !(exportMarkerImage.complete && exportMarkerImage.naturalWidth > 0)) {
+        await waitForNodeImages(node, 4200);
+      }
+
       await new Promise((resolve) => {
         requestAnimationFrame(() => {
           requestAnimationFrame(resolve);
@@ -1013,6 +1036,11 @@ function App() {
         mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 3200);
       }
 
+      if (!mapTilesReady) {
+        await new Promise((resolve) => window.setTimeout(resolve, isMobileDevice ? 900 : 450));
+        mapTilesReady = await waitForCompletionMapTiles(exportMapNode, isMobileDevice ? 5200 : 2800);
+      }
+
       await waitForNodeImages(node, 9000);
 
       if (isMobileDevice) {
@@ -1046,21 +1074,34 @@ function App() {
 
       let blob = null;
 
-      try {
-        blob = await htmlToImageToBlob(node, {
-          cacheBust: true,
-          pixelRatio: captureScale,
-          canvasWidth: captureWidth,
-          canvasHeight: captureHeight,
-          quality: EXPORT_JPEG_QUALITY,
-          type: "image/jpeg",
-          backgroundColor: "#07111f",
-        });
-      } catch (primaryCaptureError) {
-        console.error("html-to-image capture failed, falling back to html2canvas", {
-          message: primaryCaptureError?.message || String(primaryCaptureError),
-          name: primaryCaptureError?.name || null,
-        });
+      if (isMobileDevice) {
+        try {
+          blob = await captureWithHtml2Canvas(false);
+        } catch (mobileCanvasError) {
+          console.error("Mobile html2canvas primary capture failed", {
+            message: mobileCanvasError?.message || String(mobileCanvasError),
+            name: mobileCanvasError?.name || null,
+          });
+        }
+      }
+
+      if (!blob) {
+        try {
+          blob = await htmlToImageToBlob(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            canvasWidth: captureWidth,
+            canvasHeight: captureHeight,
+            quality: EXPORT_JPEG_QUALITY,
+            type: "image/jpeg",
+            backgroundColor: "#07111f",
+          });
+        } catch (primaryCaptureError) {
+          console.error("html-to-image capture failed, falling back to html2canvas", {
+            message: primaryCaptureError?.message || String(primaryCaptureError),
+            name: primaryCaptureError?.name || null,
+          });
+        }
       }
 
       try {
@@ -1569,6 +1610,35 @@ function App() {
     return `${websiteUrl}/.netlify/functions/share-image?id=${encodeURIComponent(sharedMomentId)}`;
   }, [sharedMomentId]);
 
+  const renderMomentSummary = () => (
+    <div className="completion-summary">
+      <div className="completion-summary__row">
+        <span className="completion-label">Symbol</span>
+        <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
+      </div>
+      <div className="completion-summary__row">
+        <span className="completion-label">Název</span>
+        <span className="completion-value">{completeMoment.nazev}</span>
+      </div>
+      {completeMoment.datum ? (
+        <div className="completion-summary__row">
+          <span className="completion-label">Datum</span>
+          <span className="completion-value">{completeMoment.datum}</span>
+        </div>
+      ) : null}
+      {completeMoment.prikaz ? (
+        <div className="completion-summary__row">
+          <span className="completion-label">Příběh</span>
+          <span className="completion-value">{completeMoment.prikaz}</span>
+        </div>
+      ) : null}
+      <div className="completion-summary__row">
+        <span className="completion-label">Web</span>
+        <span className="completion-value">{exportMomentUrl}</span>
+      </div>
+    </div>
+  );
+
   const renderExportCardContent = () => (
     <>
       <div className="completion-map-shell completion-map-shell--export">
@@ -1584,35 +1654,10 @@ function App() {
       <div className="completion-content completion-content--export">
         <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
         <p className="completion-subtitle">
-          {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
+          {formatMomentLocation(completeMoment)}
         </p>
 
-        <div className="completion-summary">
-          <div className="completion-summary__row">
-            <span className="completion-label">Symbol</span>
-            <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
-          </div>
-          <div className="completion-summary__row">
-            <span className="completion-label">Název</span>
-            <span className="completion-value">{completeMoment.nazev}</span>
-          </div>
-          {completeMoment.datum ? (
-            <div className="completion-summary__row">
-              <span className="completion-label">Datum</span>
-              <span className="completion-value">{completeMoment.datum}</span>
-            </div>
-          ) : null}
-          {completeMoment.prikaz ? (
-            <div className="completion-summary__row">
-              <span className="completion-label">Poznámka</span>
-              <span className="completion-value">{completeMoment.prikaz}</span>
-            </div>
-          ) : null}
-          <div className="completion-summary__row">
-            <span className="completion-label">Web</span>
-            <span className="completion-value">{exportMomentUrl}</span>
-          </div>
-        </div>
+        {renderMomentSummary()}
       </div>
     </>
   );
@@ -1632,35 +1677,10 @@ function App() {
       <div className="completion-content">
         <h2 className="wizard-title">Váš osudový moment právě zazářil</h2>
         <p className="completion-subtitle">
-          {completeMoment.obec}{completeMoment.stat ? ` · ${completeMoment.stat}` : ""}
+          {formatMomentLocation(completeMoment)}
         </p>
 
-        <div className="completion-summary">
-          <div className="completion-summary__row">
-            <span className="completion-label">Symbol</span>
-            <span className="completion-value">{completeMoment.symbolLabel || selectedSymbol?.label || "—"}</span>
-          </div>
-          <div className="completion-summary__row">
-            <span className="completion-label">Název</span>
-            <span className="completion-value">{completeMoment.nazev}</span>
-          </div>
-          {completeMoment.datum ? (
-            <div className="completion-summary__row">
-              <span className="completion-label">Datum</span>
-              <span className="completion-value">{completeMoment.datum}</span>
-            </div>
-          ) : null}
-          {completeMoment.prikaz ? (
-            <div className="completion-summary__row">
-              <span className="completion-label">Poznámka</span>
-              <span className="completion-value">{completeMoment.prikaz}</span>
-            </div>
-          ) : null}
-          <div className="completion-summary__row">
-            <span className="completion-label">Web</span>
-            <span className="completion-value">{exportMomentUrl}</span>
-          </div>
-        </div>
+        {renderMomentSummary()}
 
         {showActions ? (
           <div className="completion-actions">
