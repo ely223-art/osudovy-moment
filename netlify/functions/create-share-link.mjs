@@ -65,9 +65,10 @@ const detectBlackTopOffset = async (inputBuffer) => {
       .toBuffer();
 
     const channels = 3;
-    const stepX = Math.max(1, Math.floor(width / 80));
-    const rowThreshold = Math.max(2, Math.floor(width / stepX) * 0.08);
-    const luminanceThreshold = 14;
+    const stepX = Math.max(1, Math.floor(width / 120));
+    const sampleCount = Math.max(1, Math.floor(width / stepX));
+    const rowThreshold = Math.max(3, Math.floor(sampleCount * 0.3));
+    const luminanceThreshold = 22;
 
     for (let y = 0; y < sampleHeight; y += 1) {
       let brightSamples = 0;
@@ -186,16 +187,35 @@ export default async (request) => {
         // Validate final encoded JPEG to avoid saving corrupted data.
         await sharp(imageBuffer).metadata();
       } catch (normalizeError) {
-        console.error("share image normalization failed, using fallback image", {
+        console.error("share image normalization failed, trying basic resize fallback", {
           message: normalizeError?.message || String(normalizeError),
           name: normalizeError?.name || null,
         });
-        imageBuffer = await buildTemplateShareImage({
-          title,
-          place,
-          symbol,
-          shareUrl: resolvedShareUrl,
-        });
+
+        try {
+          imageBuffer = await sharp(rawImageBuffer, { failOn: "none" })
+            .rotate()
+            .resize(SHARE_WIDTH, SHARE_HEIGHT, {
+              fit: "cover",
+              position: "south",
+              withoutEnlargement: false,
+            })
+            .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
+            .toBuffer();
+
+          await sharp(imageBuffer).metadata();
+        } catch (fallbackError) {
+          console.error("basic resize fallback failed, using template image", {
+            message: fallbackError?.message || String(fallbackError),
+            name: fallbackError?.name || null,
+          });
+          imageBuffer = await buildTemplateShareImage({
+            title,
+            place,
+            symbol,
+            shareUrl: resolvedShareUrl,
+          });
+        }
       }
     }
 

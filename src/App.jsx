@@ -1364,15 +1364,7 @@ function App() {
         const uploadedShare = await uploadShareImageForFacebook(
           blob,
           completeMoment.nazev,
-          activeShareId,
-          isMobileDevice
-            ? {
-              renderMode: "template",
-              place: completeMoment.obec || "",
-              symbol: completeMoment.symbolLabel || selectedSymbol?.label || "",
-              shareUrl: `${websiteUrl}/s/${encodeURIComponent(activeShareId || "")}`,
-            }
-            : {}
+          activeShareId
         );
         if (!uploadedShare?.shareUrl) {
           const fallbackMomentUrl = `${websiteUrl}/s/${encodeURIComponent(activeShareId || exportShareId || "")}`;
@@ -1419,15 +1411,7 @@ function App() {
         const uploadedDownload = await uploadShareImageForFacebook(
           blob,
           completeMoment.nazev,
-          activeShareId,
-          isMobileDevice
-            ? {
-              renderMode: "template",
-              place: completeMoment.obec || "",
-              symbol: completeMoment.symbolLabel || selectedSymbol?.label || "",
-              shareUrl: `${websiteUrl}/s/${encodeURIComponent(activeShareId || "")}`,
-            }
-            : {}
+          activeShareId
         );
         if (uploadedDownload?.imageUrl) {
           await waitForShareImageAvailability(uploadedDownload.imageUrl);
@@ -1463,15 +1447,7 @@ function App() {
           ? await uploadShareImageForFacebook(
             shareImageBlobRef.current,
             completeMoment.nazev,
-            activeShareId,
-            isMobileDevice
-              ? {
-                renderMode: "template",
-                place: completeMoment.obec || "",
-                symbol: completeMoment.symbolLabel || selectedSymbol?.label || "",
-                shareUrl: `${websiteUrl}/s/${encodeURIComponent(activeShareId || "")}`,
-              }
-              : {}
+            activeShareId
           )
           : null;
         const attemptToken = `${Date.now()}`;
