@@ -45,10 +45,9 @@ const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-const isMobileChromeBrowser = (userAgent = "") =>
+const isGoogleInAppBrowser = (userAgent = "") =>
   isMobileUserAgent(userAgent) &&
-  /(?:Chrome|CriOS)\//i.test(userAgent) &&
-  !/\bGSA\/|; wv\)|\bwv\b/i.test(userAgent);
+  /\bGSA\//i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -892,7 +891,7 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const prefersChromeCanvasCapture = isMobileChromeBrowser(userAgent);
+    const prefersGoogleCanvasCapture = isGoogleInAppBrowser(userAgent);
     const baseCaptureNode = exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
@@ -1046,6 +1045,22 @@ function App() {
         mapTilesReady = await waitForCompletionMapTiles(exportMapNode, isMobileDevice ? 5200 : 2800);
       }
 
+      if (!mapTilesReady && prefersGoogleCanvasCapture) {
+        if (exportMapRef.current && typeof exportMapRef.current.invalidateSize === "function") {
+          try {
+            exportMapRef.current.invalidateSize();
+          } catch (mapSizeGoogleRetryError) {
+            console.error("Export map Google retry invalidateSize failed", {
+              message: mapSizeGoogleRetryError?.message || String(mapSizeGoogleRetryError),
+              name: mapSizeGoogleRetryError?.name || null,
+            });
+          }
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        mapTilesReady = await waitForCompletionMapTiles(exportMapNode, 9000);
+      }
+
       await waitForNodeImages(node, 9000);
 
       if (isMobileDevice) {
@@ -1079,13 +1094,13 @@ function App() {
 
       let blob = null;
 
-      if (prefersChromeCanvasCapture) {
+      if (prefersGoogleCanvasCapture) {
         try {
           blob = await captureWithHtml2Canvas(false, 1);
-        } catch (mobileCanvasError) {
-          console.error("Mobile Chrome html2canvas primary capture failed", {
-            message: mobileCanvasError?.message || String(mobileCanvasError),
-            name: mobileCanvasError?.name || null,
+        } catch (googleCanvasError) {
+          console.error("Google app html2canvas primary capture failed", {
+            message: googleCanvasError?.message || String(googleCanvasError),
+            name: googleCanvasError?.name || null,
           });
         }
       }
