@@ -764,20 +764,13 @@ function App() {
       return false;
     }
 
-    const requiredTileCount = Math.max(
-      6,
-      Math.ceil((Math.max(mapNode.clientWidth, 1) * Math.max(mapNode.clientHeight, 1)) / (256 * 256) * 1.2)
-    );
-
     const hasLoadedTiles = () => {
       const tiles = mapNode.querySelectorAll("img.leaflet-tile");
       if (!tiles.length) {
         return false;
       }
 
-      const tileList = Array.from(tiles);
-      const loadedCount = tileList.filter((tile) => tile.complete && tile.naturalWidth > 0).length;
-      return tileList.length >= requiredTileCount && loadedCount === tileList.length;
+      return Array.from(tiles).every((tile) => tile.complete && tile.naturalWidth > 0);
     };
 
     if (hasLoadedTiles()) {
