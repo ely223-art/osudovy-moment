@@ -978,10 +978,7 @@ function App() {
       const captureRect = node.getBoundingClientRect();
       const captureWidth = Math.max(1, Math.round(captureRect.width || EXPORT_SHARE_WIDTH));
       const captureHeight = Math.max(1, Math.round(captureRect.height || EXPORT_SHARE_HEIGHT));
-      const captureAspectRatio = captureWidth / captureHeight;
       const captureScale = EXPORT_CAPTURE_SCALE;
-      const outputWidth = Math.max(1, Math.round(captureWidth * captureScale));
-      const outputHeight = Math.max(1, Math.round(outputWidth / captureAspectRatio));
 
       previousNodeInlineStyles = {
         position: node.style.position,
@@ -1087,8 +1084,6 @@ function App() {
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
-            canvasWidth: outputWidth,
-            canvasHeight: outputHeight,
             quality: EXPORT_JPEG_QUALITY,
             type: "image/jpeg",
             backgroundColor: "#07111f",
@@ -1130,8 +1125,8 @@ function App() {
       blob = await normalizeShareBlobToJpeg(blob, EXPORT_JPEG_QUALITY);
 
       console.log("JPG generated", {
-        width: outputWidth,
-        height: outputHeight,
+        width: Math.round(captureWidth * captureScale),
+        height: Math.round(captureHeight * captureScale),
         type: blob.type,
       });
 
