@@ -259,7 +259,7 @@ function MobileMomentExportCard({
       <div className="mobile-export-heading">
         <h2 className="mobile-export-title">Váš osudový moment právě zazářil</h2>
         <p className="mobile-export-place">
-          {[completeMoment.obec, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
+          {[completeMoment.obec, completeMoment.okres, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
         </p>
       </div>
 
@@ -267,7 +267,7 @@ function MobileMomentExportCard({
         <div className="mobile-export-detail-row">
           <span className="mobile-export-label">Místo</span>
           <span className="mobile-export-value">
-            {[completeMoment.obec, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
+            {[completeMoment.obec, completeMoment.okres, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
           </span>
         </div>
 
@@ -1184,6 +1184,15 @@ function App() {
       node.classList.add("capture-freeze");
 
       const captureWithHtml2Canvas = async (foreignObjectRendering) => {
+        const mobileCaptureDimensions = isMobileDevice
+          ? {
+              width: EXPORT_MOBILE_WIDTH,
+              height: EXPORT_MOBILE_HEIGHT,
+              windowWidth: EXPORT_MOBILE_WIDTH,
+              windowHeight: EXPORT_MOBILE_HEIGHT,
+            }
+          : {};
+
         const canvas = await html2canvas(node, {
           backgroundColor: "#07111f",
           useCORS: true,
@@ -1195,6 +1204,7 @@ function App() {
           logging: false,
           foreignObjectRendering,
           scale: captureScale,
+          ...mobileCaptureDimensions,
         });
 
         console.log("[export-diagnostics] html2canvas-canvas", {
@@ -1240,6 +1250,8 @@ function App() {
             cacheBust: true,
             pixelRatio: captureScale,
             backgroundColor: "#07111f",
+            canvasWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : undefined,
+            canvasHeight: isMobileDevice ? EXPORT_MOBILE_HEIGHT : undefined,
           });
 
           console.log("[export-diagnostics] html-to-image-canvas", {
@@ -1254,6 +1266,8 @@ function App() {
             quality: EXPORT_JPEG_QUALITY,
             type: "image/jpeg",
             backgroundColor: "#07111f",
+            canvasWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : undefined,
+            canvasHeight: isMobileDevice ? EXPORT_MOBILE_HEIGHT : undefined,
           });
 
           if (blob) {

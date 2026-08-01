@@ -1428,7 +1428,7 @@ a {
   grid-template-columns: 1fr;
   gap: 12px;
   align-content: start;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mobile-export-detail-row {
@@ -1453,8 +1453,8 @@ a {
 }
 
 .mobile-export-value--story {
-  max-height: 126px;
-  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .mobile-export-value--symbol {
