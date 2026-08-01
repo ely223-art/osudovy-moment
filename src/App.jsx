@@ -2007,7 +2007,7 @@ function App() {
       inertia: true,
       inertiaDeceleration: 3000,
       inertiaMaxSpeed: 1500,
-    }).setView([latitude, longitude], 9);
+    }).setView([latitude, longitude], 11);
 
     completionMapRef.current = map;
 
@@ -2054,15 +2054,33 @@ function App() {
     markerElement.innerHTML = renderMomentMarkerBody(selectedPlace.symbolImage);
     markerLayer.appendChild(markerElement);
 
+    const placeLabelText = (selectedPlace.obec || selectedPlace.nazev || "").trim();
+    const placeLabelElement = placeLabelText
+      ? L.DomUtil.create("div", "completion-map-place-label")
+      : null;
+    if (placeLabelElement) {
+      placeLabelElement.textContent = placeLabelText;
+      markerLayer.appendChild(placeLabelElement);
+    }
+
     markerRef.current = markerElement;
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
-      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x));
-      const boundedY = Math.max(24, Math.min(container.clientHeight - 24, point.y));
+      markerElement.style.left = `${point.x}px`;
+      markerElement.style.top = `${point.y}px`;
 
-      markerElement.style.left = `${boundedX}px`;
-      markerElement.style.top = `${boundedY}px`;
+      if (placeLabelElement) {
+        const labelX = Math.max(20, Math.min(container.clientWidth - 20, point.x));
+        const preferredBelowY = point.y + 68;
+        const labelY =
+          preferredBelowY > container.clientHeight - 18
+            ? Math.max(18, point.y - 84)
+            : preferredBelowY;
+
+        placeLabelElement.style.left = `${labelX}px`;
+        placeLabelElement.style.top = `${labelY}px`;
+      }
     };
 
     const handleMapResize = () => {
@@ -2174,7 +2192,7 @@ function App() {
       zoomAnimation: false,
       markerZoomAnimation: false,
       inertia: false,
-    }).setView([latitude, longitude], 9, { animate: false });
+    }).setView([latitude, longitude], 11, { animate: false });
 
     exportMapRef.current = map;
 
@@ -2205,13 +2223,31 @@ function App() {
     markerElement.innerHTML = renderMomentMarkerBody(place.symbolImage);
     markerLayer.appendChild(markerElement);
 
+    const exportPlaceLabelText = (place.obec || place.nazev || "").trim();
+    const exportPlaceLabelElement = exportPlaceLabelText
+      ? L.DomUtil.create("div", "completion-map-place-label")
+      : null;
+    if (exportPlaceLabelElement) {
+      exportPlaceLabelElement.textContent = exportPlaceLabelText;
+      markerLayer.appendChild(exportPlaceLabelElement);
+    }
+
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
-      const markerAnchorX = 14;
-      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x - markerAnchorX));
-      const boundedY = Math.max(24, Math.min(container.clientHeight - 24, point.y));
-      markerElement.style.left = `${boundedX}px`;
-      markerElement.style.top = `${boundedY}px`;
+      markerElement.style.left = `${point.x}px`;
+      markerElement.style.top = `${point.y}px`;
+
+      if (exportPlaceLabelElement) {
+        const labelX = Math.max(20, Math.min(container.clientWidth - 20, point.x));
+        const preferredBelowY = point.y + 68;
+        const labelY =
+          preferredBelowY > container.clientHeight - 18
+            ? Math.max(18, point.y - 84)
+            : preferredBelowY;
+
+        exportPlaceLabelElement.style.left = `${labelX}px`;
+        exportPlaceLabelElement.style.top = `${labelY}px`;
+      }
     };
 
     const handleExportMapResize = () => {

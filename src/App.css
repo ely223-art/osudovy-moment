@@ -919,7 +919,7 @@ a {
   height: 210px;
   pointer-events: none;
   z-index: 560;
-  transform: translate(14%, -50%);
+  transform: translate(-50%, -50%);
   will-change: transform, opacity;
   contain: layout paint;
 }
