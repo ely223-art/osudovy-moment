@@ -1170,6 +1170,10 @@ a {
   opacity: 1;
 }
 
+.completion-map-marker.is-final .completion-map-marker__icon {
+  display: flex;
+}
+
 .completion-map-marker.is-final .completion-map-marker__glow {
   transform: translate(-50%, -50%) scale(0.7);
 }
@@ -1179,11 +1183,12 @@ a {
 }
 
 .completion-map-marker.is-final .completion-map-marker__line {
-  transform: translateX(-50%) scaleY(1);
+  transform: translate(-50%, -100%) scaleY(1);
 }
 
 .completion-map-marker.is-final .completion-map-marker__icon {
   transform: translate(-50%, -172%) scale(0.8);
+  opacity: 1;
   animation: none;
 }
 
