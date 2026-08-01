@@ -397,7 +397,7 @@ a {
   display: block;
   pointer-events: auto;
   cursor: pointer;
-  transform: translate(-50%, -50%);
+  transform: none;
 }
 
 .public-map-detail {
@@ -2071,7 +2071,7 @@ a {
   }
 
   .completion-map-marker {
-    transform: translate(14%, -50%);
+    transform: translate(-50%, -50%);
   }
 
   .completion-actions {
