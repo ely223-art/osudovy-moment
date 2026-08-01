@@ -995,6 +995,42 @@ function App() {
     return results.every(Boolean);
   };
 
+  const lockSymbolAspectRatio = async (imageElement, maxSizePx) => {
+    if (!imageElement) {
+      return;
+    }
+
+    if (!(imageElement.complete && imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0)) {
+      await new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          resolve();
+        };
+
+        imageElement.addEventListener("load", finish, { once: true });
+        imageElement.addEventListener("error", finish, { once: true });
+        window.setTimeout(finish, 2000);
+      });
+    }
+
+    const naturalWidth = imageElement.naturalWidth || 0;
+    const naturalHeight = imageElement.naturalHeight || 0;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+
+    imageElement.style.width = "auto";
+    imageElement.style.height = "auto";
+    imageElement.style.maxWidth = `${maxSizePx}px`;
+    imageElement.style.maxHeight = `${maxSizePx}px`;
+    imageElement.style.objectFit = "contain";
+    imageElement.style.aspectRatio = `${naturalWidth} / ${naturalHeight}`;
+  };
+
   const prepareShareImage = async (shareId = "") => {
     console.log("Export started", {
       screen,
@@ -1073,6 +1109,13 @@ function App() {
             });
           }
         }
+
+        await lockSymbolAspectRatio(exportSymbolImage, 118);
+      }
+
+      const exportSummarySymbolImage = node.querySelector(".mobile-export-symbol-image");
+      if (exportSummarySymbolImage) {
+        await lockSymbolAspectRatio(exportSummarySymbolImage, 30);
       }
 
       const missingImages = Array.from(node.querySelectorAll("img")).filter(
