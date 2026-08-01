@@ -12,6 +12,8 @@ body,
   width: 100%;
   min-height: 100%;
   margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -98,7 +100,7 @@ a {
 
 .hero-subtitle {
   margin: 20px 0 0;
-  font-family: "Petit Formal Script", cursive;
+  font-family: "Petit Formal Script", "Cormorant Garamond", Georgia, serif;
   font-size: clamp(1.9rem, 2.7vw, 2.5rem);
   color: #ead7ab;
 }
