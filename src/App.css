@@ -952,7 +952,7 @@ a {
   display: block;
   width: 280px;
   height: 280px;
-  --marker-line-height: 76px;
+  --marker-line-height: 44px;
   --marker-icon-size: 64px;
   pointer-events: none;
   z-index: 560;
