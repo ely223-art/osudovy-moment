@@ -2540,6 +2540,7 @@ function App() {
       markerElement.style.left = `${point.x}px`;
       markerElement.style.top = `${point.y}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
+      markerElement.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
 
       if (placeLabelElement) {
         const labelX = point.x;
@@ -2705,6 +2706,7 @@ function App() {
       markerElement.style.left = `${point.x}px`;
       markerElement.style.top = `${point.y}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
+      markerElement.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
 
       if (exportPlaceLabelElement) {
         const labelX = point.x;

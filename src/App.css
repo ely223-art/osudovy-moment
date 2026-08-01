@@ -939,6 +939,13 @@ a {
   contain: layout paint;
 }
 
+.completion-map-marker__glow,
+.completion-map-marker__dot,
+.completion-map-marker__line,
+.completion-map-marker__icon {
+  transform-origin: center center;
+}
+
 .public-map-marker .completion-map-marker {
   transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
 }
