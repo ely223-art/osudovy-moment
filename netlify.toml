@@ -13,6 +13,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/public-moments"
+  to = "/.netlify/functions/public-moments"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
