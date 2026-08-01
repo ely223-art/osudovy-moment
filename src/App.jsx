@@ -2893,12 +2893,10 @@ function App() {
         }
         const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
         markerElement.style.setProperty("--marker-scale", scaleValue);
-        markerElement.style.setProperty("transform", `translate(-50%, -50%) scale(${scaleValue})`);
 
         const markerIcon = markerElement.querySelector?.(".completion-map-marker");
         if (markerIcon) {
           markerIcon.style.setProperty("--marker-scale", scaleValue);
-          markerIcon.style.setProperty("transform", `translate(-50%, -50%) scale(${scaleValue})`);
         }
       };
 

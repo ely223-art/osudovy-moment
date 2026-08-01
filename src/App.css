@@ -397,9 +397,13 @@ a {
   display: block;
   pointer-events: auto;
   cursor: pointer;
-  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
   transform-origin: center center;
   touch-action: manipulation;
+}
+
+.public-map-marker .completion-map-marker {
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
+  transform-origin: center center;
 }
 
 .public-map-help-text {
