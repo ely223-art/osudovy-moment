@@ -8,6 +8,7 @@ describe("public marker zoom behavior", () => {
     const source = readFileSync(appPath, "utf8");
 
     expect(source).toContain("markerElement.style.setProperty(\"--marker-scale\", scaleValue);");
+    expect(source).toContain("L.marker([moment.latitude, moment.longitude]");
     expect(source).toContain("zoomAnimation: false");
     expect(source).toContain("markerZoomAnimation: false");
     expect(source).toContain(`zoomControl: true,

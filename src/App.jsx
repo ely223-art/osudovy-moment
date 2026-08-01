@@ -2880,7 +2880,7 @@ function App() {
         iconAnchor: [105, 105],
       });
 
-      const marker = L.marker([moment.displayLatitude, moment.displayLongitude], {
+      const marker = L.marker([moment.latitude, moment.longitude], {
         icon: markerIcon,
         pane: "momentsPane",
         riseOnHover: true,

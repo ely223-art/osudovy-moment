@@ -391,7 +391,8 @@ a {
 }
 
 .public-map-marker {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 210px;
   height: 210px;
   display: block;
@@ -399,10 +400,13 @@ a {
   cursor: pointer;
   transform-origin: center center;
   touch-action: manipulation;
+  margin: 0;
 }
 
 .public-map-marker .completion-map-marker {
-  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
+  position: absolute;
+  inset: 0;
+  transform: none;
   transform-origin: center center;
 }
 
