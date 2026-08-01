@@ -20,17 +20,20 @@ const parseCoordinate = (value) => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
-const normalizeMoment = (moment = {}) => {
+const normalizeMoment = (moment = {}, options = {}) => {
+  const { requireOwnerId = false } = options;
   const id = normalizeId(moment?.id || "");
+  const ownerId = normalizeId(moment?.ownerId || "");
   const latitude = parseCoordinate(moment?.latitude);
   const longitude = parseCoordinate(moment?.longitude);
 
-  if (!id || latitude === null || longitude === null) {
+  if (!id || (requireOwnerId && !ownerId) || latitude === null || longitude === null) {
     return null;
   }
 
   return {
     id,
+    ownerId,
     obec: String(moment?.obec || "").slice(0, 120),
     okres: String(moment?.okres || "").slice(0, 120),
     kraj: String(moment?.kraj || "").slice(0, 120),
@@ -75,7 +78,7 @@ const saveMoments = async (store, moments) => {
 };
 
 export default async (request) => {
-  if (request.method !== "GET" && request.method !== "POST") {
+  if (request.method !== "GET" && request.method !== "POST" && request.method !== "DELETE") {
     return toJsonResponse(405, { error: "Method not allowed" });
   }
 
@@ -94,12 +97,34 @@ export default async (request) => {
       return toJsonResponse(400, { error: "Invalid JSON body" });
     }
 
-    const normalized = normalizeMoment(payload);
+    const existing = await loadMoments(store);
+
+    if (request.method === "DELETE") {
+      const id = normalizeId(payload?.id || "");
+      const ownerId = normalizeId(payload?.ownerId || "");
+      if (!id || !ownerId) {
+        return toJsonResponse(400, { error: "Missing id or ownerId" });
+      }
+
+      const target = existing.find((moment) => moment.id === id);
+      if (!target) {
+        return toJsonResponse(200, { ok: true, moments: existing });
+      }
+
+      if (normalizeId(target.ownerId || "") !== ownerId) {
+        return toJsonResponse(403, { error: "Forbidden" });
+      }
+
+      const remaining = existing.filter((moment) => moment.id !== id);
+      const moments = await saveMoments(store, remaining);
+      return toJsonResponse(200, { ok: true, moments });
+    }
+
+    const normalized = normalizeMoment(payload, { requireOwnerId: true });
     if (!normalized) {
       return toJsonResponse(400, { error: "Invalid moment payload" });
     }
 
-    const existing = await loadMoments(store);
     const byId = new Map(existing.map((moment) => [moment.id, moment]));
     byId.set(normalized.id, normalized);
 

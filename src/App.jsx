@@ -40,6 +40,7 @@ const parseCoordinate = (value) => {
 
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
+const CLIENT_ID_KEY = "osudovy-moment-client-id";
 const PUBLIC_MOMENTS_ENDPOINT = "/api/public-moments";
 const EXPORT_JPEG_QUALITY = 0.96;
 const EXPORT_CAPTURE_SCALE = 2;
@@ -75,6 +76,85 @@ const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i
 
 const normalizeMomentId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
 
+const getOrCreateClientId = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const existing = normalizeMomentId(window.localStorage.getItem(CLIENT_ID_KEY) || "");
+    if (existing) {
+      return existing;
+    }
+
+    const generated =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+    const normalized = normalizeMomentId(generated);
+    if (normalized) {
+      window.localStorage.setItem(CLIENT_ID_KEY, normalized);
+    }
+    return normalized;
+  } catch {
+    return "";
+  }
+};
+
+const spreadOverlappingMoments = (moments = []) => {
+  const grouped = new Map();
+
+  moments.forEach((moment) => {
+    const latitude = parseCoordinate(moment?.latitude);
+    const longitude = parseCoordinate(moment?.longitude);
+    if (latitude === null || longitude === null) {
+      return;
+    }
+
+    const key = `${latitude.toFixed(5)}:${longitude.toFixed(5)}`;
+    const bucket = grouped.get(key) || [];
+    bucket.push(moment);
+    grouped.set(key, bucket);
+  });
+
+  const spread = [];
+
+  grouped.forEach((bucket) => {
+    const count = bucket.length;
+    bucket.forEach((moment, index) => {
+      if (count === 1) {
+        spread.push({
+          ...moment,
+          displayLatitude: moment.latitude,
+          displayLongitude: moment.longitude,
+          overlapCount: 1,
+          overlapIndex: 0,
+        });
+        return;
+      }
+
+      const angle = (2 * Math.PI * index) / count;
+      const ring = Math.floor(index / 8);
+      const radiusMeters = 42 + ring * 24;
+      const latitude = Number(moment.latitude);
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = Math.max(1, 111320 * Math.cos((latitude * Math.PI) / 180));
+      const latitudeOffset = (Math.sin(angle) * radiusMeters) / metersPerDegreeLat;
+      const longitudeOffset = (Math.cos(angle) * radiusMeters) / metersPerDegreeLng;
+
+      spread.push({
+        ...moment,
+        displayLatitude: Number(moment.latitude) + latitudeOffset,
+        displayLongitude: Number(moment.longitude) + longitudeOffset,
+        overlapCount: count,
+        overlapIndex: index,
+      });
+    });
+  });
+
+  return spread;
+};
+
 const normalizePublicMoment = (moment = {}) => {
   const latitude = parseCoordinate(moment?.latitude);
   const longitude = parseCoordinate(moment?.longitude);
@@ -86,6 +166,7 @@ const normalizePublicMoment = (moment = {}) => {
 
   const normalized = {
     id,
+    ownerId: normalizeMomentId(moment?.ownerId || ""),
     obec: String(moment?.obec || "").slice(0, 120),
     okres: String(moment?.okres || "").slice(0, 120),
     kraj: String(moment?.kraj || "").slice(0, 120),
@@ -454,6 +535,7 @@ function App() {
   const animationStartedRef = useRef(false);
   const animationTimersRef = useRef([]);
   const [screen, setScreen] = useState("home");
+  const [clientId, setClientId] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTown, setSelectedTown] = useState(null);
@@ -493,6 +575,10 @@ function App() {
     }
 
     return isMobileUserAgent(navigator.userAgent || "");
+  }, []);
+
+  useEffect(() => {
+    setClientId(getOrCreateClientId());
   }, []);
 
   useEffect(() => {
@@ -669,6 +755,63 @@ function App() {
       return false;
     }
   }, []);
+
+  const deleteMomentFromPublicMap = useCallback(async (momentId, ownerId) => {
+    const safeMomentId = normalizeMomentId(momentId || "");
+    const safeOwnerId = normalizeMomentId(ownerId || "");
+
+    if (!safeMomentId || !safeOwnerId) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(PUBLIC_MOMENTS_ENDPOINT, {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: safeMomentId,
+          ownerId: safeOwnerId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const moments = Array.isArray(payload?.moments)
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean)
+        : [];
+      setRemotePublicMoments(moments);
+      return true;
+    } catch (error) {
+      console.error("Nepodařilo se smazat veřejný moment:", error);
+      return false;
+    }
+  }, []);
+
+  const canDeleteMoment = useCallback((moment) => {
+    if (!moment?.id) {
+      return false;
+    }
+
+    const safeId = normalizeMomentId(moment.id);
+    const safeOwnerId = normalizeMomentId(moment.ownerId || "");
+    const hasLocalCopy = savedMoments.some((localMoment) => normalizeMomentId(localMoment?.id || "") === safeId);
+
+    if (safeOwnerId && clientId && safeOwnerId === clientId) {
+      return true;
+    }
+
+    // Backward compatibility for legacy local-only moments created before ownerId existed.
+    if (!safeOwnerId && hasLocalCopy) {
+      return true;
+    }
+
+    return false;
+  }, [clientId, savedMoments]);
 
   useEffect(() => {
     loadRemotePublicMoments();
@@ -1632,12 +1775,28 @@ function App() {
     return updated;
   };
 
-  const handleDeleteSelectedPublicMoment = () => {
+  const handleDeleteSelectedPublicMoment = async () => {
     if (!selectedPublicMoment?.id) {
       return;
     }
 
+    if (!canDeleteMoment(selectedPublicMoment)) {
+      window.alert("Tento moment nelze z tohoto zařízení smazat.");
+      return;
+    }
+
     removeMomentFromStorage(selectedPublicMoment.id);
+    const safeOwnerId = normalizeMomentId(selectedPublicMoment.ownerId || "");
+    if (safeOwnerId) {
+      const deletedRemote = await deleteMomentFromPublicMap(selectedPublicMoment.id, safeOwnerId);
+      if (!deletedRemote) {
+        window.alert("Mazání veřejného momentu se nepodařilo. Zkuste to prosím znovu.");
+      }
+    }
+
+    loadRemotePublicMoments().catch((error) => {
+      console.error("Obnova veřejných momentů po smazání selhala:", error);
+    });
     setSelectedPublicMoment(null);
   };
 
@@ -1650,9 +1809,14 @@ function App() {
 
     const latitude = parseCoordinate(selectedTown?.latitude);
     const longitude = parseCoordinate(selectedTown?.longitude);
+    const effectiveOwnerId = clientId || getOrCreateClientId();
+    if (!clientId && effectiveOwnerId) {
+      setClientId(effectiveOwnerId);
+    }
 
     const createdMoment = {
       id: `${Date.now()}`,
+      ownerId: effectiveOwnerId,
       obec: selectedTown?.nazev || "",
       okres: selectedTown?.okres || "",
       kraj: selectedTown?.kraj || "",
@@ -2548,7 +2712,9 @@ function App() {
       return latitude !== null && longitude !== null;
     });
 
-    validMoments.forEach((moment) => {
+    const spreadMoments = spreadOverlappingMoments(validMoments);
+
+    spreadMoments.forEach((moment) => {
       const markerIcon = L.divIcon({
         html: renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]),
         className: "",
@@ -2556,7 +2722,7 @@ function App() {
         iconAnchor: [105, 105],
       });
 
-      const marker = L.marker([moment.latitude, moment.longitude], {
+      const marker = L.marker([moment.displayLatitude, moment.displayLongitude], {
         icon: markerIcon,
         pane: "momentsPane",
       }).addTo(map);
@@ -2568,7 +2734,7 @@ function App() {
     if (validMoments.length === 0) {
       map.setView([49.8, 15.3], 6);
     } else {
-      const bounds = L.latLngBounds(validMoments.map((moment) => [moment.latitude, moment.longitude]));
+      const bounds = L.latLngBounds(spreadMoments.map((moment) => [moment.displayLatitude, moment.displayLongitude]));
       map.fitBounds(bounds.pad(0.2), { animate: false, maxZoom: 8 });
     }
 
@@ -2784,8 +2950,9 @@ function App() {
                       className="public-map-detail__delete"
                       type="button"
                       onClick={handleDeleteSelectedPublicMoment}
+                      disabled={!canDeleteMoment(selectedPublicMoment)}
                     >
-                      Smazat z mapy
+                      {canDeleteMoment(selectedPublicMoment) ? "Smazat můj moment" : "Nelze smazat cizí moment"}
                     </button>
                   </div>
                 </div>
