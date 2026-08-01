@@ -2730,9 +2730,10 @@ function App() {
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
+      const markerSize = 210;
       const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
-      markerElement.style.left = `${point.x}px`;
-      markerElement.style.top = `${point.y}px`;
+      markerElement.style.left = `${point.x - markerSize / 2}px`;
+      markerElement.style.top = `${point.y - markerSize / 2}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
 
       if (exportPlaceLabelElement) {
@@ -2922,8 +2923,9 @@ function App() {
         }
 
         const point = map.latLngToContainerPoint([latitude, longitude]);
-        markerElement.style.left = `${point.x}px`;
-        markerElement.style.top = `${point.y}px`;
+        const markerSize = 210;
+        markerElement.style.left = `${point.x - markerSize / 2}px`;
+        markerElement.style.top = `${point.y - markerSize / 2}px`;
         markerElement.style.setProperty("--marker-scale", scaleValue);
 
         const markerIcon = markerElement.querySelector?.(".completion-map-marker");
