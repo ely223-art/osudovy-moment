@@ -398,6 +398,13 @@ a {
   pointer-events: auto;
   cursor: pointer;
   transform: none;
+  touch-action: manipulation;
+}
+
+.public-map-help-text {
+  margin-top: 8px;
+  color: rgba(247, 239, 226, 0.78);
+  font-size: 0.92rem;
 }
 
 .public-map-detail {

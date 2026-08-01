@@ -2795,6 +2795,8 @@ function App() {
       setSelectedPublicMoment(orderedNearby[activeIndex] || moment);
     };
 
+    const markerTouchCleanup = [];
+
     spreadMoments.forEach((moment) => {
       const markerIcon = L.divIcon({
         html: renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]),
@@ -2809,6 +2811,78 @@ function App() {
         riseOnHover: true,
       }).addTo(map);
 
+      let suppressNextClick = false;
+
+      const markerElement = marker.getElement();
+      if (markerElement) {
+        let longPressTimer = 0;
+        let startX = 0;
+        let startY = 0;
+        let longPressTriggered = false;
+
+        const clearLongPressTimer = () => {
+          if (longPressTimer) {
+            window.clearTimeout(longPressTimer);
+            longPressTimer = 0;
+          }
+        };
+
+        const handleTouchStart = (event) => {
+          const touch = event.touches?.[0];
+          if (!touch) {
+            return;
+          }
+
+          longPressTriggered = false;
+          startX = touch.clientX;
+          startY = touch.clientY;
+          clearLongPressTimer();
+          longPressTimer = window.setTimeout(() => {
+            longPressTriggered = true;
+            suppressNextClick = true;
+            openMomentGroup(moment);
+            if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+              navigator.vibrate(12);
+            }
+          }, 380);
+        };
+
+        const handleTouchMove = (event) => {
+          const touch = event.touches?.[0];
+          if (!touch) {
+            return;
+          }
+
+          const moveDistance = Math.hypot(touch.clientX - startX, touch.clientY - startY);
+          if (moveDistance > 10) {
+            clearLongPressTimer();
+          }
+        };
+
+        const handleTouchEnd = (event) => {
+          clearLongPressTimer();
+          if (longPressTriggered) {
+            event.preventDefault();
+          }
+        };
+
+        const handleTouchCancel = () => {
+          clearLongPressTimer();
+        };
+
+        markerElement.addEventListener("touchstart", handleTouchStart, { passive: true });
+        markerElement.addEventListener("touchmove", handleTouchMove, { passive: true });
+        markerElement.addEventListener("touchend", handleTouchEnd, { passive: false });
+        markerElement.addEventListener("touchcancel", handleTouchCancel, { passive: true });
+
+        markerTouchCleanup.push(() => {
+          markerElement.removeEventListener("touchstart", handleTouchStart);
+          markerElement.removeEventListener("touchmove", handleTouchMove);
+          markerElement.removeEventListener("touchend", handleTouchEnd);
+          markerElement.removeEventListener("touchcancel", handleTouchCancel);
+        });
+      }
+
       const tooltipText = (moment.obec || moment.nazev || "").trim();
       if (tooltipText) {
         marker.bindTooltip(tooltipText, {
@@ -2822,6 +2896,10 @@ function App() {
       }
 
       marker.on("click", () => {
+        if (suppressNextClick) {
+          suppressNextClick = false;
+          return;
+        }
         openMomentGroup(moment);
       });
     });
@@ -2853,6 +2931,7 @@ function App() {
     });
 
     return () => {
+      markerTouchCleanup.forEach((cleanup) => cleanup());
       window.removeEventListener("resize", handlePublicMapResize);
       if (publicMapRef.current) {
         publicMapRef.current.remove();
@@ -2999,6 +3078,9 @@ function App() {
                   <h2 className="wizard-title">Mapa osudových momentů</h2>
                   <p className="wizard-text">
                     Vyberte symbol na mapě a zobrazte detail vybraného osudového momentu.
+                  </p>
+                  <p className="wizard-text public-map-help-text">
+                    Když je momentů víc blízko sebe, podržte symbol (mobil) nebo klikněte a v detailu použijte Předchozí/Další.
                   </p>
                 </div>
 
