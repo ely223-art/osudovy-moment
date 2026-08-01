@@ -401,6 +401,7 @@ a {
   touch-action: manipulation;
   margin: 0;
   z-index: 560;
+  opacity: 1;
 }
 
 .public-map-marker-shell .completion-map-marker {
@@ -409,6 +410,7 @@ a {
   top: 50%;
   transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
   transform-origin: center center;
+  opacity: 1;
 }
 
 .public-map-marker-shell.is-selected {
@@ -956,6 +958,7 @@ a {
   transform-origin: center center;
   will-change: transform, opacity;
   contain: layout paint;
+  opacity: 1;
 }
 
 .completion-map-marker__glow,
@@ -1052,7 +1055,7 @@ a {
   width: 4px;
   height: 102px;
   transform: translate(-50%, -100%) scaleY(0);
-  transform-origin: bottom center;
+  transform-origin: top center;
   background: linear-gradient(180deg, rgba(255, 214, 120, 0.98) 0%, rgba(255, 214, 120, 0) 100%);
   opacity: 0;
   z-index: 2;
@@ -1142,7 +1145,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__line,
 .completion-map-marker.is-pulse .completion-map-marker__line,
 .completion-map-marker.is-ready .completion-map-marker__line {
-  transform: translateX(-50%) scaleY(1);
+  transform: translate(-50%, -100%) scaleY(1);
 }
 
 .completion-map-marker.is-icon .completion-map-marker__icon,
