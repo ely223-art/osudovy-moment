@@ -579,8 +579,8 @@ function App() {
   const [sharedMomentImageError, setSharedMomentImageError] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
   const publicMapMoments = useMemo(
-    () => mergeMomentsById(savedMoments, remotePublicMoments),
-    [savedMoments, remotePublicMoments]
+    () => mergeMomentsById([], remotePublicMoments),
+    [remotePublicMoments]
   );
   const isMobileClient = useMemo(() => {
     if (typeof navigator === "undefined") {
