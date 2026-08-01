@@ -397,7 +397,8 @@ a {
   display: block;
   pointer-events: auto;
   cursor: pointer;
-  transform: none;
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
+  transform-origin: center center;
   touch-action: manipulation;
 }
 
@@ -928,9 +929,14 @@ a {
   height: 210px;
   pointer-events: none;
   z-index: 560;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
+  transform-origin: center center;
   will-change: transform, opacity;
   contain: layout paint;
+}
+
+.public-map-marker .completion-map-marker {
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
 }
 
 .public-map-detail__pager {
@@ -989,12 +995,12 @@ a {
   top: 50%;
   width: 132px;
   height: 132px;
-  transform: translate(-50%, -50%) scale(0.7);
+  transform: translate(-50%, -50%) scale(calc(var(--marker-scale, 1) * 0.7));
   border-radius: 999px;
   background: radial-gradient(circle, rgba(255, 214, 120, 0.8) 0%, rgba(255, 214, 120, 0.26) 46%, rgba(255, 214, 120, 0) 72%);
   opacity: 0;
   box-shadow: 0 0 48px rgba(255, 214, 120, 0.46);
-  transition: opacity 400ms ease, transform 400ms ease;
+  transition: opacity 400ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .completion-map-marker__dot {
@@ -1003,12 +1009,12 @@ a {
   top: 50%;
   width: 24px;
   height: 24px;
-  transform: translate(-50%, -50%) scale(0.7);
+  transform: translate(-50%, -50%) scale(calc(var(--marker-scale, 1) * 0.7));
   border-radius: 999px;
   background: linear-gradient(135deg, #fff9d8 0%, #ffb84f 45%, #d97c1f 100%);
   box-shadow: 0 0 24px rgba(255, 214, 120, 0.95);
   opacity: 0;
-  transition: opacity 400ms ease, transform 400ms ease;
+  transition: opacity 400ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .completion-map-marker__line {
@@ -1021,7 +1027,7 @@ a {
   transform-origin: bottom center;
   background: linear-gradient(180deg, rgba(255, 214, 120, 0.98) 0%, rgba(255, 214, 120, 0) 100%);
   opacity: 0;
-  transition: transform 600ms ease, opacity 600ms ease;
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 620ms ease;
 }
 
 .completion-map-marker__icon {
@@ -1033,14 +1039,14 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translate(-50%, -136%) scale(0.8);
+  transform: translate(-50%, -136%) scale(calc(var(--marker-scale, 1) * 0.8));
   opacity: 0;
   border-radius: 999px;
   background: transparent;
   border: 0;
   box-shadow: none;
   filter: drop-shadow(0 0 24px rgba(255, 214, 120, 0.72)) drop-shadow(0 0 40px rgba(255, 176, 64, 0.28)) brightness(1.08) contrast(1.04);
-  transition: transform 650ms cubic-bezier(0.2, 0.9, 0.2, 1), opacity 650ms ease, filter 650ms ease;
+  transition: transform 720ms cubic-bezier(0.22, 1, 0.36, 1), opacity 720ms ease, filter 720ms ease;
 }
 
 .completion-map-marker__image {
@@ -1086,7 +1092,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__glow,
 .completion-map-marker.is-pulse .completion-map-marker__glow,
 .completion-map-marker.is-ready .completion-map-marker__glow {
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
 }
 
 .completion-map-marker.is-ready {
@@ -1099,7 +1105,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__dot,
 .completion-map-marker.is-pulse .completion-map-marker__dot,
 .completion-map-marker.is-ready .completion-map-marker__dot {
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
 }
 
 .completion-map-marker.is-line .completion-map-marker__line,
@@ -1112,7 +1118,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__icon,
 .completion-map-marker.is-pulse .completion-map-marker__icon,
 .completion-map-marker.is-ready .completion-map-marker__icon {
-  transform: translate(-50%, -88%) scale(1);
+  transform: translate(-50%, -88%) scale(calc(var(--marker-scale, 1) * 0.8));
 }
 
 .completion-map-marker.is-pulse .completion-map-marker__icon,
@@ -1121,7 +1127,7 @@ a {
 }
 
 .completion-map-marker.is-ready .completion-map-marker__icon:hover {
-  transform: translate(-50%, 0) scale(1.08);
+  transform: translate(-50%, 0) scale(calc(var(--marker-scale, 1) * 0.86));
 }
 
 .completion-map-marker.is-final .completion-map-marker__glow,
@@ -1132,11 +1138,11 @@ a {
 }
 
 .completion-map-marker.is-final .completion-map-marker__glow {
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
 }
 
 .completion-map-marker.is-final .completion-map-marker__dot {
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
 }
 
 .completion-map-marker.is-final .completion-map-marker__line {
@@ -1144,7 +1150,7 @@ a {
 }
 
 .completion-map-marker.is-final .completion-map-marker__icon {
-  transform: translate(-50%, -88%) scale(1);
+  transform: translate(-50%, -88%) scale(calc(var(--marker-scale, 1) * 0.8));
   animation: none;
 }
 
@@ -1169,10 +1175,10 @@ a {
 
 @keyframes markerGlowPulse {
   0% {
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: translate(-50%, -50%) scale(calc(var(--marker-scale, 1) * 0.96));
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.04);
+    transform: translate(-50%, -50%) scale(calc(var(--marker-scale, 1) * 1.04));
   }
 }
 

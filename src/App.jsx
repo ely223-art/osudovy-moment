@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
 import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
+import { buildSelectionCluster } from "./utils/selectionClusters";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -73,6 +74,13 @@ const SYMBOL_IMAGE_BY_LABEL = {
   ostatni: "/ostatni.png",
 };
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
+const getMarkerScaleFromZoom = (zoomValue = 3) => {
+  const safeZoom = Number.isFinite(Number(zoomValue)) ? Number(zoomValue) : 3;
+  const clampedZoom = Math.max(3, Math.min(15, safeZoom));
+  const normalizedZoom = (clampedZoom - 3) / 8;
+  return Number(Math.max(0.86, Math.min(1, 0.86 + normalizedZoom * 0.14)).toFixed(3));
+};
 
 const normalizeMomentId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
 
@@ -536,6 +544,7 @@ function App() {
   const markerRef = useRef(null);
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
+  const publicMarkerElementsRef = useRef(new Map());
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
   const exportCardRef = useRef(null);
@@ -1864,6 +1873,52 @@ function App() {
     showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex - 1);
   }, [selectedPublicMomentGroupIndex, showPublicMomentAtGroupIndex]);
 
+  const selectClusteredPublicMoment = useCallback((moment, clusterItems = []) => {
+    const clusterSelection = buildSelectionCluster(
+      clusterItems,
+      moment,
+      86,
+      (candidate) => {
+        const x = Number(candidate?.screenX ?? candidate?.x ?? 0);
+        const y = Number(candidate?.screenY ?? candidate?.y ?? 0);
+        return { x, y };
+      }
+    );
+
+    if (!clusterSelection.cluster.length) {
+      setSelectedPublicMomentGroup([moment]);
+      setSelectedPublicMomentGroupIndex(0);
+      setSelectedPublicMoment(moment);
+      return;
+    }
+
+    const orderedCluster = [...clusterSelection.cluster].sort((left, right) => {
+      const leftTime = Date.parse(left.createdAt || "") || 0;
+      const rightTime = Date.parse(right.createdAt || "") || 0;
+      return rightTime - leftTime;
+    });
+
+    const activeIndex = Math.max(0, orderedCluster.findIndex((item) => item.id === moment.id));
+    setSelectedPublicMomentGroup(orderedCluster);
+    setSelectedPublicMomentGroupIndex(activeIndex);
+    setSelectedPublicMoment(orderedCluster[activeIndex] || moment);
+  }, []);
+
+  const syncSelectedPublicMarker = useCallback(() => {
+    const selectedId = normalizeMomentId(selectedPublicMoment?.id || "");
+    const markerMap = publicMarkerElementsRef.current;
+
+    markerMap.forEach((element, markerId) => {
+      if (!element) {
+        return;
+      }
+
+      const isActive = !!selectedId && markerId === selectedId;
+      element.classList.toggle("is-selected", isActive);
+      element.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  }, [selectedPublicMoment?.id]);
+
   const goToCompletionStep = (event) => {
     event.preventDefault();
 
@@ -2481,8 +2536,10 @@ function App() {
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
+      const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
       markerElement.style.left = `${point.x}px`;
       markerElement.style.top = `${point.y}px`;
+      markerElement.style.setProperty("--marker-scale", scaleValue);
 
       if (placeLabelElement) {
         const labelX = point.x;
@@ -2644,8 +2701,10 @@ function App() {
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
+      const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
       markerElement.style.left = `${point.x}px`;
       markerElement.style.top = `${point.y}px`;
+      markerElement.style.setProperty("--marker-scale", scaleValue);
 
       if (exportPlaceLabelElement) {
         const labelX = point.x;
@@ -2707,6 +2766,7 @@ function App() {
 
   useEffect(() => {
     if (screen !== "public-map") {
+      publicMarkerElementsRef.current.clear();
       if (publicMapRef.current) {
         publicMapRef.current.remove();
         publicMapRef.current = null;
@@ -2765,6 +2825,7 @@ function App() {
     });
 
     const spreadMoments = spreadOverlappingMoments(validMoments);
+    publicMarkerElementsRef.current.clear();
 
     const openMomentGroup = (moment) => {
       const selectedLat = Number(moment.displayLatitude ?? moment.latitude);
@@ -2783,16 +2844,24 @@ function App() {
         (candidate, index, array) => array.findIndex((item) => item.id === candidate.id) === index
       );
 
-      const orderedNearby = uniqueNearby.sort((left, right) => {
-        const leftTime = Date.parse(left.createdAt || "") || 0;
-        const rightTime = Date.parse(right.createdAt || "") || 0;
-        return rightTime - leftTime;
+      const clusterItems = uniqueNearby.map((candidate) => {
+        const candidateLat = Number(candidate.displayLatitude ?? candidate.latitude);
+        const candidateLng = Number(candidate.displayLongitude ?? candidate.longitude);
+        const candidatePoint = map.latLngToContainerPoint([candidateLat, candidateLng]);
+        return {
+          ...candidate,
+          screenX: candidatePoint.x,
+          screenY: candidatePoint.y,
+        };
       });
 
-      const activeIndex = Math.max(0, orderedNearby.findIndex((item) => item.id === moment.id));
-      setSelectedPublicMomentGroup(orderedNearby);
-      setSelectedPublicMomentGroupIndex(activeIndex);
-      setSelectedPublicMoment(orderedNearby[activeIndex] || moment);
+      const clusteredMoment = {
+        ...moment,
+        screenX: selectedPoint.x,
+        screenY: selectedPoint.y,
+      };
+
+      selectClusteredPublicMoment(clusteredMoment, clusterItems);
     };
 
     const markerTouchCleanup = [];
@@ -2811,9 +2880,36 @@ function App() {
         riseOnHover: true,
       }).addTo(map);
 
+      const markerElement = marker.getElement();
+      const markerKey = normalizeMomentId(moment.id || "");
+      if (markerElement && markerKey) {
+        markerElement.classList.add("public-map-marker-shell");
+        publicMarkerElementsRef.current.set(markerKey, markerElement);
+      }
+
+      const updateMarkerScale = () => {
+        if (!markerElement) {
+          return;
+        }
+        const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
+        markerElement.style.setProperty("--marker-scale", scaleValue);
+        markerElement.style.setProperty("transform", `translate(-50%, -50%) scale(${scaleValue})`);
+
+        const markerIcon = markerElement.querySelector?.(".completion-map-marker");
+        if (markerIcon) {
+          markerIcon.style.setProperty("--marker-scale", scaleValue);
+          markerIcon.style.setProperty("transform", `translate(-50%, -50%) scale(${scaleValue})`);
+        }
+      };
+
+      updateMarkerScale();
+      map.on("zoom zoomend viewreset", updateMarkerScale);
+      markerTouchCleanup.push(() => {
+        map.off("zoom zoomend viewreset", updateMarkerScale);
+      });
+
       let suppressNextClick = false;
 
-      const markerElement = marker.getElement();
       if (markerElement) {
         let longPressTimer = 0;
         let startX = 0;
@@ -2928,17 +3024,27 @@ function App() {
 
     requestAnimationFrame(() => {
       handlePublicMapResize();
+      syncSelectedPublicMarker();
     });
 
     return () => {
       markerTouchCleanup.forEach((cleanup) => cleanup());
+      publicMarkerElementsRef.current.clear();
       window.removeEventListener("resize", handlePublicMapResize);
       if (publicMapRef.current) {
         publicMapRef.current.remove();
         publicMapRef.current = null;
       }
     };
-  }, [screen, publicMapMoments]);
+  }, [screen, publicMapMoments, syncSelectedPublicMarker]);
+
+  useEffect(() => {
+    if (screen !== "public-map") {
+      return;
+    }
+
+    syncSelectedPublicMarker();
+  }, [screen, selectedPublicMoment?.id, syncSelectedPublicMarker]);
 
   const handleShowOnMap = () => {
     setScreen("home");
