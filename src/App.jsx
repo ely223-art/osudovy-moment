@@ -564,6 +564,8 @@ function App() {
   const [remotePublicMoments, setRemotePublicMoments] = useState([]);
   const [activeMapMoment, setActiveMapMoment] = useState(null);
   const [selectedPublicMoment, setSelectedPublicMoment] = useState(null);
+  const [selectedPublicMomentGroup, setSelectedPublicMomentGroup] = useState([]);
+  const [selectedPublicMomentGroupIndex, setSelectedPublicMomentGroupIndex] = useState(0);
   const [towns, setTowns] = useState([]);
   const [townsLoaded, setTownsLoaded] = useState(false);
   const [townsLoading, setTownsLoading] = useState(false);
@@ -1839,7 +1841,28 @@ function App() {
       console.error("Obnova veřejných momentů po smazání selhala:", error);
     });
     setSelectedPublicMoment(null);
+    setSelectedPublicMomentGroup([]);
+    setSelectedPublicMomentGroupIndex(0);
   };
+
+  const showPublicMomentAtGroupIndex = useCallback((index) => {
+    if (!selectedPublicMomentGroup.length) {
+      return;
+    }
+
+    const size = selectedPublicMomentGroup.length;
+    const normalizedIndex = ((index % size) + size) % size;
+    setSelectedPublicMomentGroupIndex(normalizedIndex);
+    setSelectedPublicMoment(selectedPublicMomentGroup[normalizedIndex] || null);
+  }, [selectedPublicMomentGroup]);
+
+  const showNextPublicMoment = useCallback(() => {
+    showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex + 1);
+  }, [selectedPublicMomentGroupIndex, showPublicMomentAtGroupIndex]);
+
+  const showPreviousPublicMoment = useCallback(() => {
+    showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex - 1);
+  }, [selectedPublicMomentGroupIndex, showPublicMomentAtGroupIndex]);
 
   const goToCompletionStep = (event) => {
     event.preventDefault();
@@ -2743,6 +2766,35 @@ function App() {
 
     const spreadMoments = spreadOverlappingMoments(validMoments);
 
+    const openMomentGroup = (moment) => {
+      const selectedLat = Number(moment.displayLatitude ?? moment.latitude);
+      const selectedLng = Number(moment.displayLongitude ?? moment.longitude);
+      const selectedPoint = map.latLngToContainerPoint([selectedLat, selectedLng]);
+
+      const nearby = spreadMoments.filter((candidate) => {
+        const candidateLat = Number(candidate.displayLatitude ?? candidate.latitude);
+        const candidateLng = Number(candidate.displayLongitude ?? candidate.longitude);
+        const candidatePoint = map.latLngToContainerPoint([candidateLat, candidateLng]);
+        const distance = Math.hypot(candidatePoint.x - selectedPoint.x, candidatePoint.y - selectedPoint.y);
+        return distance <= 86;
+      });
+
+      const uniqueNearby = nearby.filter(
+        (candidate, index, array) => array.findIndex((item) => item.id === candidate.id) === index
+      );
+
+      const orderedNearby = uniqueNearby.sort((left, right) => {
+        const leftTime = Date.parse(left.createdAt || "") || 0;
+        const rightTime = Date.parse(right.createdAt || "") || 0;
+        return rightTime - leftTime;
+      });
+
+      const activeIndex = Math.max(0, orderedNearby.findIndex((item) => item.id === moment.id));
+      setSelectedPublicMomentGroup(orderedNearby);
+      setSelectedPublicMomentGroupIndex(activeIndex);
+      setSelectedPublicMoment(orderedNearby[activeIndex] || moment);
+    };
+
     spreadMoments.forEach((moment) => {
       const markerIcon = L.divIcon({
         html: renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]),
@@ -2770,7 +2822,7 @@ function App() {
       }
 
       marker.on("click", () => {
-        setSelectedPublicMoment(moment);
+        openMomentGroup(moment);
       });
     });
 
@@ -2822,6 +2874,8 @@ function App() {
 
   const handleOpenPublicMap = () => {
     setSelectedPublicMoment(null);
+    setSelectedPublicMomentGroup([]);
+    setSelectedPublicMomentGroupIndex(0);
     loadRemotePublicMoments().catch((error) => {
       console.error("Obnova veřejných momentů selhala:", error);
     });
@@ -2960,11 +3014,37 @@ function App() {
                   <button
                     className="public-map-detail__close"
                     type="button"
-                    onClick={() => setSelectedPublicMoment(null)}
+                    onClick={() => {
+                      setSelectedPublicMoment(null);
+                      setSelectedPublicMomentGroup([]);
+                      setSelectedPublicMomentGroupIndex(0);
+                    }}
                     aria-label="Zavřít detail"
                   >
                     ×
                   </button>
+
+                  {selectedPublicMomentGroup.length > 1 ? (
+                    <div className="public-map-detail__pager" aria-label="Přepínání blízkých momentů">
+                      <button
+                        className="public-map-detail__pager-button"
+                        type="button"
+                        onClick={showPreviousPublicMoment}
+                      >
+                        ← Předchozí
+                      </button>
+                      <span className="public-map-detail__pager-count">
+                        {selectedPublicMomentGroupIndex + 1} / {selectedPublicMomentGroup.length}
+                      </span>
+                      <button
+                        className="public-map-detail__pager-button"
+                        type="button"
+                        onClick={showNextPublicMoment}
+                      >
+                        Další →
+                      </button>
+                    </div>
+                  ) : null}
 
                   <div className="public-map-detail__symbol">
                     <img

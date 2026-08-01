@@ -926,6 +926,31 @@ a {
   contain: layout paint;
 }
 
+.public-map-detail__pager {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 10px;
+}
+.public-map-detail__pager-button {
+  border: 1px solid rgba(255, 234, 197, 0.34);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7efe2;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.83rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.public-map-detail__pager-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.public-map-detail__pager-count {
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(247, 239, 226, 0.78);
+}
 .completion-map-place-label {
   position: absolute;
   z-index: 580;
