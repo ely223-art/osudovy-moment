@@ -111,7 +111,10 @@ export default async (request) => {
         return toJsonResponse(200, { ok: true, moments: existing });
       }
 
-      if (normalizeId(target.ownerId || "") !== ownerId) {
+      const targetOwnerId = normalizeId(target.ownerId || "");
+      const canDeleteLegacyWithoutOwner = !targetOwnerId && ownerId === "legacy-cleanup";
+
+      if (!canDeleteLegacyWithoutOwner && targetOwnerId !== ownerId) {
         return toJsonResponse(403, { error: "Forbidden" });
       }
 
