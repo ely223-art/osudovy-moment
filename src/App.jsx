@@ -58,6 +58,18 @@ const SYMBOL_IMAGE_BY_TYPE = {
   memory: "/vzpominka.png",
   other: "/ostatni.png",
 };
+const SYMBOL_IMAGE_BY_LABEL = {
+  svatba: "/svatba.png",
+  zasnuby: "/zasnuby.png",
+  laska: "/laska.png",
+  "narozeni dite": "/dite.png",
+  "novy domov": "/dum.png",
+  "novy zacatek": "/zacatek.png",
+  skola: "/skola.png",
+  "novy mazlicek": "/mazlicek.png",
+  vzpominka: "/vzpominka.png",
+  ostatni: "/ostatni.png",
+};
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
@@ -193,9 +205,25 @@ const formatMomentLocation = (moment = {}) => {
 const resolveMomentSymbolImage = (moment = {}, selectedSymbolImage = "") => {
   const normalizedType = normalizeText(moment?.symbolType || "");
   const typeBasedSource = SYMBOL_IMAGE_BY_TYPE[normalizedType] || "";
+  const normalizedLabel = normalizeText(moment?.symbolLabel || "");
+  const labelBasedSource = SYMBOL_IMAGE_BY_LABEL[normalizedLabel] || "";
+  const sourceName = (moment?.symbolImage || "").split("/").pop() || "";
+  const normalizedSourceName = normalizeText(sourceName).replace(/[^a-z0-9.]/g, "");
+  const fileBasedSource =
+    normalizedSourceName && /^(svatba|zasnuby|laska|dite|dum|zacatek|skola|mazlicek|vzpominka|ostatni)\.png$/.test(normalizedSourceName)
+      ? `/${normalizedSourceName}`
+      : "";
 
   if (typeBasedSource) {
     return resolveImageUrl(typeBasedSource, "ostatni.png");
+  }
+
+  if (labelBasedSource) {
+    return resolveImageUrl(labelBasedSource, "ostatni.png");
+  }
+
+  if (fileBasedSource) {
+    return resolveImageUrl(fileBasedSource, "ostatni.png");
   }
 
   if (moment?.symbolImage) {
@@ -2100,7 +2128,9 @@ function App() {
       markerElement.style.top = `${point.y}px`;
 
       if (placeLabelElement) {
-        const labelX = Math.max(20, Math.min(container.clientWidth - 20, point.x));
+        const rawHalfWidth = placeLabelElement.offsetWidth > 0 ? placeLabelElement.offsetWidth / 2 : 120;
+        const labelHalfWidth = Math.max(72, Math.min(160, rawHalfWidth));
+        const labelX = Math.max(labelHalfWidth + 8, Math.min(container.clientWidth - labelHalfWidth - 8, point.x));
         const preferredBelowY = point.y + 68;
         const labelY =
           preferredBelowY > container.clientHeight - 18
@@ -2267,7 +2297,9 @@ function App() {
       markerElement.style.top = `${point.y}px`;
 
       if (exportPlaceLabelElement) {
-        const labelX = Math.max(20, Math.min(container.clientWidth - 20, point.x));
+        const rawHalfWidth = exportPlaceLabelElement.offsetWidth > 0 ? exportPlaceLabelElement.offsetWidth / 2 : 120;
+        const labelHalfWidth = Math.max(72, Math.min(160, rawHalfWidth));
+        const labelX = Math.max(labelHalfWidth + 8, Math.min(container.clientWidth - labelHalfWidth - 8, point.x));
         const preferredBelowY = point.y + 68;
         const labelY =
           preferredBelowY > container.clientHeight - 18
