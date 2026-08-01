@@ -44,6 +44,8 @@ const EXPORT_JPEG_QUALITY = 0.96;
 const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
+const EXPORT_MOBILE_WIDTH = 1080;
+const EXPORT_MOBILE_HEIGHT = 1350;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
@@ -229,6 +231,84 @@ function IconSymbol({ type, x, y }) {
         <path d="M2.5 0l.8 1.8 2 .2-1.5 1.3.5 2-1.8-1.1-1.8 1.1.5-2-1.5-1.3 2-.2L2.5 0Z" />
       )}
     </g>
+  );
+}
+
+function MobileMomentExportCard({
+  completeMoment,
+  exportMomentUrl,
+  exportMapContainerRef,
+  selectedSymbolLabel,
+}) {
+  return (
+    <>
+      <header className="mobile-export-header">
+        <img className="mobile-export-logo" src={logo} alt="Logo Osudový moment" />
+      </header>
+
+      <div className="mobile-export-map-shell">
+        <div className="map-animated-surface is-ready">
+          {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
+            <div className="completion-map-wrapper completion-map-wrapper--export" ref={exportMapContainerRef} />
+          ) : (
+            <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="mobile-export-heading">
+        <h2 className="mobile-export-title">Váš osudový moment právě zazářil</h2>
+        <p className="mobile-export-place">
+          {[completeMoment.obec, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
+        </p>
+      </div>
+
+      <section className="mobile-export-details" aria-label="Detaily osudového momentu">
+        <div className="mobile-export-detail-row">
+          <span className="mobile-export-label">Místo</span>
+          <span className="mobile-export-value">
+            {[completeMoment.obec, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
+          </span>
+        </div>
+
+        <div className="mobile-export-detail-row mobile-export-detail-row--symbol">
+          <span className="mobile-export-label">Typ symbolu</span>
+          <span className="mobile-export-value mobile-export-value--symbol">
+            {completeMoment.symbolImage ? (
+              <img
+                className="mobile-export-symbol-image"
+                src={completeMoment.symbolImage}
+                alt={completeMoment.symbolLabel || selectedSymbolLabel || "Symbol"}
+              />
+            ) : null}
+            <span>{completeMoment.symbolLabel || selectedSymbolLabel || "—"}</span>
+          </span>
+        </div>
+
+        <div className="mobile-export-detail-row">
+          <span className="mobile-export-label">Název momentu</span>
+          <span className="mobile-export-value">{completeMoment.nazev || "—"}</span>
+        </div>
+
+        {completeMoment.prikaz ? (
+          <div className="mobile-export-detail-row">
+            <span className="mobile-export-label">Příběh / poznámka</span>
+            <span className="mobile-export-value mobile-export-value--story">{completeMoment.prikaz}</span>
+          </div>
+        ) : null}
+
+        {completeMoment.datum ? (
+          <div className="mobile-export-detail-row">
+            <span className="mobile-export-label">Datum</span>
+            <span className="mobile-export-value">{completeMoment.datum}</span>
+          </div>
+        ) : null}
+      </section>
+
+      <footer className="mobile-export-footer">
+        <span className="mobile-export-url">{exportMomentUrl}</span>
+      </footer>
+    </>
   );
 }
 
@@ -1013,9 +1093,15 @@ function App() {
       });
 
       const captureRect = node.getBoundingClientRect();
-      const captureWidth = Math.max(1, Math.round(captureRect.width || EXPORT_SHARE_WIDTH));
-      const captureHeight = Math.max(1, Math.round(captureRect.height || EXPORT_SHARE_HEIGHT));
-      const captureScale = EXPORT_CAPTURE_SCALE;
+      const captureWidth = Math.max(
+        1,
+        Math.round(captureRect.width || (isMobileDevice ? EXPORT_MOBILE_WIDTH : EXPORT_SHARE_WIDTH))
+      );
+      const captureHeight = Math.max(
+        1,
+        Math.round(captureRect.height || (isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT))
+      );
+      const captureScale = isMobileDevice ? 1 : EXPORT_CAPTURE_SCALE;
       const domAspectRatio = computeAspectRatio(captureRect.width, captureRect.height);
 
       console.log("[export-diagnostics] dom", {
@@ -1024,10 +1110,14 @@ function App() {
         roundedWidth: captureWidth,
         roundedHeight: captureHeight,
         aspectRatio: domAspectRatio,
-        targetWidth: EXPORT_SHARE_WIDTH,
-        targetHeight: EXPORT_SHARE_HEIGHT,
-        targetAspectRatio: computeAspectRatio(EXPORT_SHARE_WIDTH, EXPORT_SHARE_HEIGHT),
+        targetWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : EXPORT_SHARE_WIDTH,
+        targetHeight: isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT,
+        targetAspectRatio: computeAspectRatio(
+          isMobileDevice ? EXPORT_MOBILE_WIDTH : EXPORT_SHARE_WIDTH,
+          isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT
+        ),
         captureScale,
+        isMobileDevice,
       });
 
       previousNodeInlineStyles = {
@@ -1734,36 +1824,6 @@ function App() {
 
         {renderMomentSummary()}
       </div>
-    </>
-  );
-
-  const renderMobileExportCardContent = () => (
-    <>
-      <header className="mobile-export-header">
-        <img className="mobile-export-logo" src={logo} alt="Logo Osudový moment" />
-        <p className="mobile-export-kicker">Osudový moment</p>
-      </header>
-
-      <div className="mobile-export-map-shell">
-        <div className="map-animated-surface is-ready">
-          {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
-            <div className="completion-map-wrapper completion-map-wrapper--export" ref={exportMapContainerRef} />
-          ) : (
-            <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
-          )}
-        </div>
-      </div>
-
-      <div className="mobile-export-content">
-        <h2 className="mobile-export-title">{completeMoment.nazev || "Váš osudový moment"}</h2>
-        <p className="mobile-export-place">{formatMomentLocation(completeMoment)}</p>
-        <p className="mobile-export-obec">Obec: {completeMoment.obec || "—"}</p>
-        {completeMoment.prikaz ? <p className="mobile-export-story">{completeMoment.prikaz}</p> : null}
-      </div>
-
-      <footer className="mobile-export-footer">
-        <span className="mobile-export-url">{exportMomentUrl}</span>
-      </footer>
     </>
   );
 
@@ -2701,7 +2761,12 @@ function App() {
             {isMobileClient ? (
               <div className="export-render-surface export-render-surface--mobile" aria-hidden="true">
                 <section className="wizard-card completion-card is-exporting-mobile" ref={exportMobileCardRef}>
-                  {renderMobileExportCardContent()}
+                  <MobileMomentExportCard
+                    completeMoment={completeMoment}
+                    exportMomentUrl={exportMomentUrl}
+                    exportMapContainerRef={exportMapContainerRef}
+                    selectedSymbolLabel={selectedSymbol?.label}
+                  />
                 </section>
               </div>
             ) : (
