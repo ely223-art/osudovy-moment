@@ -1071,7 +1071,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translate(-50%, -172%) scale(0.8);
+  transform: translate(-50%, -50%) scale(0.8);
   opacity: 0;
   border-radius: 999px;
   background: transparent;
@@ -1151,7 +1151,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__icon,
 .completion-map-marker.is-pulse .completion-map-marker__icon,
 .completion-map-marker.is-ready .completion-map-marker__icon {
-  transform: translate(-50%, -172%) scale(0.8);
+  transform: translate(-50%, -50%) scale(0.8);
 }
 
 .completion-map-marker.is-pulse .completion-map-marker__icon,
@@ -1160,7 +1160,7 @@ a {
 }
 
 .completion-map-marker.is-ready .completion-map-marker__icon:hover {
-  transform: translate(-50%, -172%) scale(0.86);
+  transform: translate(-50%, -50%) scale(0.86);
 }
 
 .completion-map-marker.is-final .completion-map-marker__glow,
@@ -1183,7 +1183,7 @@ a {
 }
 
 .completion-map-marker.is-final .completion-map-marker__icon {
-  transform: translate(-50%, -172%) scale(0.8);
+  transform: translate(-50%, -50%) scale(0.8);
   animation: none;
 }
 
