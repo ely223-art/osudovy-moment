@@ -46,6 +46,18 @@ const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const EXPORT_MOBILE_WIDTH = 1080;
 const EXPORT_MOBILE_HEIGHT = 1920;
+const SYMBOL_IMAGE_BY_TYPE = {
+  wedding: "/svatba.png",
+  engagement: "/zasnuby.png",
+  love: "/laska.png",
+  birth: "/dite.png",
+  home: "/dum.png",
+  beginning: "/zacatek.png",
+  school: "/skola.png",
+  pet: "/mazlicek.png",
+  memory: "/vzpominka.png",
+  other: "/ostatni.png",
+};
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
@@ -176,6 +188,21 @@ const formatMomentLocation = (moment = {}) => {
   }
 
   return locationText;
+};
+
+const resolveMomentSymbolImage = (moment = {}, selectedSymbolImage = "") => {
+  const normalizedType = normalizeText(moment?.symbolType || "");
+  const typeBasedSource = SYMBOL_IMAGE_BY_TYPE[normalizedType] || "";
+
+  if (typeBasedSource) {
+    return resolveImageUrl(typeBasedSource, "ostatni.png");
+  }
+
+  if (moment?.symbolImage) {
+    return resolveImageUrl(moment.symbolImage, "ostatni.png");
+  }
+
+  return resolveImageUrl(selectedSymbolImage || "", "ostatni.png");
 };
 
 function renderMomentMarkerBody(symbolImage) {
@@ -2051,7 +2078,9 @@ function App() {
 
     const markerElement = L.DomUtil.create("div", "completion-map-marker is-fade");
     markerElement.setAttribute("data-stage", "fade");
-    markerElement.innerHTML = renderMomentMarkerBody(selectedPlace.symbolImage);
+    markerElement.innerHTML = renderMomentMarkerBody(
+      resolveMomentSymbolImage(selectedPlace, selectedSymbol?.image || "")
+    );
     markerLayer.appendChild(markerElement);
 
     const placeLabelText = (selectedPlace.obec || selectedPlace.nazev || "").trim();
@@ -2220,7 +2249,7 @@ function App() {
 
     const markerElement = L.DomUtil.create("div", "completion-map-marker is-final");
     markerElement.setAttribute("data-stage", "ready");
-    markerElement.innerHTML = renderMomentMarkerBody(place.symbolImage);
+    markerElement.innerHTML = renderMomentMarkerBody(resolveMomentSymbolImage(place));
     markerLayer.appendChild(markerElement);
 
     const exportPlaceLabelText = (place.obec || place.nazev || "").trim();
@@ -2355,7 +2384,7 @@ function App() {
 
     validMoments.forEach((moment) => {
       const markerIcon = L.divIcon({
-        html: renderMomentMarkerMarkup(moment.symbolImage, ["is-final", "public-map-marker"]),
+        html: renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]),
         className: "",
         iconSize: [210, 210],
         iconAnchor: [105, 105],
@@ -2557,11 +2586,10 @@ function App() {
                   </button>
 
                   <div className="public-map-detail__symbol">
-                    {selectedPublicMoment.symbolImage ? (
-                      <img src={selectedPublicMoment.symbolImage} alt={selectedPublicMoment.symbolLabel || "Symbol"} />
-                    ) : (
-                      <span>✦</span>
-                    )}
+                    <img
+                      src={resolveMomentSymbolImage(selectedPublicMoment)}
+                      alt={selectedPublicMoment.symbolLabel || "Symbol"}
+                    />
                   </div>
 
                   <div className="public-map-detail__body">
