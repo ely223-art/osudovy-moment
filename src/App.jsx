@@ -234,12 +234,14 @@ const resolveMomentSymbolImage = (moment = {}, selectedSymbolImage = "") => {
 };
 
 function renderMomentMarkerBody(symbolImage) {
+  const safeSymbolSource = String(symbolImage || "/ostatni.png").replace(/\"/g, "&quot;");
+
   return `
     <span class="completion-map-marker__glow"></span>
     <span class="completion-map-marker__dot"></span>
     <span class="completion-map-marker__line"></span>
     <span class="completion-map-marker__icon">
-      <img class="completion-map-marker__image" src="${symbolImage || "/ostatni.png"}" alt="Symbol" />
+      <img class="completion-map-marker__image" src="${safeSymbolSource}" alt="Symbol" loading="eager" decoding="sync" onerror="this.onerror=null;this.src='/ostatni.png';" />
     </span>
   `;
 }
@@ -2408,6 +2410,11 @@ function App() {
       zIndex: 650,
     }).addTo(map);
 
+    if (!map.getPane("momentsPane")) {
+      const momentsPane = map.createPane("momentsPane");
+      momentsPane.style.zIndex = "700";
+    }
+
     const validMoments = publicMapMoments.filter((moment) => {
       const latitude = parseCoordinate(moment?.latitude);
       const longitude = parseCoordinate(moment?.longitude);
@@ -2422,7 +2429,10 @@ function App() {
         iconAnchor: [105, 105],
       });
 
-      const marker = L.marker([moment.latitude, moment.longitude], { icon: markerIcon }).addTo(map);
+      const marker = L.marker([moment.latitude, moment.longitude], {
+        icon: markerIcon,
+        pane: "momentsPane",
+      }).addTo(map);
       marker.on("click", () => {
         setSelectedPublicMoment(moment);
       });
