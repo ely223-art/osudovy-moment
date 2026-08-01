@@ -390,9 +390,8 @@ a {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
 }
 
-.public-map-marker {
+.public-map-marker-shell {
   position: absolute;
-  inset: 0;
   width: 210px;
   height: 210px;
   display: block;
@@ -401,13 +400,29 @@ a {
   transform-origin: center center;
   touch-action: manipulation;
   margin: 0;
+  z-index: 560;
 }
 
-.public-map-marker .completion-map-marker {
+.public-map-marker-shell .completion-map-marker {
   position: absolute;
-  inset: 0;
-  transform: none;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
   transform-origin: center center;
+}
+
+.public-map-marker-shell.is-selected {
+  z-index: 610;
+}
+
+.public-map-marker-shell.is-selected .completion-map-marker {
+  filter: drop-shadow(0 0 18px rgba(255, 214, 120, 0.72)) drop-shadow(0 0 32px rgba(255, 176, 64, 0.45));
+}
+
+.public-map-marker-shell.is-selected .completion-map-marker__glow,
+.public-map-marker-shell.is-selected .completion-map-marker__dot {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(0.88);
 }
 
 .public-map-help-text {
@@ -950,9 +965,6 @@ a {
   transform-origin: center center;
 }
 
-.public-map-marker .completion-map-marker {
-  transform: translate(-50%, -50%) scale(var(--marker-scale, 1));
-}
 
 .public-map-detail__pager {
   display: grid;

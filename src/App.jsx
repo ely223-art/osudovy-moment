@@ -109,7 +109,7 @@ const getOrCreateClientId = () => {
   }
 };
 
-const spreadOverlappingMoments = (moments = []) => {
+const spreadOverlappingMoments = (moments = [], focusMomentId = "") => {
   const grouped = new Map();
 
   moments.forEach((moment) => {
@@ -129,6 +129,13 @@ const spreadOverlappingMoments = (moments = []) => {
 
   grouped.forEach((bucket) => {
     const count = bucket.length;
+    const normalizedFocusId = normalizeMomentId(focusMomentId || "");
+    const anchorIndex = normalizedFocusId
+      ? bucket.findIndex((moment) => normalizeMomentId(moment.id || "") === normalizedFocusId)
+      : 0;
+    const resolvedAnchorIndex = anchorIndex >= 0 ? anchorIndex : 0;
+    const spreadBucket = bucket.filter((_, index) => index !== resolvedAnchorIndex);
+
     bucket.forEach((moment, index) => {
       if (count === 1) {
         spread.push({
@@ -141,8 +148,20 @@ const spreadOverlappingMoments = (moments = []) => {
         return;
       }
 
-      const angle = (2 * Math.PI * index) / count;
-      const ring = Math.floor(index / 8);
+      if (index === resolvedAnchorIndex) {
+        spread.push({
+          ...moment,
+          displayLatitude: Number(moment.latitude),
+          displayLongitude: Number(moment.longitude),
+          overlapCount: count,
+          overlapIndex: index,
+        });
+        return;
+      }
+
+      const spreadIndex = spreadBucket.findIndex((candidate) => candidate.id === moment.id);
+      const angle = (2 * Math.PI * spreadIndex) / Math.max(1, spreadBucket.length);
+      const ring = Math.floor(spreadIndex / 8);
       const radiusMeters = 42 + ring * 24;
       const latitude = Number(moment.latitude);
       const metersPerDegreeLat = 111320;
@@ -545,6 +564,8 @@ function App() {
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
   const publicMarkerElementsRef = useRef(new Map());
+  const selectedPublicMomentIdRef = useRef("");
+  const publicMarkerLayoutSyncRef = useRef(null);
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
   const exportCardRef = useRef(null);
@@ -588,6 +609,10 @@ function App() {
   const [shareImageReady, setShareImageReady] = useState(false);
   const [sharedMomentId, setSharedMomentId] = useState("");
   const [sharedMomentImageError, setSharedMomentImageError] = useState(false);
+
+  useEffect(() => {
+    selectedPublicMomentIdRef.current = normalizeMomentId(selectedPublicMoment?.id || "");
+  }, [selectedPublicMoment?.id]);
   const websiteUrl = "https://osudovymoment.cz";
   const publicMapMoments = useMemo(
     () => mergeMomentsById([], remotePublicMoments),
@@ -2539,9 +2564,10 @@ function App() {
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
+      const markerSize = 210;
       const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
-      markerElement.style.left = `${point.x}px`;
-      markerElement.style.top = `${point.y}px`;
+      markerElement.style.left = `${point.x - markerSize / 2}px`;
+      markerElement.style.top = `${point.y - markerSize / 2}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
 
       if (placeLabelElement) {
@@ -2704,9 +2730,10 @@ function App() {
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
+      const markerSize = 210;
       const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
-      markerElement.style.left = `${point.x}px`;
-      markerElement.style.top = `${point.y}px`;
+      markerElement.style.left = `${point.x - markerSize / 2}px`;
+      markerElement.style.top = `${point.y - markerSize / 2}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
 
       if (exportPlaceLabelElement) {
@@ -2830,15 +2857,19 @@ function App() {
       return latitude !== null && longitude !== null;
     });
 
-    const spreadMoments = spreadOverlappingMoments(validMoments);
+    const getSpreadMoments = (focusMomentId = selectedPublicMomentIdRef.current) =>
+      spreadOverlappingMoments(validMoments, focusMomentId);
+
+    const spreadMoments = getSpreadMoments();
     publicMarkerElementsRef.current.clear();
 
     const openMomentGroup = (moment) => {
+      const spreadForCurrentFocus = getSpreadMoments();
       const selectedLat = Number(moment.displayLatitude ?? moment.latitude);
       const selectedLng = Number(moment.displayLongitude ?? moment.longitude);
       const selectedPoint = map.latLngToContainerPoint([selectedLat, selectedLng]);
 
-      const nearby = spreadMoments.filter((candidate) => {
+      const nearby = spreadForCurrentFocus.filter((candidate) => {
         const candidateLat = Number(candidate.displayLatitude ?? candidate.latitude);
         const candidateLng = Number(candidate.displayLongitude ?? candidate.longitude);
         const candidatePoint = map.latLngToContainerPoint([candidateLat, candidateLng]);
@@ -2871,46 +2902,50 @@ function App() {
     };
 
     const markerTouchCleanup = [];
+    const markerLayer = L.DomUtil.create("div", "completion-map-overlay");
+    map.getPane("overlayPane").appendChild(markerLayer);
+    markerLayer.style.zIndex = "560";
 
-    spreadMoments.forEach((moment) => {
-      const markerIcon = L.divIcon({
-        html: renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]),
-        className: "",
-        iconSize: [210, 210],
-        iconAnchor: [105, 105],
-      });
+    const syncPublicMarkerPositions = (focusMomentId = selectedPublicMomentIdRef.current) => {
+      const laidOutMoments = getSpreadMoments(focusMomentId);
+      const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
 
-      const marker = L.marker([moment.latitude, moment.longitude], {
-        icon: markerIcon,
-        pane: "momentsPane",
-        riseOnHover: true,
-      }).addTo(map);
-
-      const markerElement = marker.getElement();
-      const markerKey = normalizeMomentId(moment.id || "");
-      if (markerElement && markerKey) {
-        markerElement.classList.add("public-map-marker-shell");
-        publicMarkerElementsRef.current.set(markerKey, markerElement);
-      }
-
-      const updateMarkerScale = () => {
+      laidOutMoments.forEach((laidOutMoment) => {
+        const markerElement = publicMarkerElementsRef.current.get(normalizeMomentId(laidOutMoment.id || ""));
         if (!markerElement) {
           return;
         }
-        const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
+
+        const latitude = parseCoordinate(laidOutMoment?.displayLatitude ?? laidOutMoment?.latitude);
+        const longitude = parseCoordinate(laidOutMoment?.displayLongitude ?? laidOutMoment?.longitude);
+        if (latitude === null || longitude === null) {
+          return;
+        }
+
+        const point = map.latLngToContainerPoint([latitude, longitude]);
+        const markerSize = 210;
+        markerElement.style.left = `${point.x - markerSize / 2}px`;
+        markerElement.style.top = `${point.y - markerSize / 2}px`;
         markerElement.style.setProperty("--marker-scale", scaleValue);
 
         const markerIcon = markerElement.querySelector?.(".completion-map-marker");
         if (markerIcon) {
           markerIcon.style.setProperty("--marker-scale", scaleValue);
         }
-      };
-
-      updateMarkerScale();
-      map.on("zoom zoomend viewreset", updateMarkerScale);
-      markerTouchCleanup.push(() => {
-        map.off("zoom zoomend viewreset", updateMarkerScale);
       });
+    };
+
+    publicMarkerLayoutSyncRef.current = syncPublicMarkerPositions;
+
+    spreadMoments.forEach((moment) => {
+      const markerElement = L.DomUtil.create("div", "public-map-marker-shell");
+      markerElement.innerHTML = renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]);
+      markerLayer.appendChild(markerElement);
+
+      const markerKey = normalizeMomentId(moment.id || "");
+      if (markerKey) {
+        publicMarkerElementsRef.current.set(markerKey, markerElement);
+      }
 
       let suppressNextClick = false;
 
@@ -2985,23 +3020,25 @@ function App() {
 
       const tooltipText = (moment.obec || moment.nazev || "").trim();
       if (tooltipText) {
-        marker.bindTooltip(tooltipText, {
-          direction: "top",
-          permanent: false,
-          sticky: true,
-          offset: [0, -78],
-          opacity: 0.96,
-          className: "public-map-tooltip",
-        });
+        markerElement.setAttribute("title", tooltipText);
       }
 
-      marker.on("click", () => {
+      markerElement.addEventListener("click", () => {
         if (suppressNextClick) {
           suppressNextClick = false;
           return;
         }
         openMomentGroup(moment);
       });
+    });
+
+    syncPublicMarkerPositions();
+    map.on("zoom zoomend viewreset move resize", syncPublicMarkerPositions);
+    markerTouchCleanup.push(() => {
+      map.off("zoom zoomend viewreset move resize", syncPublicMarkerPositions);
+      if (publicMarkerLayoutSyncRef.current === syncPublicMarkerPositions) {
+        publicMarkerLayoutSyncRef.current = null;
+      }
     });
 
     if (validMoments.length === 0) {
@@ -3049,6 +3086,14 @@ function App() {
 
     syncSelectedPublicMarker();
   }, [screen, selectedPublicMoment?.id, syncSelectedPublicMarker]);
+
+  useEffect(() => {
+    if (screen !== "public-map") {
+      return;
+    }
+
+    publicMarkerLayoutSyncRef.current?.(selectedPublicMomentIdRef.current);
+  }, [screen, selectedPublicMoment?.id]);
 
   const handleShowOnMap = () => {
     setScreen("home");
