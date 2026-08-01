@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import { toBlob as htmlToImageToBlob, toCanvas as htmlToImageToCanvas } from "html-to-image";
 import L from "leaflet";
@@ -40,6 +40,7 @@ const parseCoordinate = (value) => {
 
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
+const PUBLIC_MOMENTS_ENDPOINT = "/.netlify/functions/public-moments";
 const EXPORT_JPEG_QUALITY = 0.96;
 const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
@@ -71,6 +72,66 @@ const SYMBOL_IMAGE_BY_LABEL = {
   ostatni: "/ostatni.png",
 };
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
+const normalizeMomentId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
+
+const normalizePublicMoment = (moment = {}) => {
+  const latitude = parseCoordinate(moment?.latitude);
+  const longitude = parseCoordinate(moment?.longitude);
+  const id = normalizeMomentId(moment?.id || "");
+
+  if (!id || latitude === null || longitude === null) {
+    return null;
+  }
+
+  const normalized = {
+    id,
+    obec: String(moment?.obec || "").slice(0, 120),
+    okres: String(moment?.okres || "").slice(0, 120),
+    kraj: String(moment?.kraj || "").slice(0, 120),
+    stat: String(moment?.stat || "").slice(0, 120),
+    latitude,
+    longitude,
+    symbolType: String(moment?.symbolType || "").slice(0, 60),
+    symbolImage: String(moment?.symbolImage || "").slice(0, 400),
+    symbolLabel: String(moment?.symbolLabel || "").slice(0, 100),
+    nazev: String(moment?.nazev || "").slice(0, 180),
+    prikaz: String(moment?.prikaz || "").slice(0, 500),
+    datum: String(moment?.datum || "").slice(0, 30),
+    createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
+  };
+
+  return normalized;
+};
+
+const mergeMomentsById = (localMoments = [], remoteMoments = []) => {
+  const merged = new Map();
+
+  [...remoteMoments, ...localMoments].forEach((moment) => {
+    const normalized = normalizePublicMoment(moment);
+    if (!normalized) {
+      return;
+    }
+
+    const existing = merged.get(normalized.id);
+    if (!existing) {
+      merged.set(normalized.id, normalized);
+      return;
+    }
+
+    const existingTime = Date.parse(existing.createdAt || "") || 0;
+    const candidateTime = Date.parse(normalized.createdAt || "") || 0;
+    if (candidateTime >= existingTime) {
+      merged.set(normalized.id, normalized);
+    }
+  });
+
+  return Array.from(merged.values()).sort((left, right) => {
+    const leftTime = Date.parse(left.createdAt || "") || 0;
+    const rightTime = Date.parse(right.createdAt || "") || 0;
+    return rightTime - leftTime;
+  });
+};
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -405,8 +466,7 @@ function App() {
   const [animationStage, setAnimationStage] = useState("idle");
   const [mapReady, setMapReady] = useState(false);
   const [savedMoments, setSavedMoments] = useState([]);
-  const [publicMapMoments, setPublicMapMoments] = useState([]);
-  const [publicMapVersion, setPublicMapVersion] = useState(0);
+  const [remotePublicMoments, setRemotePublicMoments] = useState([]);
   const [activeMapMoment, setActiveMapMoment] = useState(null);
   const [selectedPublicMoment, setSelectedPublicMoment] = useState(null);
   const [towns, setTowns] = useState([]);
@@ -423,6 +483,10 @@ function App() {
   const [sharedMomentId, setSharedMomentId] = useState("");
   const [sharedMomentImageError, setSharedMomentImageError] = useState(false);
   const websiteUrl = "https://osudovymoment.cz";
+  const publicMapMoments = useMemo(
+    () => mergeMomentsById(savedMoments, remotePublicMoments),
+    [savedMoments, remotePublicMoments]
+  );
   const isMobileClient = useMemo(() => {
     if (typeof navigator === "undefined") {
       return false;
@@ -536,10 +600,8 @@ function App() {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) {
         setSavedMoments(parsed);
-        setPublicMapMoments(parsed);
       } else {
         setSavedMoments([]);
-        setPublicMapMoments([]);
         window.localStorage.setItem(STORAGE_KEY, "[]");
       }
     } catch (error) {
@@ -549,6 +611,68 @@ function App() {
 
     return undefined;
   }, []);
+
+  const loadRemotePublicMoments = useCallback(async () => {
+    try {
+      const response = await fetch(PUBLIC_MOMENTS_ENDPOINT, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const moments = Array.isArray(payload?.moments)
+        ? payload.moments.map((moment) => normalizePublicMoment(moment)).filter(Boolean)
+        : [];
+
+      setRemotePublicMoments(moments);
+    } catch (error) {
+      console.error("Nepodařilo se načíst veřejné momenty:", error);
+      setRemotePublicMoments([]);
+    }
+  }, []);
+
+  const publishMomentToPublicMap = useCallback(async (moment) => {
+    const normalized = normalizePublicMoment(moment);
+    if (!normalized) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(PUBLIC_MOMENTS_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(normalized),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const moments = Array.isArray(payload?.moments)
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean)
+        : null;
+
+      if (moments) {
+        setRemotePublicMoments(moments);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Nepodařilo se publikovat moment na veřejnou mapu:", error);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRemotePublicMoments();
+  }, [loadRemotePublicMoments]);
 
   useEffect(() => {
     if (screen !== "town") {
@@ -1493,8 +1617,6 @@ function App() {
     const updated = [...existing, moment];
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     setSavedMoments(updated);
-    setPublicMapMoments(updated);
-    setPublicMapVersion((value) => value + 1);
     return updated;
   };
 
@@ -1507,8 +1629,6 @@ function App() {
     const updated = existing.filter((moment) => moment.id !== momentId);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     setSavedMoments(updated);
-    setPublicMapMoments(updated);
-    setPublicMapVersion((value) => value + 1);
     return updated;
   };
 
@@ -1549,6 +1669,9 @@ function App() {
     };
 
     saveMomentToStorage(createdMoment);
+    publishMomentToPublicMap(createdMoment).catch((error) => {
+      console.error("Publikace momentu selhala:", error);
+    });
     setCompleteMoment(createdMoment);
     setAnimationComplete(false);
     setScreen("complete");
@@ -2475,7 +2598,7 @@ function App() {
         publicMapRef.current = null;
       }
     };
-  }, [screen, publicMapMoments, publicMapVersion]);
+  }, [screen, publicMapMoments]);
 
   const handleShowOnMap = () => {
     setScreen("home");
@@ -2490,6 +2613,9 @@ function App() {
 
   const handleOpenPublicMap = () => {
     setSelectedPublicMoment(null);
+    loadRemotePublicMoments().catch((error) => {
+      console.error("Obnova veřejných momentů selhala:", error);
+    });
     setScreen("public-map");
   };
 
