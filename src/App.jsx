@@ -369,6 +369,7 @@ function MobileMomentExportCard({
 
       <footer className="mobile-export-footer">
         <span className="mobile-export-url">{exportMomentUrl}</span>
+        <p className="line-by-mine-credit">© Line By Mine</p>
       </footer>
     </>
   );
@@ -1943,6 +1944,7 @@ function App() {
         </p>
 
         {renderMomentSummary()}
+        <p className="line-by-mine-credit">© Line By Mine</p>
       </div>
     </>
   );
@@ -1966,6 +1968,7 @@ function App() {
         </p>
 
         {renderMomentSummary()}
+        <p className="line-by-mine-credit">© Line By Mine</p>
 
         {showActions ? (
           <div className="completion-actions">

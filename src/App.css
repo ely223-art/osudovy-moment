@@ -1208,6 +1208,14 @@ a {
   font-size: 0.92rem;
 }
 
+.line-by-mine-credit {
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.88);
+}
+
 .capture-freeze,
 .capture-freeze * {
   animation-play-state: paused !important;
