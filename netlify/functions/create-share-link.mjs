@@ -183,7 +183,7 @@ export default async (request) => {
                 background: "#07111f",
                 withoutEnlargement: false,
               })
-            .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
+            .jpeg({ quality: 96, mozjpeg: true, chromaSubsampling: "4:4:4" })
             .toBuffer();
 
           await sharp(imageBuffer).metadata();
@@ -234,7 +234,7 @@ export default async (request) => {
                 withoutEnlargement: false,
               }
             )
-            .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
+            .jpeg({ quality: shareClient === "mobile" ? 96 : 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
             .toBuffer();
 
           await sharp(imageBuffer).metadata();

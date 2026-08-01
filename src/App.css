@@ -1377,8 +1377,9 @@ a {
 }
 
 .mobile-export-logo {
-  width: 190px;
+  width: auto;
   height: 84px;
+  max-width: 190px;
   object-fit: contain;
   display: block;
 }
