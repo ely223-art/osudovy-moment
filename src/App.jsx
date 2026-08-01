@@ -45,7 +45,7 @@ const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
 const EXPORT_MOBILE_WIDTH = 1080;
-const EXPORT_MOBILE_HEIGHT = 1350;
+const EXPORT_MOBILE_HEIGHT = 1920;
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
 const blobToDataUrl = (blob) =>
@@ -303,6 +303,11 @@ function MobileMomentExportCard({
             <span className="mobile-export-value">{completeMoment.datum}</span>
           </div>
         ) : null}
+
+        <div className="mobile-export-detail-row">
+          <span className="mobile-export-label">Web</span>
+          <span className="mobile-export-value mobile-export-value--web">{exportMomentUrl}</span>
+        </div>
       </section>
 
       <footer className="mobile-export-footer">
