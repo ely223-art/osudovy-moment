@@ -1041,6 +1041,7 @@ a {
   background: linear-gradient(135deg, #fff9d8 0%, #ffb84f 45%, #d97c1f 100%);
   box-shadow: 0 0 24px rgba(255, 214, 120, 0.95);
   opacity: 0;
+  z-index: 3;
   transition: opacity 400ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1048,12 +1049,13 @@ a {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 3px;
-  height: 74px;
+  width: 4px;
+  height: 102px;
   transform: translate(-50%, -100%) scaleY(0);
   transform-origin: bottom center;
   background: linear-gradient(180deg, rgba(255, 214, 120, 0.98) 0%, rgba(255, 214, 120, 0) 100%);
   opacity: 0;
+  z-index: 2;
   transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 620ms ease;
 }
 
@@ -1066,12 +1068,13 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translate(-50%, -136%) scale(0.8);
+  transform: translate(-50%, -172%) scale(0.8);
   opacity: 0;
   border-radius: 999px;
   background: transparent;
   border: 0;
   box-shadow: none;
+  z-index: 4;
   filter: drop-shadow(0 0 24px rgba(255, 214, 120, 0.72)) drop-shadow(0 0 40px rgba(255, 176, 64, 0.28)) brightness(1.08) contrast(1.04);
   transition: transform 720ms cubic-bezier(0.22, 1, 0.36, 1), opacity 720ms ease, filter 720ms ease;
 }
@@ -1145,7 +1148,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__icon,
 .completion-map-marker.is-pulse .completion-map-marker__icon,
 .completion-map-marker.is-ready .completion-map-marker__icon {
-  transform: translate(-50%, -88%) scale(0.8);
+  transform: translate(-50%, -172%) scale(0.8);
 }
 
 .completion-map-marker.is-pulse .completion-map-marker__icon,
@@ -1154,7 +1157,7 @@ a {
 }
 
 .completion-map-marker.is-ready .completion-map-marker__icon:hover {
-  transform: translate(-50%, 0) scale(0.86);
+  transform: translate(-50%, -172%) scale(0.86);
 }
 
 .completion-map-marker.is-final .completion-map-marker__glow,
@@ -1177,7 +1180,7 @@ a {
 }
 
 .completion-map-marker.is-final .completion-map-marker__icon {
-  transform: translate(-50%, -88%) scale(0.8);
+  transform: translate(-50%, -172%) scale(0.8);
   animation: none;
 }
 
