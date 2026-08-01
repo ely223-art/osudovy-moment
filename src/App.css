@@ -953,7 +953,7 @@ a {
   width: 280px;
   height: 280px;
   --marker-line-height: 44px;
-  --marker-icon-size: 118px;
+  --marker-icon-size: 126px;
   pointer-events: none;
   z-index: 560;
   overflow: visible;
@@ -1068,7 +1068,7 @@ a {
 .completion-map-marker__icon {
   position: absolute;
   left: 50%;
-  top: calc(50% - var(--marker-line-height) + 6px);
+  top: calc(50% - var(--marker-line-height) + 10px);
   width: var(--marker-icon-size);
   height: var(--marker-icon-size);
   display: flex;
