@@ -422,7 +422,7 @@ function renderMomentMarkerBody(symbolImage) {
     <span class="completion-map-marker__glow" style="transform: translate(-50%, -50%) scale(0.7);"></span>
     <span class="completion-map-marker__dot" style="transform: translate(-50%, -50%) scale(0.7);"></span>
     <span class="completion-map-marker__line" style="transform: translate(-50%, -100%) scaleY(1);"></span>
-    <span class="completion-map-marker__icon" style="transform: translate(-50%, -84%) scale(0.8);">
+    <span class="completion-map-marker__icon" style="transform: translate(-50%, calc(-50% - 102px)) scale(0.8);">
       <img class="completion-map-marker__image" src="${safeSymbolSource}" alt="Symbol" loading="eager" decoding="sync" onerror="this.onerror=null;this.src='/ostatni.png';" />
     </span>
   `;
