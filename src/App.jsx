@@ -1207,6 +1207,7 @@ function App() {
         Math.round(captureRect.height || (isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT))
       );
       const captureScale = isMobileDevice ? 1 : EXPORT_CAPTURE_SCALE;
+      const captureJpegQuality = isMobileDevice ? 1 : EXPORT_JPEG_QUALITY;
       const domAspectRatio = computeAspectRatio(captureRect.width, captureRect.height);
 
       console.log("[export-diagnostics] dom", {
@@ -1320,7 +1321,7 @@ function App() {
         });
 
         const html2CanvasBlob = await new Promise((resolve, reject) => {
-          canvasToJpegBlob(canvas, EXPORT_JPEG_QUALITY).then(resolve).catch(reject);
+          canvasToJpegBlob(canvas, captureJpegQuality).then(resolve).catch(reject);
         });
 
         const html2CanvasBlobMetrics = await readBlobImageDimensions(html2CanvasBlob);
@@ -1368,7 +1369,7 @@ function App() {
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
-            quality: EXPORT_JPEG_QUALITY,
+            quality: captureJpegQuality,
             type: "image/jpeg",
             backgroundColor: "#07111f",
             canvasWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : undefined,
@@ -1419,7 +1420,7 @@ function App() {
         throw new Error("Nepodařilo se připravit JPG.");
       }
 
-      blob = await normalizeShareBlobToJpeg(blob, EXPORT_JPEG_QUALITY);
+      blob = await normalizeShareBlobToJpeg(blob, captureJpegQuality);
 
       const finalBlobMetrics = await readBlobImageDimensions(blob);
       console.log("[export-diagnostics] final-jpg", {
