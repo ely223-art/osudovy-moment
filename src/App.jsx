@@ -214,6 +214,19 @@ const mergeMomentsById = (localMoments = [], remoteMoments = []) => {
   });
 };
 
+const ensureMomentOwnerId = (moment = {}, ownerId = "") => {
+  const normalizedOwnerId = normalizeMomentId(ownerId || "");
+  const existingOwnerId = normalizeMomentId(moment?.ownerId || "");
+  if (existingOwnerId) {
+    return moment;
+  }
+
+  return {
+    ...moment,
+    ownerId: normalizedOwnerId,
+  };
+};
+
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -816,6 +829,34 @@ function App() {
   useEffect(() => {
     loadRemotePublicMoments();
   }, [loadRemotePublicMoments]);
+
+  useEffect(() => {
+    if (!clientId || !savedMoments.length) {
+      return;
+    }
+
+    const legacyMoments = savedMoments.filter((moment) => !normalizeMomentId(moment?.ownerId || ""));
+    if (!legacyMoments.length) {
+      return;
+    }
+
+    const updatedSavedMoments = savedMoments.map((moment) => ensureMomentOwnerId(moment, clientId));
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSavedMoments));
+      setSavedMoments(updatedSavedMoments);
+    } catch (error) {
+      console.error("Nepodařilo se uložit migraci starších momentů:", error);
+      return;
+    }
+
+    // Backfill ownership in public storage so legacy own moments can be deleted.
+    Promise.all(
+      legacyMoments.map((moment) => publishMomentToPublicMap(ensureMomentOwnerId(moment, clientId)))
+    ).catch((error) => {
+      console.error("Migrace starších momentů do veřejné mapy selhala:", error);
+    });
+  }, [clientId, savedMoments, publishMomentToPublicMap]);
 
   useEffect(() => {
     if (screen !== "town") {
