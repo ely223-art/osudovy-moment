@@ -952,6 +952,8 @@ a {
   display: block;
   width: 280px;
   height: 280px;
+  --marker-line-height: 76px;
+  --marker-icon-size: 64px;
   pointer-events: none;
   z-index: 560;
   overflow: visible;
@@ -1054,7 +1056,7 @@ a {
   left: 50%;
   top: 50%;
   width: 4px;
-  height: 76px;
+  height: var(--marker-line-height);
   transform: translate(-50%, -100%) scaleY(0);
   transform-origin: top center;
   background: linear-gradient(180deg, rgba(255, 214, 120, 0.98) 0%, rgba(255, 214, 120, 0) 100%);
@@ -1066,13 +1068,13 @@ a {
 .completion-map-marker__icon {
   position: absolute;
   left: 50%;
-  top: 50%;
-  width: 156px;
-  height: 156px;
+  top: calc(50% - var(--marker-line-height));
+  width: var(--marker-icon-size);
+  height: var(--marker-icon-size);
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translate(-50%, calc(-50% - 76px)) scale(0.8);
+  transform: translate(-50%, -100%) scale(0.8);
   opacity: 0;
   border-radius: 999px;
   background: transparent;
@@ -1085,10 +1087,10 @@ a {
 
 .completion-map-marker__image {
   display: block;
-  width: auto;
-  height: auto;
-  max-width: 118px;
-  max-height: 118px;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   padding: 0;
   object-fit: contain;
   pointer-events: none;
@@ -1152,7 +1154,7 @@ a {
 .completion-map-marker.is-icon .completion-map-marker__icon,
 .completion-map-marker.is-pulse .completion-map-marker__icon,
 .completion-map-marker.is-ready .completion-map-marker__icon {
-  transform: translate(-50%, calc(-50% - 76px)) scale(0.8);
+  transform: translate(-50%, -100%) scale(0.8);
 }
 
 .completion-map-marker.is-pulse .completion-map-marker__icon,
@@ -1161,7 +1163,7 @@ a {
 }
 
 .completion-map-marker.is-ready .completion-map-marker__icon:hover {
-  transform: translate(-50%, calc(-50% - 76px)) scale(0.86);
+  transform: translate(-50%, -100%) scale(0.86);
 }
 
 .completion-map-marker.is-final .completion-map-marker__glow,
@@ -1184,7 +1186,7 @@ a {
 }
 
 .completion-map-marker.is-final .completion-map-marker__icon {
-  transform: translate(-50%, calc(-50% - 76px)) scale(0.8);
+  transform: translate(-50%, -100%) scale(0.8);
   animation: none;
 }
 
@@ -1194,15 +1196,15 @@ a {
 
 @keyframes markerPop {
   0% {
-    transform: translate(-50%, calc(-50% - 76px)) scale(0.8);
+    transform: translate(-50%, -100%) scale(0.8);
     filter: drop-shadow(0 0 14px rgba(255, 214, 120, 0.26)) brightness(0.94);
   }
   45% {
-    transform: translate(-50%, calc(-50% - 76px)) scale(0.9);
+    transform: translate(-50%, -100%) scale(0.9);
     filter: drop-shadow(0 0 38px rgba(255, 214, 120, 0.64)) drop-shadow(0 0 56px rgba(255, 176, 64, 0.42)) brightness(1.16) contrast(1.1);
   }
   100% {
-    transform: translate(-50%, calc(-50% - 76px)) scale(0.8);
+    transform: translate(-50%, -100%) scale(0.8);
     filter: drop-shadow(0 0 34px rgba(255, 214, 120, 0.72)) drop-shadow(0 0 54px rgba(255, 176, 64, 0.44)) brightness(1.14) contrast(1.08);
   }
 }
