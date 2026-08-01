@@ -3,8 +3,10 @@ import sharp from "sharp";
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
 const SHARE_ID_PATTERN = /^[a-zA-Z0-9-]{8,120}$/;
-const SHARE_WIDTH = 1200;
-const SHARE_HEIGHT = 630;
+const DESKTOP_SHARE_WIDTH = 1200;
+const DESKTOP_SHARE_HEIGHT = 630;
+const MOBILE_SHARE_WIDTH = 1080;
+const MOBILE_SHARE_HEIGHT = 1920;
 
 const buildTemplateShareImage = async ({ title = "Osudovy moment", place = "", symbol = "", shareUrl = "" } = {}) => {
   const safeTitle = String(title || "Osudovy moment")
@@ -21,14 +23,14 @@ const buildTemplateShareImage = async ({ title = "Osudovy moment", place = "", s
     .slice(0, 110);
 
   const svg = `
-<svg width="${SHARE_WIDTH}" height="${SHARE_HEIGHT}" viewBox="0 0 ${SHARE_WIDTH} ${SHARE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+<svg width="${DESKTOP_SHARE_WIDTH}" height="${DESKTOP_SHARE_HEIGHT}" viewBox="0 0 ${DESKTOP_SHARE_WIDTH} ${DESKTOP_SHARE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#0b1a2e" />
       <stop offset="100%" stop-color="#081323" />
     </linearGradient>
   </defs>
-  <rect width="${SHARE_WIDTH}" height="${SHARE_HEIGHT}" fill="url(#bg)" />
+  <rect width="${DESKTOP_SHARE_WIDTH}" height="${DESKTOP_SHARE_HEIGHT}" fill="url(#bg)" />
   <rect x="34" y="34" width="690" height="562" rx="24" fill="#10233a" stroke="rgba(255,234,197,0.18)" />
   <circle cx="378" cy="315" r="74" fill="rgba(255,214,120,0.35)" />
   <circle cx="378" cy="315" r="11" fill="#ffd777" />
@@ -170,44 +172,17 @@ export default async (request) => {
       try {
         const source = sharp(rawImageBuffer, { failOn: "none" }).rotate();
         const sourceMeta = await source.metadata();
-        const sourceWidth = sourceMeta.width || SHARE_WIDTH;
-        const sourceHeight = sourceMeta.height || SHARE_HEIGHT;
+        const sourceWidth = sourceMeta.width || DESKTOP_SHARE_WIDTH;
+        const sourceHeight = sourceMeta.height || DESKTOP_SHARE_HEIGHT;
 
         if (shareClient === "mobile") {
-          const targetAspect = SHARE_WIDTH / SHARE_HEIGHT;
-          const sourceAspect = sourceWidth / Math.max(1, sourceHeight);
-
-          let extractLeft = 0;
-          let extractTop = 0;
-          let extractWidth = sourceWidth;
-          let extractHeight = sourceHeight;
-
-          if (sourceAspect > targetAspect) {
-            // Input is wider than target: keep full height and center horizontal crop.
-            extractWidth = Math.max(1, Math.round(sourceHeight * targetAspect));
-            extractLeft = Math.max(0, Math.floor((sourceWidth - extractWidth) / 2));
-          } else if (sourceAspect < targetAspect) {
-            // Input is taller than target: keep bottom part where the card is rendered in mobile captures.
-            extractHeight = Math.max(1, Math.round(sourceWidth / targetAspect));
-            extractTop = Math.max(0, sourceHeight - extractHeight);
-          }
-
-          let mobileNormalized = source;
-          if (extractLeft > 0 || extractTop > 0 || extractWidth !== sourceWidth || extractHeight !== sourceHeight) {
-            mobileNormalized = source.extract({
-              left: extractLeft,
-              top: extractTop,
-              width: extractWidth,
-              height: extractHeight,
-            });
-          }
-
-          imageBuffer = await mobileNormalized
-            .resize(SHARE_WIDTH, SHARE_HEIGHT, {
-              fit: "cover",
-              position: "center",
-              withoutEnlargement: false,
-            })
+            imageBuffer = await source
+              .resize(MOBILE_SHARE_WIDTH, MOBILE_SHARE_HEIGHT, {
+                fit: "contain",
+                position: "center",
+                background: "#07111f",
+                withoutEnlargement: false,
+              })
             .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
             .toBuffer();
 
@@ -228,7 +203,7 @@ export default async (request) => {
         }
 
         imageBuffer = await normalized
-          .resize(SHARE_WIDTH, SHARE_HEIGHT, {
+          .resize(DESKTOP_SHARE_WIDTH, DESKTOP_SHARE_HEIGHT, {
             fit: "cover",
             position: "centre",
             withoutEnlargement: false,
@@ -249,11 +224,16 @@ export default async (request) => {
         try {
           imageBuffer = await sharp(rawImageBuffer, { failOn: "none" })
             .rotate()
-            .resize(SHARE_WIDTH, SHARE_HEIGHT, {
-              fit: "cover",
-              position: "south",
-              withoutEnlargement: false,
-            })
+            .resize(
+              shareClient === "mobile" ? MOBILE_SHARE_WIDTH : DESKTOP_SHARE_WIDTH,
+              shareClient === "mobile" ? MOBILE_SHARE_HEIGHT : DESKTOP_SHARE_HEIGHT,
+              {
+                fit: shareClient === "mobile" ? "contain" : "cover",
+                position: shareClient === "mobile" ? "center" : "south",
+                background: shareClient === "mobile" ? "#07111f" : undefined,
+                withoutEnlargement: false,
+              }
+            )
             .jpeg({ quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4" })
             .toBuffer();
 
