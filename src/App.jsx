@@ -2474,7 +2474,10 @@ function App() {
       inertia: true,
       inertiaDeceleration: 3000,
       inertiaMaxSpeed: 1500,
-    }).setView([latitude, longitude], 11);
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+    }).setView([latitude, longitude], 11, { animate: false });
 
     completionMapRef.current = map;
 
@@ -2540,7 +2543,6 @@ function App() {
       markerElement.style.left = `${point.x}px`;
       markerElement.style.top = `${point.y}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
-      markerElement.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
 
       if (placeLabelElement) {
         const labelX = point.x;
@@ -2706,7 +2708,6 @@ function App() {
       markerElement.style.left = `${point.x}px`;
       markerElement.style.top = `${point.y}px`;
       markerElement.style.setProperty("--marker-scale", scaleValue);
-      markerElement.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
 
       if (exportPlaceLabelElement) {
         const labelX = point.x;
@@ -2797,7 +2798,10 @@ function App() {
       minZoom: 3,
       maxZoom: 15,
       preferCanvas: true,
-    }).setView([49.8, 15.3], 6);
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+    }).setView([49.8, 15.3], 6, { animate: false });
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,

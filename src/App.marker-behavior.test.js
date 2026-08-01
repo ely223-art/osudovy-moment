@@ -8,6 +8,22 @@ describe("public marker zoom behavior", () => {
     const source = readFileSync(appPath, "utf8");
 
     expect(source).toContain("markerElement.style.setProperty(\"--marker-scale\", scaleValue);");
-    expect(source).not.toContain("markerElement.style.setProperty(\"transform\", `translate(-50%, -50%) scale(${scaleValue})`);");
+    expect(source).toContain("zoomAnimation: false");
+    expect(source).toContain("markerZoomAnimation: false");
+    expect(source).toContain(`zoomControl: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      dragging: true,
+      attributionControl: false,
+      worldCopyJump: true,
+      zoomSnap: 1,
+      zoomDelta: 1,
+      minZoom: 3,
+      maxZoom: 15,
+      preferCanvas: true,
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,`);
+    expect(source).not.toContain("markerElement.style.transform =");
   });
 });
