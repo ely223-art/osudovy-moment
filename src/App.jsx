@@ -41,7 +41,7 @@ const parseCoordinate = (value) => {
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
 const CLIENT_ID_KEY = "osudovy-moment-client-id";
-const PUBLIC_MOMENTS_ENDPOINT = "/api/public-moments";
+const PUBLIC_MOMENTS_ENDPOINT = "/.netlify/functions/public-moments";
 const EXPORT_JPEG_QUALITY = 0.96;
 const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
