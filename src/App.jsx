@@ -2462,14 +2462,8 @@ function App() {
       markerElement.style.top = `${point.y}px`;
 
       if (placeLabelElement) {
-        const rawHalfWidth = placeLabelElement.offsetWidth > 0 ? placeLabelElement.offsetWidth / 2 : 120;
-        const labelHalfWidth = Math.max(72, Math.min(160, rawHalfWidth));
-        const labelX = Math.max(labelHalfWidth + 8, Math.min(container.clientWidth - labelHalfWidth - 8, point.x));
-        const preferredBelowY = point.y + 68;
-        const labelY =
-          preferredBelowY > container.clientHeight - 18
-            ? Math.max(18, point.y - 84)
-            : preferredBelowY;
+        const labelX = point.x;
+        const labelY = point.y + 68 > container.clientHeight - 18 ? point.y - 84 : point.y + 68;
 
         placeLabelElement.style.left = `${labelX}px`;
         placeLabelElement.style.top = `${labelY}px`;
@@ -2631,14 +2625,8 @@ function App() {
       markerElement.style.top = `${point.y}px`;
 
       if (exportPlaceLabelElement) {
-        const rawHalfWidth = exportPlaceLabelElement.offsetWidth > 0 ? exportPlaceLabelElement.offsetWidth / 2 : 120;
-        const labelHalfWidth = Math.max(72, Math.min(160, rawHalfWidth));
-        const labelX = Math.max(labelHalfWidth + 8, Math.min(container.clientWidth - labelHalfWidth - 8, point.x));
-        const preferredBelowY = point.y + 68;
-        const labelY =
-          preferredBelowY > container.clientHeight - 18
-            ? Math.max(18, point.y - 84)
-            : preferredBelowY;
+        const labelX = point.x;
+        const labelY = point.y + 68 > container.clientHeight - 18 ? point.y - 84 : point.y + 68;
 
         exportPlaceLabelElement.style.left = `${labelX}px`;
         exportPlaceLabelElement.style.top = `${labelY}px`;
@@ -2766,7 +2754,21 @@ function App() {
       const marker = L.marker([moment.displayLatitude, moment.displayLongitude], {
         icon: markerIcon,
         pane: "momentsPane",
+        riseOnHover: true,
       }).addTo(map);
+
+      const tooltipText = (moment.obec || moment.nazev || "").trim();
+      if (tooltipText) {
+        marker.bindTooltip(tooltipText, {
+          direction: "top",
+          permanent: false,
+          sticky: true,
+          offset: [0, -78],
+          opacity: 0.96,
+          className: "public-map-tooltip",
+        });
+      }
+
       marker.on("click", () => {
         setSelectedPublicMoment(moment);
       });
