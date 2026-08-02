@@ -27,22 +27,35 @@ const normalizeCoordinateReactionKey = (moment = {}) => {
   return `coords-${latitude.toFixed(5)}-${longitude.toFixed(5)}`;
 };
 
+const getReliableExplicitReactionKey = (moment = {}) => {
+  const explicitId = normalizeReactionKey(moment?.id || '');
+  if (!explicitId) {
+    return '';
+  }
+
+  if (explicitId === 'legacy-moment' || explicitId === 'legacy-id' || /^legacy(?:-|$)/i.test(explicitId)) {
+    return '';
+  }
+
+  return explicitId;
+};
+
 export const getMomentReactionCandidates = (moment = {}) => {
   const candidates = [];
-
+  const explicitId = getReliableExplicitReactionKey(moment);
   const stableId = getMomentStableId(moment);
-  if (stableId) {
+  const coordinateKey = normalizeCoordinateReactionKey(moment);
+
+  if (explicitId) {
+    candidates.push(explicitId);
+  }
+
+  if (stableId && stableId !== explicitId) {
     candidates.push(stableId);
   }
 
-  const coordinateKey = normalizeCoordinateReactionKey(moment);
-  if (coordinateKey) {
+  if (coordinateKey && coordinateKey !== explicitId && coordinateKey !== stableId) {
     candidates.push(coordinateKey);
-  }
-
-  const explicitId = normalizeReactionKey(moment?.id || '');
-  if (explicitId && explicitId !== stableId) {
-    candidates.push(explicitId);
   }
 
   return [...new Set(candidates)];
@@ -105,28 +118,21 @@ export const saveMomentReactions = (reactions = {}) => {
 };
 
 export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
-  const candidates = getMomentReactionCandidates(moment);
+  const canonicalKey = getMomentReactionKey(moment);
   const payloadReactions = getMomentPayloadReactions(moment);
   const mergedReactions = { ...payloadReactions, ...reactions };
-  const matchingKey = candidates.find((candidate) => mergedReactions[candidate]);
-  const canonicalKey = getMomentReactionKey(moment);
-
-  if (!matchingKey) {
-    return {
-      key: canonicalKey,
-      state: { count: 0, liked: false },
-    };
-  }
+  const candidates = getMomentReactionCandidates(moment);
+  const matchingKey = candidates.find((candidate) => mergedReactions[candidate]) || canonicalKey;
+  const resolvedState = mergedReactions[matchingKey] || { count: 0, liked: false };
 
   return {
     key: matchingKey,
-    state: mergedReactions[matchingKey] || { count: 0, liked: false },
+    state: resolvedState,
   };
 };
 
 export const toggleMomentReaction = (reactions = {}, momentIdOrMoment = '') => {
   const isMomentObject = typeof momentIdOrMoment === 'object' && momentIdOrMoment !== null;
-  const candidates = isMomentObject ? getMomentReactionCandidates(momentIdOrMoment) : [];
   const explicitId = !isMomentObject ? normalizeReactionKey(momentIdOrMoment) : '';
   const canonicalKey = isMomentObject ? getMomentReactionKey(momentIdOrMoment) : explicitId;
 
@@ -144,9 +150,7 @@ export const toggleMomentReaction = (reactions = {}, momentIdOrMoment = '') => {
   const nextCount = Math.max(0, (existing.count || 0) + (nextLiked ? 1 : -1));
 
   const nextReactions = { ...reactions };
-  if (resolvedState.key && resolvedState.key !== canonicalKey) {
-    delete nextReactions[resolvedState.key];
-  }
+  const candidates = isMomentObject ? getMomentReactionCandidates(momentIdOrMoment) : [canonicalKey];
 
   candidates.forEach((candidate) => {
     delete nextReactions[candidate];
