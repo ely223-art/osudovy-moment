@@ -1033,6 +1033,49 @@ function App() {
   }, [loadRemotePublicMoments]);
 
   useEffect(() => {
+    if (screen !== "public-map") {
+      return undefined;
+    }
+
+    let isRefreshing = false;
+
+    const refreshRemoteMoments = () => {
+      if (isRefreshing) {
+        return;
+      }
+
+      isRefreshing = true;
+      loadRemotePublicMoments()
+        .catch((error) => {
+          console.error("Pravidelná synchronizace veřejných momentů selhala:", error);
+        })
+        .finally(() => {
+          isRefreshing = false;
+        });
+    };
+
+    const handleFocusRefresh = () => {
+      refreshRemoteMoments();
+    };
+
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        refreshRemoteMoments();
+      }
+    };
+
+    const interval = window.setInterval(refreshRemoteMoments, 12000);
+    window.addEventListener("focus", handleFocusRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocusRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
+  }, [screen, loadRemotePublicMoments]);
+
+  useEffect(() => {
     if (!clientId || !savedMoments.length) {
       return;
     }
