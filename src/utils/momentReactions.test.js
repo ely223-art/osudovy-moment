@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getMomentStableId } from './momentIdentity';
-import { clearMomentReactionState, getMomentReactionKey, readMomentReactions, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
+import { clearMomentReactionState, getMomentReactionKey, mergeMomentReactionState, readMomentReactions, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
 
 describe('moment reactions', () => {
   it('adds a like for a moment that was not liked yet', () => {
@@ -10,11 +10,11 @@ describe('moment reactions', () => {
     expect(next['moment-1']).toEqual({ count: 1, liked: true });
   });
 
-  it('removes the like when the same moment is toggled again', () => {
+  it('keeps the like active when the same moment is clicked again', () => {
     const reactions = readMomentReactions({ 'moment-1': { count: 1, liked: true } });
     const next = toggleMomentReaction(reactions, 'moment-1');
 
-    expect(next['moment-1']).toEqual({ count: 0, liked: false });
+    expect(next['moment-1']).toEqual({ count: 1, liked: true });
   });
 
   it('creates a stable reaction key for legacy moments without a normal id', () => {
@@ -50,7 +50,7 @@ describe('moment reactions', () => {
     expect(stableId).toContain('5008000');
   });
 
-  it('reads shared count from payload but keeps liked device-local', () => {
+  it('ignores payload counts and keeps likes device-local', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -62,7 +62,7 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({}, moment);
 
-    expect(resolved.state).toEqual({ count: 2, liked: false });
+    expect(resolved.state).toEqual({ count: 0, liked: false });
   });
 
   it('ignores fallback payload keys when a reliable explicit id exists', () => {
@@ -80,7 +80,7 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 0, liked: false });
   });
 
-  it('prefers server payload count over stale local state for shared updates', () => {
+  it('keeps only the local reaction count when the payload differs', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -90,9 +90,9 @@ describe('moment reactions', () => {
       },
     };
 
-    const resolved = resolveMomentReactionState({ 'shared-moment': { count: 0, liked: false } }, moment);
+    const resolved = resolveMomentReactionState({ 'shared-moment': { count: 1, liked: true } }, moment);
 
-    expect(resolved.state).toEqual({ count: 2, liked: false });
+    expect(resolved.state).toEqual({ count: 1, liked: true });
   });
 
   it('does not treat payload liked=true as liked on a new device', () => {
@@ -110,7 +110,7 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 2, liked: false });
   });
 
-  it('increments shared count on first like from a different device', () => {
+  it('starts from one local like even when the payload already has a higher count', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -122,10 +122,10 @@ describe('moment reactions', () => {
 
     const next = toggleMomentReaction({}, moment);
 
-    expect(next['shared-moment']).toEqual({ count: 3, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
-  it('treats a shared moment with empty payload as reset to zero likes', () => {
+  it('keeps local likes even when the payload is empty', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -135,7 +135,7 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({ 'shared-moment': { count: 5, liked: true } }, moment);
 
-    expect(resolved.state).toEqual({ count: 0, liked: false });
+    expect(resolved.state).toEqual({ count: 5, liked: true });
   });
 
   it('clears only explicit-id local key when shared state is reset', () => {
@@ -176,7 +176,7 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction(localReactions, moment);
 
     expect(resolved.state).toEqual({ count: 1, liked: false });
-    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
   it('reads local liked state directly even when the shared payload is empty', () => {
@@ -192,6 +192,21 @@ describe('moment reactions', () => {
     }, moment);
 
     expect(resolved.state).toEqual({ count: 1, liked: true });
+  });
+
+  it('preserves local liked state when the shared payload has no entry for the moment', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {},
+    };
+
+    const merged = mergeMomentReactionState({
+      'shared-moment': { count: 1, liked: true },
+    }, moment);
+
+    expect(merged['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
   it('does not treat fallback liked=true as explicit-id liked=true', () => {
@@ -213,7 +228,7 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction(localReactions, moment);
 
     expect(resolved.state).toEqual({ count: 1, liked: false });
-    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
   it('does not share likes between different explicit-id moments on same coordinates', () => {
@@ -241,7 +256,36 @@ describe('moment reactions', () => {
     expect(secondState.state).toEqual({ count: 0, liked: false });
   });
 
-  it('allows a different device to add like when shared count exists and local liked is false', () => {
+  it('does not share likes between legacy moments on same coordinates', () => {
+    const firstMoment = {
+      nazev: 'Prvni pribeh',
+      datum: '2026-08-01',
+      createdAt: '2026-08-01T17:37:08.756Z',
+      latitude: 49.50241,
+      longitude: 13.87575,
+      obec: 'Belcice',
+      okres: 'Okres Strakonice',
+      kraj: 'South Bohemian Region',
+    };
+
+    const secondMoment = {
+      nazev: 'Druhy pribeh',
+      datum: '2026-08-01',
+      createdAt: '2026-08-01T18:54:10.532Z',
+      latitude: 49.50241,
+      longitude: 13.87575,
+      obec: 'Belcice',
+      okres: 'Okres Strakonice',
+      kraj: 'South Bohemian Region',
+    };
+
+    const firstLiked = toggleMomentReaction({}, firstMoment);
+    const secondState = resolveMomentReactionState(firstLiked, secondMoment);
+
+    expect(secondState.state).toEqual({ count: 0, liked: false });
+  });
+
+  it('starts a fresh local like when the payload already exists but the device has not liked yet', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -253,7 +297,26 @@ describe('moment reactions', () => {
 
     const next = toggleMomentReaction({}, moment);
 
-    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 1, liked: true });
+  });
+
+  it('never allows turning off or duplicating a local like in one browser', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 6, liked: false },
+      },
+    };
+
+    const first = toggleMomentReaction({}, moment);
+    const second = toggleMomentReaction(first, moment);
+    const third = toggleMomentReaction(second, moment);
+
+    expect(first['shared-moment']).toEqual({ count: 1, liked: true });
+    expect(second['shared-moment']).toEqual({ count: 1, liked: true });
+    expect(third['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
@@ -275,7 +338,7 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction(reactions, newerMoment);
     const stableKey = getMomentReactionKey(newerMoment);
 
-    expect(next[stableKey]).toEqual({ count: 0, liked: false });
+    expect(next[stableKey]).toEqual({ count: 1, liked: true });
     expect(next['legacy-1']).toBeUndefined();
   });
 

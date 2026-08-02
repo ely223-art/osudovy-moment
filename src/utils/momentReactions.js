@@ -156,35 +156,39 @@ export const saveMomentReactions = (reactions = {}) => {
 
 export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const canonicalKey = getMomentReactionKey(moment);
-  const payloadReactions = getMomentPayloadReactions(moment);
   const candidates = getMomentReactionCandidates(moment);
-  const payloadKey = candidates.find((candidate) => payloadReactions[candidate]) || '';
   const localKey = candidates.find((candidate) => reactions[candidate]) || '';
-  const matchingKey = payloadKey || localKey || canonicalKey;
-  const payloadState = {
-    count: getMaxCandidateCount(payloadReactions, candidates),
-    liked: false,
-  };
+  const matchingKey = localKey || canonicalKey;
   const localState = {
     count: getMaxCandidateCount(reactions, candidates),
     liked: hasLikedCandidate(reactions, candidates),
   };
-  const hasSharedPayload = Object.prototype.hasOwnProperty.call(moment || {}, 'reactions');
-  const hasPayloadState = Boolean(payloadKey && payloadReactions[payloadKey]);
   const hasLocalState = Boolean(localKey && reactions[localKey]);
-
-  // Shared payload drives global count, local storage drives whether this specific device already liked.
-  const resolvedState = {
-    count: hasSharedPayload ? (hasPayloadState ? payloadState.count : 0) : localState.count,
-    liked: hasSharedPayload
-      ? (hasPayloadState && payloadState.count > 0 && hasLocalState ? localState.liked : false)
-      : (hasLocalState ? localState.liked : false),
-  };
 
   return {
     key: matchingKey,
-    state: resolvedState,
+    state: {
+      count: localState.count,
+      liked: hasLocalState ? localState.liked : false,
+    },
   };
+};
+
+export const mergeMomentReactionState = (reactions = {}, moment = {}) => {
+  const nextReactions = clearMomentReactionState(reactions, moment);
+  const localReaction = resolveLocalMomentReactionState(reactions, moment);
+  const hasLocalState = Boolean(localReaction?.key && (localReaction.state.count > 0 || localReaction.state.liked));
+
+  if (!hasLocalState) {
+    return nextReactions;
+  }
+
+  nextReactions[localReaction.key] = {
+    count: Math.max(0, Number(localReaction.state.count) || 0),
+    liked: Boolean(localReaction.state.liked),
+  };
+
+  return nextReactions;
 };
 
 export const toggleMomentReaction = (reactions = {}, momentIdOrMoment = '') => {
@@ -201,12 +205,16 @@ export const toggleMomentReaction = (reactions = {}, momentIdOrMoment = '') => {
     state: reactions[canonicalKey] || { count: 0, liked: false },
   };
 
-  const existing = resolvedState.state || { count: 0, liked: false };
   const localLikeState = isMomentObject
     ? resolveLocalMomentReactionState(reactions, momentIdOrMoment).state
     : (reactions[canonicalKey] || { liked: false });
-  const nextLiked = !Boolean(localLikeState?.liked);
-  const nextCount = Math.max(0, (existing.count || 0) + (nextLiked ? 1 : -1));
+  // Enforce one irreversible like per device for each moment.
+  if (Boolean(localLikeState?.liked)) {
+    return reactions;
+  }
+
+  const nextLiked = true;
+  const nextCount = 1;
 
   const nextReactions = { ...reactions };
   const candidates = isMomentObject ? getMomentReactionCandidates(momentIdOrMoment) : [canonicalKey];
