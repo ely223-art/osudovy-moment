@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getMomentStableId } from './momentIdentity';
-import { getMomentReactionKey, readMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
+import { clearMomentReactionState, getMomentReactionKey, readMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
 
 describe('moment reactions', () => {
   it('adds a like for a moment that was not liked yet', () => {
@@ -123,6 +123,38 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction({}, moment);
 
     expect(next['shared-moment']).toEqual({ count: 3, liked: true });
+  });
+
+  it('treats a shared moment with empty payload as reset to zero likes', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {},
+    };
+
+    const resolved = resolveMomentReactionState({ 'shared-moment': { count: 5, liked: true } }, moment);
+
+    expect(resolved.state).toEqual({ count: 0, liked: false });
+  });
+
+  it('clears all local candidate keys for a moment when shared state is reset', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      createdAt: '2020-01-01T00:00:00.000Z',
+    };
+
+    const cleared = clearMomentReactionState({
+      'shared-moment': { count: 5, liked: true },
+      'coords-50.08000-14.42000': { count: 5, liked: true },
+      other: { count: 1, liked: true },
+    }, moment);
+
+    expect(cleared['shared-moment']).toBeUndefined();
+    expect(cleared['coords-50.08000-14.42000']).toBeUndefined();
+    expect(cleared.other).toEqual({ count: 1, liked: true });
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {

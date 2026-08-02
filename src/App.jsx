@@ -8,7 +8,7 @@ import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
 import { getMomentStableId } from "./utils/momentIdentity";
 import { buildSelectionCluster } from "./utils/selectionClusters";
-import { getMomentReactionKey, loadMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
+import { clearMomentReactionState, getMomentReactionKey, loadMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -2158,7 +2158,7 @@ function App() {
 
     const latestReactions = loadMomentReactions();
     const payloadReactions = normalizeReactionPayload(selectedPublicMoment?.reactions);
-    const mergedReactions = { ...latestReactions };
+    const mergedReactions = clearMomentReactionState(latestReactions, selectedPublicMoment);
 
     Object.entries(payloadReactions).forEach(([key, payloadState]) => {
       const localState = latestReactions[key];
@@ -2168,7 +2168,12 @@ function App() {
       };
     });
 
-    if (Object.keys(mergedReactions).length) {
+    const latestSerialized = JSON.stringify(latestReactions);
+    const mergedSerialized = JSON.stringify(mergedReactions);
+
+    if (latestSerialized !== mergedSerialized) {
+      saveMomentReactions(mergedReactions);
+    } else {
       setMomentReactions(mergedReactions);
     }
   }, [selectedPublicMoment?.id, selectedPublicMoment?.latitude, selectedPublicMoment?.longitude, selectedPublicMoment?.createdAt, selectedPublicMoment?.nazev, selectedPublicMoment?.reactions]);

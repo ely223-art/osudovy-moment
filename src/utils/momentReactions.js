@@ -63,6 +63,17 @@ export const getMomentReactionCandidates = (moment = {}) => {
 
 export const getMomentReactionKey = (moment = {}) => getMomentReactionCandidates(moment)[0] || 'legacy-moment';
 
+export const clearMomentReactionState = (reactions = {}, moment = {}) => {
+  const nextReactions = { ...readMomentReactions(reactions) };
+  const candidates = getMomentReactionCandidates(moment);
+
+  candidates.forEach((candidate) => {
+    delete nextReactions[candidate];
+  });
+
+  return nextReactions;
+};
+
 export const getMomentPayloadReactions = (moment = {}) => {
   const candidate = moment?.reactions;
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
@@ -124,13 +135,16 @@ export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const matchingKey = candidates.find((candidate) => payloadReactions[candidate]) || candidates.find((candidate) => reactions[candidate]) || canonicalKey;
   const payloadState = normalizeReactionStateValue(payloadReactions[matchingKey]);
   const localState = normalizeReactionStateValue(reactions[matchingKey]);
+  const hasSharedPayload = Object.prototype.hasOwnProperty.call(moment || {}, 'reactions');
   const hasPayloadState = Boolean(payloadReactions[matchingKey]);
   const hasLocalState = Boolean(reactions[matchingKey]);
 
   // Shared payload drives global count, local storage drives whether this specific device already liked.
   const resolvedState = {
-    count: hasPayloadState ? payloadState.count : localState.count,
-    liked: hasLocalState ? localState.liked : false,
+    count: hasSharedPayload ? (hasPayloadState ? payloadState.count : 0) : localState.count,
+    liked: hasSharedPayload
+      ? (hasPayloadState && payloadState.count > 0 && hasLocalState ? localState.liked : false)
+      : (hasLocalState ? localState.liked : false),
   };
 
   return {
