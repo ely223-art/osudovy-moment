@@ -2079,7 +2079,13 @@ function App() {
         : selectedPublicMoment;
 
       if (sourceMoment?.id) {
-        const nextMomentPayload = buildMomentReactionPayload(sourceMoment, next);
+        const resolvedMomentReaction = resolveMomentReactionState(next, sourceMoment);
+        const nextMomentPayload = buildMomentReactionPayload(
+          sourceMoment,
+          resolvedMomentReaction?.key
+            ? { [resolvedMomentReaction.key]: resolvedMomentReaction.state }
+            : {}
+        );
         setSelectedPublicMoment((currentMoment) => currentMoment?.id === sourceMoment.id ? nextMomentPayload : currentMoment);
         setRemotePublicMoments((currentMoments) => currentMoments.map((moment) => {
           const sameMoment = normalizeMomentId(moment?.id || "") === normalizeMomentId(sourceMoment.id || "");
