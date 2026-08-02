@@ -50,7 +50,7 @@ describe('moment reactions', () => {
     expect(stableId).toContain('5008000');
   });
 
-  it('reads reaction state from a moment payload for shared cross-device updates', () => {
+  it('reads shared count from payload but keeps liked device-local', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -62,7 +62,7 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({}, moment);
 
-    expect(resolved.state).toEqual({ count: 2, liked: true });
+    expect(resolved.state).toEqual({ count: 2, liked: false });
   });
 
   it('preserves reaction keys that include punctuation for shared storage', () => {
@@ -77,10 +77,10 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({}, moment);
 
-    expect(resolved.state).toEqual({ count: 3, liked: true });
+    expect(resolved.state).toEqual({ count: 3, liked: false });
   });
 
-  it('prefers server payload reactions over stale local state for shared updates', () => {
+  it('prefers server payload count over stale local state for shared updates', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -92,7 +92,37 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({ 'shared-moment': { count: 0, liked: false } }, moment);
 
-    expect(resolved.state).toEqual({ count: 2, liked: true });
+    expect(resolved.state).toEqual({ count: 2, liked: false });
+  });
+
+  it('does not treat payload liked=true as liked on a new device', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 2, liked: true },
+      },
+    };
+
+    const resolved = resolveMomentReactionState({}, moment);
+
+    expect(resolved.state).toEqual({ count: 2, liked: false });
+  });
+
+  it('increments shared count on first like from a different device', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 2, liked: true },
+      },
+    };
+
+    const next = toggleMomentReaction({}, moment);
+
+    expect(next['shared-moment']).toEqual({ count: 3, liked: true });
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {

@@ -2152,7 +2152,15 @@ function App() {
 
     const latestReactions = loadMomentReactions();
     const payloadReactions = normalizeReactionPayload(selectedPublicMoment?.reactions);
-    const mergedReactions = { ...latestReactions, ...payloadReactions };
+    const mergedReactions = { ...latestReactions };
+
+    Object.entries(payloadReactions).forEach(([key, payloadState]) => {
+      const localState = latestReactions[key];
+      mergedReactions[key] = {
+        count: Math.max(0, Number(payloadState?.count) || 0),
+        liked: Boolean(localState?.liked),
+      };
+    });
 
     if (Object.keys(mergedReactions).length) {
       setMomentReactions(mergedReactions);

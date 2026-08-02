@@ -122,7 +122,16 @@ export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const payloadReactions = getMomentPayloadReactions(moment);
   const candidates = getMomentReactionCandidates(moment);
   const matchingKey = candidates.find((candidate) => payloadReactions[candidate]) || candidates.find((candidate) => reactions[candidate]) || canonicalKey;
-  const resolvedState = payloadReactions[matchingKey] || reactions[matchingKey] || { count: 0, liked: false };
+  const payloadState = normalizeReactionStateValue(payloadReactions[matchingKey]);
+  const localState = normalizeReactionStateValue(reactions[matchingKey]);
+  const hasPayloadState = Boolean(payloadReactions[matchingKey]);
+  const hasLocalState = Boolean(reactions[matchingKey]);
+
+  // Shared payload drives global count, local storage drives whether this specific device already liked.
+  const resolvedState = {
+    count: hasPayloadState ? payloadState.count : localState.count,
+    liked: hasLocalState ? localState.liked : false,
+  };
 
   return {
     key: matchingKey,
