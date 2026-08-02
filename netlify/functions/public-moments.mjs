@@ -14,6 +14,14 @@ const toJsonResponse = (status, payload) =>
   });
 
 const normalizeId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
+const normalizeMomentKey = (value = "") => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed.replace(/[^a-zA-Z0-9-_.]/g, "");
+};
 
 const parseCoordinate = (value) => {
   const numberValue = typeof value === "string" ? Number(value) : value;
@@ -45,8 +53,9 @@ const normalizeReactions = (value = {}) => {
 
 const normalizeMoment = (moment = {}, options = {}) => {
   const { requireOwnerId = false } = options;
-  const id = normalizeId(moment?.id || "");
-  const ownerId = normalizeId(moment?.ownerId || "") || normalizeId(moment?.id || "");
+  const originalId = String(moment?.id || "").trim();
+  const id = normalizeId(originalId) || normalizeMomentKey(originalId) || `moment-${Date.now()}`;
+  const ownerId = normalizeId(moment?.ownerId || "") || normalizeId(originalId) || id;
   const latitude = parseCoordinate(moment?.latitude);
   const longitude = parseCoordinate(moment?.longitude);
 
@@ -57,6 +66,7 @@ const normalizeMoment = (moment = {}, options = {}) => {
   return {
     id,
     ownerId,
+    originalId: originalId || id,
     obec: String(moment?.obec || "").slice(0, 120),
     okres: String(moment?.okres || "").slice(0, 120),
     kraj: String(moment?.kraj || "").slice(0, 120),
@@ -130,7 +140,7 @@ export default async (request) => {
         return toJsonResponse(400, { error: "Missing id or ownerId" });
       }
 
-      const target = existing.find((moment) => moment.id === id);
+      const target = existing.find((moment) => moment.id === id || moment.originalId === id);
       if (!target) {
         return toJsonResponse(200, { ok: true, moments: existing });
       }
@@ -151,7 +161,17 @@ export default async (request) => {
     }
 
     const byId = new Map(existing.map((moment) => [moment.id, moment]));
-    byId.set(normalized.id, normalized);
+    const matchingExisting = existing.find((moment) => moment.id === normalized.id || moment.originalId === normalized.originalId);
+    if (matchingExisting) {
+      byId.set(matchingExisting.id, {
+        ...matchingExisting,
+        ...normalized,
+        id: matchingExisting.id,
+        originalId: matchingExisting.originalId || normalized.originalId,
+      });
+    } else {
+      byId.set(normalized.id, normalized);
+    }
 
     const moments = await saveMoments(store, Array.from(byId.values()));
     return toJsonResponse(200, { ok: true, moments });
