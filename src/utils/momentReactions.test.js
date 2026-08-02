@@ -65,7 +65,7 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 2, liked: false });
   });
 
-  it('preserves reaction keys that include punctuation for shared storage', () => {
+  it('ignores fallback payload keys when a reliable explicit id exists', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -77,7 +77,7 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({}, moment);
 
-    expect(resolved.state).toEqual({ count: 3, liked: false });
+    expect(resolved.state).toEqual({ count: 0, liked: false });
   });
 
   it('prefers server payload count over stale local state for shared updates', () => {
@@ -138,7 +138,7 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 0, liked: false });
   });
 
-  it('clears all local candidate keys for a moment when shared state is reset', () => {
+  it('clears only explicit-id local key when shared state is reset', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -153,11 +153,11 @@ describe('moment reactions', () => {
     }, moment);
 
     expect(cleared['shared-moment']).toBeUndefined();
-    expect(cleared['coords-50.08000-14.42000']).toBeUndefined();
+    expect(cleared['coords-50.08000-14.42000']).toEqual({ count: 5, liked: true });
     expect(cleared.other).toEqual({ count: 1, liked: true });
   });
 
-  it('keeps a browser like locked even when local and shared reaction keys differ', () => {
+  it('uses explicit-id state even when fallback local key differs', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -175,8 +175,8 @@ describe('moment reactions', () => {
     const resolved = resolveMomentReactionState(localReactions, moment);
     const next = toggleMomentReaction(localReactions, moment);
 
-    expect(resolved.state).toEqual({ count: 1, liked: true });
-    expect(next['shared-moment']).toEqual({ count: 0, liked: false });
+    expect(resolved.state).toEqual({ count: 1, liked: false });
+    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
   });
 
   it('reads local liked state directly even when the shared payload is empty', () => {
@@ -194,7 +194,7 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 1, liked: true });
   });
 
-  it('resolves liked=true when any candidate key is liked, even if first key is liked=false', () => {
+  it('does not treat fallback liked=true as explicit-id liked=true', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -212,8 +212,33 @@ describe('moment reactions', () => {
     const resolved = resolveMomentReactionState(localReactions, moment);
     const next = toggleMomentReaction(localReactions, moment);
 
-    expect(resolved.state).toEqual({ count: 1, liked: true });
-    expect(next['shared-moment']).toEqual({ count: 0, liked: false });
+    expect(resolved.state).toEqual({ count: 1, liked: false });
+    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+  });
+
+  it('does not share likes between different explicit-id moments on same coordinates', () => {
+    const firstMoment = {
+      id: 'moment-a',
+      latitude: 49.50241,
+      longitude: 13.87575,
+      obec: 'Bělčice',
+      createdAt: '2026-08-01T18:54:10.532Z',
+    };
+
+    const secondMoment = {
+      id: 'moment-b',
+      latitude: 49.50241,
+      longitude: 13.87575,
+      obec: 'Bělčice',
+      createdAt: '2026-08-01T17:37:08.756Z',
+    };
+
+    const firstLiked = toggleMomentReaction({}, firstMoment);
+    const secondState = resolveMomentReactionState(firstLiked, secondMoment);
+
+    expect(firstLiked['moment-a']).toEqual({ count: 1, liked: true });
+    expect(firstLiked['moment-b']).toBeUndefined();
+    expect(secondState.state).toEqual({ count: 0, liked: false });
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {

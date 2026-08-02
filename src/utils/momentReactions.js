@@ -41,14 +41,17 @@ const getReliableExplicitReactionKey = (moment = {}) => {
 };
 
 export const getMomentReactionCandidates = (moment = {}) => {
-  const candidates = [];
   const explicitId = getReliableExplicitReactionKey(moment);
+
+  // When a reliable explicit id exists, use only that key to avoid collisions
+  // between different moments that happen at the same coordinates.
+  if (explicitId) {
+    return [explicitId];
+  }
+
+  const candidates = [];
   const stableId = getMomentStableId(moment);
   const coordinateKey = normalizeCoordinateReactionKey(moment);
-
-  if (explicitId) {
-    candidates.push(explicitId);
-  }
 
   if (stableId && stableId !== explicitId) {
     candidates.push(stableId);
