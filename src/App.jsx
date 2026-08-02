@@ -644,12 +644,12 @@ function App() {
 
   useEffect(() => {
     if (!selectedPublicMoment?.id) {
-      return undefined;
+      return;
     }
 
     const matchingMoment = publicMapMoments.find((moment) => normalizeMomentId(moment?.id || "") === normalizeMomentId(selectedPublicMoment.id));
     if (!matchingMoment) {
-      return undefined;
+      return;
     }
 
     const currentSerialized = JSON.stringify(selectedPublicMoment?.reactions || {});
@@ -657,23 +657,7 @@ function App() {
     if (currentSerialized !== nextSerialized) {
       setSelectedPublicMoment(matchingMoment);
     }
-
-    return undefined;
   }, [publicMapMoments, selectedPublicMoment?.id, selectedPublicMoment?.reactions]);
-
-  useEffect(() => {
-    if (!selectedPublicMoment?.id || typeof window === "undefined") {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(() => {
-      loadRemotePublicMoments().catch((error) => {
-        console.error("Obnova veřejných momentů v průběhu pollingu selhala:", error);
-      });
-    }, 5000);
-
-    return () => window.clearInterval(intervalId);
-  }, [loadRemotePublicMoments, selectedPublicMoment?.id]);
   const isMobileClient = useMemo(() => {
     if (typeof navigator === "undefined") {
       return false;
