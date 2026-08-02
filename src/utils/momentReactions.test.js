@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getMomentStableId } from './momentIdentity';
-import { clearMomentReactionState, getMomentReactionKey, readMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
+import { clearMomentReactionState, getMomentReactionKey, readMomentReactions, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
 
 describe('moment reactions', () => {
   it('adds a like for a moment that was not liked yet', () => {
@@ -177,6 +177,21 @@ describe('moment reactions', () => {
 
     expect(resolved.state).toEqual({ count: 1, liked: true });
     expect(next['shared-moment']).toEqual({ count: 0, liked: false });
+  });
+
+  it('reads local liked state directly even when the shared payload is empty', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {},
+    };
+
+    const resolved = resolveLocalMomentReactionState({
+      'shared-moment': { count: 1, liked: true },
+    }, moment);
+
+    expect(resolved.state).toEqual({ count: 1, liked: true });
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {

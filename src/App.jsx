@@ -8,7 +8,7 @@ import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
 import { getMomentStableId } from "./utils/momentIdentity";
 import { buildSelectionCluster } from "./utils/selectionClusters";
-import { clearMomentReactionState, getMomentReactionKey, loadMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
+import { clearMomentReactionState, getMomentReactionKey, loadMomentReactions, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -2165,10 +2165,7 @@ function App() {
     const latestReactions = loadMomentReactions();
     const payloadReactions = normalizeReactionPayload(selectedPublicMoment?.reactions);
     const mergedReactions = clearMomentReactionState(latestReactions, selectedPublicMoment);
-    const localMomentReaction = resolveMomentReactionState(latestReactions, {
-      ...selectedPublicMoment,
-      reactions: {},
-    });
+    const localMomentReaction = resolveLocalMomentReactionState(latestReactions, selectedPublicMoment);
     const localLiked = Boolean(localMomentReaction?.state?.liked);
 
     Object.entries(payloadReactions).forEach(([key, payloadState]) => {

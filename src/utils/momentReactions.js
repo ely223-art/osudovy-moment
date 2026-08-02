@@ -63,6 +63,17 @@ export const getMomentReactionCandidates = (moment = {}) => {
 
 export const getMomentReactionKey = (moment = {}) => getMomentReactionCandidates(moment)[0] || 'legacy-moment';
 
+export const resolveLocalMomentReactionState = (reactions = {}, moment = {}) => {
+  const candidates = getMomentReactionCandidates(moment);
+  const matchingKey = candidates.find((candidate) => reactions[candidate]) || getMomentReactionKey(moment);
+  const localState = normalizeReactionStateValue(matchingKey ? reactions[matchingKey] : {});
+
+  return {
+    key: matchingKey,
+    state: localState,
+  };
+};
+
 export const clearMomentReactionState = (reactions = {}, moment = {}) => {
   const nextReactions = { ...readMomentReactions(reactions) };
   const candidates = getMomentReactionCandidates(moment);
