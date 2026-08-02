@@ -244,8 +244,7 @@ const mergeMomentsById = (localMoments = [], remoteMoments = []) => {
 
 const ensureMomentOwnerId = (moment = {}, ownerId = "") => {
   const normalizedOwnerId = normalizeMomentId(ownerId || "");
-  const existingOwnerId = normalizeMomentId(moment?.ownerId || "");
-  if (existingOwnerId) {
+  if (!normalizedOwnerId) {
     return moment;
   }
 
@@ -633,7 +632,34 @@ function App() {
   }, []);
 
   useEffect(() => {
-    setMomentReactions(loadMomentReactions());
+    const syncMomentReactions = () => {
+      setMomentReactions(loadMomentReactions());
+    };
+
+    syncMomentReactions();
+
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    window.addEventListener("moment-reactions-updated", syncMomentReactions);
+    window.addEventListener("storage", syncMomentReactions);
+    window.addEventListener("focus", syncMomentReactions);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncMomentReactions();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("moment-reactions-updated", syncMomentReactions);
+      window.removeEventListener("storage", syncMomentReactions);
+      window.removeEventListener("focus", syncMomentReactions);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -740,7 +766,10 @@ function App() {
 
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) {
-        setSavedMoments(parsed);
+        const currentClientId = getOrCreateClientId();
+        const normalizedMoments = parsed.map((moment) => ensureMomentOwnerId(moment, currentClientId));
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedMoments));
+        setSavedMoments(normalizedMoments);
       } else {
         setSavedMoments([]);
         window.localStorage.setItem(STORAGE_KEY, "[]");
@@ -857,6 +886,10 @@ function App() {
     const hasLocalCopy = savedMoments.some((localMoment) => normalizeMomentId(localMoment?.id || "") === safeId);
 
     if (safeOwnerId && clientId && safeOwnerId === clientId) {
+      return true;
+    }
+
+    if (safeOwnerId && clientId && !safeOwnerId) {
       return true;
     }
 
@@ -1874,6 +1907,11 @@ function App() {
     });
   }, []);
 
+  const getCurrentMomentReactionState = useCallback((moment = {}) => {
+    const reactionKey = getMomentReactionKey(moment);
+    return momentReactions[reactionKey] || { count: 0, liked: false };
+  }, [momentReactions]);
+
   const handleDeleteSelectedPublicMoment = async () => {
     if (!selectedPublicMoment?.id) {
       return;
@@ -1911,6 +1949,17 @@ function App() {
     setSelectedPublicMomentGroupIndex(normalizedIndex);
     setSelectedPublicMoment(selectedPublicMomentGroup[normalizedIndex] || null);
   }, [selectedPublicMomentGroup]);
+
+  useEffect(() => {
+    if (!selectedPublicMoment) {
+      return;
+    }
+
+    const latestReactions = loadMomentReactions();
+    if (Object.keys(latestReactions).length) {
+      setMomentReactions(latestReactions);
+    }
+  }, [selectedPublicMoment?.id, selectedPublicMoment?.latitude, selectedPublicMoment?.longitude, selectedPublicMoment?.createdAt, selectedPublicMoment?.nazev]);
 
   const showNextPublicMoment = useCallback(() => {
     showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex + 1);
@@ -3330,13 +3379,13 @@ function App() {
 
                     <div className="public-map-detail__actions">
                       <button
-                        className={`public-map-detail__reaction${momentReactions[getMomentReactionKey(selectedPublicMoment)]?.liked ? " is-active" : ""}`}
+                        className={`public-map-detail__reaction${getCurrentMomentReactionState(selectedPublicMoment).liked ? " is-active" : ""}`}
                         type="button"
                         onClick={() => handleToggleMomentReaction(selectedPublicMoment)}
                         aria-label="Přidat reakci"
                       >
                         <span aria-hidden="true">❤️</span>
-                        <span>{momentReactions[getMomentReactionKey(selectedPublicMoment)]?.count || 0}</span>
+                        <span>{getCurrentMomentReactionState(selectedPublicMoment).count || 0}</span>
                       </button>
                       <button
                         className="public-map-detail__delete"

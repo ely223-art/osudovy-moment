@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getMomentStableId } from './momentIdentity';
-import { getMomentReactionKey, readMomentReactions, toggleMomentReaction } from './momentReactions';
+import { getMomentReactionKey, readMomentReactions, saveMomentReactions, toggleMomentReaction } from './momentReactions';
 
 describe('moment reactions', () => {
   it('adds a like for a moment that was not liked yet', () => {
@@ -42,5 +42,37 @@ describe('moment reactions', () => {
     };
 
     expect(getMomentStableId(moment)).toBeTruthy();
+  });
+
+  it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
+    const olderMoment = {
+      nazev: 'Starý moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      createdAt: '2020-01-01T00:00:00.000Z',
+    };
+    const newerMoment = {
+      id: 'legacy-1',
+      nazev: 'Starý moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      createdAt: '2020-01-01T00:00:00.000Z',
+    };
+
+    const reactions = toggleMomentReaction({}, olderMoment);
+    const next = toggleMomentReaction(reactions, newerMoment);
+
+    expect(next[ 'coords-50.08000-14.42000' ]).toEqual({ count: 0, liked: false });
+    expect(next['legacy-1']).toEqual({ count: 0, liked: false });
+  });
+
+  it('notifies listeners when reactions are saved', () => {
+    const listener = vi.fn();
+    window.addEventListener('moment-reactions-updated', listener);
+
+    saveMomentReactions({ 'moment-1': { count: 1, liked: true } });
+
+    expect(listener).toHaveBeenCalled();
+    window.removeEventListener('moment-reactions-updated', listener);
   });
 });
