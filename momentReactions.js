@@ -205,13 +205,16 @@ export const toggleMomentReaction = (reactions = {}, momentIdOrMoment = '') => {
     state: reactions[canonicalKey] || { count: 0, liked: false },
   };
 
-  const existing = resolvedState.state || { count: 0, liked: false };
   const localLikeState = isMomentObject
     ? resolveLocalMomentReactionState(reactions, momentIdOrMoment).state
     : (reactions[canonicalKey] || { liked: false });
-  const nextLiked = !Boolean(localLikeState?.liked);
-  // Keep a strict one-like-per-device model for each moment.
-  const nextCount = nextLiked ? 1 : 0;
+  // Enforce one irreversible like per device for each moment.
+  if (Boolean(localLikeState?.liked)) {
+    return reactions;
+  }
+
+  const nextLiked = true;
+  const nextCount = 1;
 
   const nextReactions = { ...reactions };
   const candidates = isMomentObject ? getMomentReactionCandidates(momentIdOrMoment) : [canonicalKey];

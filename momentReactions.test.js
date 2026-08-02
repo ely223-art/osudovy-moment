@@ -10,11 +10,11 @@ describe('moment reactions', () => {
     expect(next['moment-1']).toEqual({ count: 1, liked: true });
   });
 
-  it('removes the like when the same moment is toggled again', () => {
+  it('keeps the like active when the same moment is clicked again', () => {
     const reactions = readMomentReactions({ 'moment-1': { count: 1, liked: true } });
     const next = toggleMomentReaction(reactions, 'moment-1');
 
-    expect(next['moment-1']).toEqual({ count: 0, liked: false });
+    expect(next['moment-1']).toEqual({ count: 1, liked: true });
   });
 
   it('creates a stable reaction key for legacy moments without a normal id', () => {
@@ -176,7 +176,7 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction(localReactions, moment);
 
     expect(resolved.state).toEqual({ count: 1, liked: false });
-    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
   it('reads local liked state directly even when the shared payload is empty', () => {
@@ -228,7 +228,7 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction(localReactions, moment);
 
     expect(resolved.state).toEqual({ count: 1, liked: false });
-    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
   it('does not share likes between different explicit-id moments on same coordinates', () => {
@@ -300,7 +300,7 @@ describe('moment reactions', () => {
     expect(next['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
-  it('never accumulates more than one local like for the same moment in one browser', () => {
+  it('never allows turning off or duplicating a local like in one browser', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -315,7 +315,7 @@ describe('moment reactions', () => {
     const third = toggleMomentReaction(second, moment);
 
     expect(first['shared-moment']).toEqual({ count: 1, liked: true });
-    expect(second['shared-moment']).toEqual({ count: 0, liked: false });
+    expect(second['shared-moment']).toEqual({ count: 1, liked: true });
     expect(third['shared-moment']).toEqual({ count: 1, liked: true });
   });
 
@@ -338,7 +338,7 @@ describe('moment reactions', () => {
     const next = toggleMomentReaction(reactions, newerMoment);
     const stableKey = getMomentReactionKey(newerMoment);
 
-    expect(next[stableKey]).toEqual({ count: 0, liked: false });
+    expect(next[stableKey]).toEqual({ count: 1, liked: true });
     expect(next['legacy-1']).toBeUndefined();
   });
 

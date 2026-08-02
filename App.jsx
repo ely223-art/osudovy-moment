@@ -1,11 +1,14 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { toBlob as htmlToImageToBlob } from "html-to-image";
+import { toBlob as htmlToImageToBlob, toCanvas as htmlToImageToCanvas } from "html-to-image";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
 import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
+import { getMomentStableId } from "./utils/momentIdentity";
+import { buildSelectionCluster } from "./utils/selectionClusters";
+import { clearMomentReactionState, getMomentReactionKey, loadMomentReactions, mergeMomentReactionState, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -33,6 +36,86 @@ const normalizeText = (text = "") =>
     .toLowerCase()
     .trim();
 
+const repairTextValue = (value = "") => {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return "";
+  }
+
+  return text
+    .replace(/\uFFFD/g, "")
+    .replace(/sezn�mila/g, "seznámila")
+    .replace(/d�teti/g, "dítěti")
+    .replace(/zemrel/g, "zemřel")
+    .replace(/m�zem/g, "mužem")
+    .replace(/budouc�m/g, "budoucím")
+    .replace(/\u00e3\u0081/g, "á")
+    .replace(/\u00c4\u008d/g, "č")
+    .replace(/\u00c4\u0099/g, "ď")
+    .replace(/\u00c4\u008e/g, "ě")
+    .replace(/\u00c5\u0099/g, "ř")
+    .replace(/\u00c5\u00a5/g, "ť")
+    .replace(/\u00c5\u00af/g, "ů")
+    .replace(/\u00c5\u00bd/g, "ž")
+    .replace(/\u00c3\u00a1/g, "á")
+    .replace(/\u00c3\u00a9/g, "é")
+    .replace(/\u00c3\u00ad/g, "í")
+    .replace(/\u00c3\u00b3/g, "ó")
+    .replace(/\u00c3\u00ba/g, "ú")
+    .replace(/\u00c3\u00bd/g, "ý")
+    .replace(/\u00c4\u0081/g, "Á")
+    .replace(/\u00c4\u0082/g, "Â")
+    .replace(/\u00c4\u008d/g, "Č")
+    .replace(/\u00c4\u009b/g, "ě")
+    .replace(/\u00c5\u008d/g, "Ř")
+    .replace(/\u00c5\u009a/g, "Š")
+    .replace(/\u00c5\u00a0/g, "Š")
+    .replace(/\u00c5\u00a4/g, "Ť")
+    .replace(/\u00c5\u00af/g, "Ů")
+    .replace(/\u00c5\u00be/g, "Ž")
+    .replace(/\u00c5\u00bd/g, "Ž")
+    .replace(/\u00e2\u0080\u009d/g, "”")
+    .replace(/\u00e2\u0080\u0099/g, "’")
+    .normalize("NFC")
+    .trim();
+};
+
+const normalizeTextKey = (value = "") =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const isKnownKdyneMoment = (moment = {}) => {
+  const normalizedId = normalizeMomentId(moment?.id || "");
+  if (normalizedId === "1785664076458") {
+    return true;
+  }
+
+  return (
+    normalizeTextKey(moment?.obec) === "kdyne"
+    && normalizeTextKey(moment?.datum) === "2004-07-22"
+    && normalizeTextKey(moment?.nazev).includes("osudove setkani")
+  );
+};
+
+const repairKnownPublicMomentText = (moment = {}) => {
+  if (!isKnownKdyneMoment(moment)) {
+    return moment;
+  }
+
+  return {
+    ...moment,
+    obec: "Kdyně",
+    okres: "Domažlice",
+    kraj: "Plzeňský kraj",
+    symbolLabel: "Láska",
+    nazev: "Osudové setkání",
+    prikaz: "Tady jsem se seznámila se svým budoucím mužem ❤️ Po 11ti letech vztahu a jednom dítěti mi zemřel 😢",
+  };
+};
+
 const parseCoordinate = (value) => {
   const numberValue = typeof value === "string" ? Number(value) : value;
   return Number.isFinite(numberValue) ? numberValue : null;
@@ -40,11 +123,238 @@ const parseCoordinate = (value) => {
 
 const MAX_RESULTS = 12;
 const STORAGE_KEY = "osudovy-moment-items";
+const CLIENT_ID_KEY = "osudovy-moment-client-id";
+const PUBLIC_MOMENTS_ENDPOINT = "/.netlify/functions/public-moments";
 const EXPORT_JPEG_QUALITY = 0.96;
-const EXPORT_CAPTURE_SCALE = 1;
+const EXPORT_CAPTURE_SCALE = 2;
 const EXPORT_SHARE_WIDTH = 1200;
 const EXPORT_SHARE_HEIGHT = 630;
+const EXPORT_MOBILE_WIDTH = 1080;
+const EXPORT_MOBILE_HEIGHT = 1920;
+const SYMBOL_IMAGE_BY_TYPE = {
+  wedding: "/svatba.png",
+  engagement: "/zasnuby.png",
+  love: "/laska.png",
+  birth: "/dite.png",
+  home: "/dum.png",
+  beginning: "/zacatek.png",
+  school: "/skola.png",
+  pet: "/mazlicek.png",
+  memory: "/vzpominka.png",
+  other: "/ostatni.png",
+};
+const SYMBOL_IMAGE_BY_LABEL = {
+  svatba: "/svatba.png",
+  zasnuby: "/zasnuby.png",
+  laska: "/laska.png",
+  "narozeni dite": "/dite.png",
+  "novy domov": "/dum.png",
+  "novy zacatek": "/zacatek.png",
+  skola: "/skola.png",
+  "novy mazlicek": "/mazlicek.png",
+  vzpominka: "/vzpominka.png",
+  ostatni: "/ostatni.png",
+};
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
+const getMarkerScaleFromZoom = (zoomValue = 3) => {
+  const safeZoom = Number.isFinite(Number(zoomValue)) ? Number(zoomValue) : 3;
+  const clampedZoom = Math.max(3, Math.min(15, safeZoom));
+  const normalizedZoom = (clampedZoom - 3) / 8;
+  return Number(Math.max(0.86, Math.min(1, 0.86 + normalizedZoom * 0.14)).toFixed(3));
+};
+
+const normalizeMomentId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
+
+const normalizeReactionPayload = (reactions = {}) => {
+  if (!reactions || typeof reactions !== "object" || Array.isArray(reactions)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(reactions)
+      .filter(([key, value]) => Boolean(key) && value && typeof value === "object" && !Array.isArray(value))
+      .map(([key, value]) => [String(key).trim(), {
+        count: Math.max(0, Number(value?.count) || 0),
+        liked: Boolean(value?.liked),
+      }])
+  );
+};
+
+const buildMomentReactionPayload = (moment = {}, reactions = {}) => ({
+  ...moment,
+  reactions: normalizeReactionPayload(reactions),
+});
+
+const getOrCreateClientId = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const existing = normalizeMomentId(window.localStorage.getItem(CLIENT_ID_KEY) || "");
+    if (existing) {
+      return existing;
+    }
+
+    const generated =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+    const normalized = normalizeMomentId(generated);
+    if (normalized) {
+      window.localStorage.setItem(CLIENT_ID_KEY, normalized);
+    }
+    return normalized;
+  } catch {
+    return "";
+  }
+};
+
+const spreadOverlappingMoments = (moments = [], focusMomentId = "") => {
+  const grouped = new Map();
+
+  moments.forEach((moment) => {
+    const latitude = parseCoordinate(moment?.latitude);
+    const longitude = parseCoordinate(moment?.longitude);
+    if (latitude === null || longitude === null) {
+      return;
+    }
+
+    const key = `${latitude.toFixed(5)}:${longitude.toFixed(5)}`;
+    const bucket = grouped.get(key) || [];
+    bucket.push(moment);
+    grouped.set(key, bucket);
+  });
+
+  const spread = [];
+
+  grouped.forEach((bucket) => {
+    const count = bucket.length;
+    const normalizedFocusId = normalizeMomentId(focusMomentId || "");
+    const anchorIndex = normalizedFocusId
+      ? bucket.findIndex((moment) => normalizeMomentId(moment.id || "") === normalizedFocusId)
+      : 0;
+    const resolvedAnchorIndex = anchorIndex >= 0 ? anchorIndex : 0;
+    const spreadBucket = bucket.filter((_, index) => index !== resolvedAnchorIndex);
+
+    bucket.forEach((moment, index) => {
+      if (count === 1) {
+        spread.push({
+          ...moment,
+          displayLatitude: moment.latitude,
+          displayLongitude: moment.longitude,
+          overlapCount: 1,
+          overlapIndex: 0,
+        });
+        return;
+      }
+
+      if (index === resolvedAnchorIndex) {
+        spread.push({
+          ...moment,
+          displayLatitude: Number(moment.latitude),
+          displayLongitude: Number(moment.longitude),
+          overlapCount: count,
+          overlapIndex: index,
+        });
+        return;
+      }
+
+      const spreadIndex = spreadBucket.findIndex((candidate) => candidate.id === moment.id);
+      const angle = (2 * Math.PI * spreadIndex) / Math.max(1, spreadBucket.length);
+      const ring = Math.floor(spreadIndex / 8);
+      const radiusMeters = 42 + ring * 24;
+      const latitude = Number(moment.latitude);
+      const metersPerDegreeLat = 111320;
+      const metersPerDegreeLng = Math.max(1, 111320 * Math.cos((latitude * Math.PI) / 180));
+      const latitudeOffset = (Math.sin(angle) * radiusMeters) / metersPerDegreeLat;
+      const longitudeOffset = (Math.cos(angle) * radiusMeters) / metersPerDegreeLng;
+
+      spread.push({
+        ...moment,
+        displayLatitude: Number(moment.latitude) + latitudeOffset,
+        displayLongitude: Number(moment.longitude) + longitudeOffset,
+        overlapCount: count,
+        overlapIndex: index,
+      });
+    });
+  });
+
+  return spread;
+};
+
+const normalizePublicMoment = (moment = {}) => {
+  const latitude = parseCoordinate(moment?.latitude);
+  const longitude = parseCoordinate(moment?.longitude);
+  const id = normalizeMomentId(moment?.id || "") || getMomentReactionKey(moment);
+
+  if (!id || latitude === null || longitude === null) {
+    return null;
+  }
+
+  const normalized = {
+    id,
+    ownerId: normalizeMomentId(moment?.ownerId || getMomentStableId(moment)),
+    obec: repairTextValue(moment?.obec).slice(0, 120),
+    okres: repairTextValue(moment?.okres).slice(0, 120),
+    kraj: repairTextValue(moment?.kraj).slice(0, 120),
+    stat: repairTextValue(moment?.stat).slice(0, 120),
+    latitude,
+    longitude,
+    symbolType: repairTextValue(moment?.symbolType).slice(0, 60),
+    symbolImage: repairTextValue(moment?.symbolImage).slice(0, 400),
+    symbolLabel: repairTextValue(moment?.symbolLabel).slice(0, 100),
+    nazev: repairTextValue(moment?.nazev).slice(0, 180),
+    prikaz: repairTextValue(moment?.prikaz).slice(0, 500),
+    datum: repairTextValue(moment?.datum).slice(0, 30),
+    createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
+    reactions: normalizeReactionPayload(moment?.reactions),
+  };
+
+  return repairKnownPublicMomentText(normalized);
+};
+
+const mergeMomentsById = (localMoments = [], remoteMoments = []) => {
+  const merged = new Map();
+
+  [...remoteMoments, ...localMoments].forEach((moment) => {
+    const normalized = normalizePublicMoment(moment);
+    if (!normalized) {
+      return;
+    }
+
+    const existing = merged.get(normalized.id);
+    if (!existing) {
+      merged.set(normalized.id, normalized);
+      return;
+    }
+
+    const existingTime = Date.parse(existing.createdAt || "") || 0;
+    const candidateTime = Date.parse(normalized.createdAt || "") || 0;
+    if (candidateTime >= existingTime) {
+      merged.set(normalized.id, normalized);
+    }
+  });
+
+  return Array.from(merged.values()).sort((left, right) => {
+    const leftTime = Date.parse(left.createdAt || "") || 0;
+    const rightTime = Date.parse(right.createdAt || "") || 0;
+    return rightTime - leftTime;
+  });
+};
+
+const ensureMomentOwnerId = (moment = {}, ownerId = "") => {
+  const normalizedOwnerId = normalizeMomentId(ownerId || "");
+  if (!normalizedOwnerId) {
+    return moment;
+  }
+
+  return {
+    ...moment,
+    ownerId: normalizedOwnerId,
+  };
+};
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -62,6 +372,42 @@ const canvasToJpegBlob = async (canvas, quality = EXPORT_JPEG_QUALITY) => {
     throw new Error("Nepodařilo se vytvořit JPEG výstup.");
   }
   return jpegBlob;
+};
+
+const computeAspectRatio = (width, height) => {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || height <= 0) {
+    return null;
+  }
+
+  return Number((width / height).toFixed(6));
+};
+
+const readBlobImageDimensions = async (blob) => {
+  if (!blob) {
+    return null;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const loadedImage = new Image();
+      loadedImage.onload = () => resolve(loadedImage);
+      loadedImage.onerror = () => reject(new Error("Nepodařilo se načíst blob pro diagnostiku exportu."));
+      loadedImage.src = objectUrl;
+    });
+
+    const width = image.naturalWidth || image.width || 0;
+    const height = image.naturalHeight || image.height || 0;
+
+    return {
+      width,
+      height,
+      aspectRatio: computeAspectRatio(width, height),
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 };
 
 const normalizeShareBlobToJpeg = async (blob, quality = EXPORT_JPEG_QUALITY) => {
@@ -140,13 +486,46 @@ const formatMomentLocation = (moment = {}) => {
   return locationText;
 };
 
+const resolveMomentSymbolImage = (moment = {}, selectedSymbolImage = "") => {
+  const normalizedType = normalizeText(moment?.symbolType || "");
+  const typeBasedSource = SYMBOL_IMAGE_BY_TYPE[normalizedType] || "";
+  const normalizedLabel = normalizeText(moment?.symbolLabel || "");
+  const labelBasedSource = SYMBOL_IMAGE_BY_LABEL[normalizedLabel] || "";
+  const sourceName = (moment?.symbolImage || "").split("/").pop() || "";
+  const normalizedSourceName = normalizeText(sourceName).replace(/[^a-z0-9.]/g, "");
+  const fileBasedSource =
+    normalizedSourceName && /^(svatba|zasnuby|laska|dite|dum|zacatek|skola|mazlicek|vzpominka|ostatni)\.png$/.test(normalizedSourceName)
+      ? `/${normalizedSourceName}`
+      : "";
+
+  if (typeBasedSource) {
+    return resolveImageUrl(typeBasedSource, "ostatni.png");
+  }
+
+  if (labelBasedSource) {
+    return resolveImageUrl(labelBasedSource, "ostatni.png");
+  }
+
+  if (fileBasedSource) {
+    return resolveImageUrl(fileBasedSource, "ostatni.png");
+  }
+
+  if (moment?.symbolImage) {
+    return resolveImageUrl(moment.symbolImage, "ostatni.png");
+  }
+
+  return resolveImageUrl(selectedSymbolImage || "", "ostatni.png");
+};
+
 function renderMomentMarkerBody(symbolImage) {
+  const safeSymbolSource = String(symbolImage || "/ostatni.png").replace(/\"/g, "&quot;");
+
   return `
-    <span class="completion-map-marker__glow"></span>
-    <span class="completion-map-marker__dot"></span>
-    <span class="completion-map-marker__line"></span>
-    <span class="completion-map-marker__icon">
-      <img class="completion-map-marker__image" src="${symbolImage || "/ostatni.png"}" alt="Symbol" />
+    <span class="completion-map-marker__glow" style="transform: translate(-50%, -50%) scale(0.7);"></span>
+    <span class="completion-map-marker__dot" style="transform: translate(-50%, -50%) scale(0.7);"></span>
+    <span class="completion-map-marker__line" style="transform: translate(-50%, -100%) scaleY(1);"></span>
+    <span class="completion-map-marker__icon" style="transform: translate(-50%, -100%) scale(0.8);">
+      <img class="completion-map-marker__image" src="${safeSymbolSource}" alt="Symbol" loading="eager" decoding="sync" onerror="this.onerror=null;this.src='/ostatni.png';" />
     </span>
   `;
 }
@@ -196,15 +575,103 @@ function IconSymbol({ type, x, y }) {
   );
 }
 
+function MobileMomentExportCard({
+  completeMoment,
+  exportMomentUrl,
+  exportMapContainerRef,
+  selectedSymbolLabel,
+}) {
+  return (
+    <>
+      <header className="mobile-export-header">
+        <img className="mobile-export-logo" src={logo} alt="Logo Osudový moment" />
+      </header>
+
+      <div className="mobile-export-map-shell">
+        <div className="map-animated-surface is-ready">
+          {typeof completeMoment.latitude === "number" && typeof completeMoment.longitude === "number" ? (
+            <div className="completion-map-wrapper completion-map-wrapper--export" ref={exportMapContainerRef} />
+          ) : (
+            <div className="completion-map-error">Pro vybrané místo chybí souřadnice.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="mobile-export-heading">
+        <h2 className="mobile-export-title">Váš osudový moment právě zazářil</h2>
+        <p className="mobile-export-place">
+          {[completeMoment.obec, completeMoment.okres, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
+        </p>
+      </div>
+
+      <section className="mobile-export-details" aria-label="Detaily osudového momentu">
+        <div className="mobile-export-detail-row">
+          <span className="mobile-export-label">Místo</span>
+          <span className="mobile-export-value">
+            {[completeMoment.obec, completeMoment.okres, completeMoment.kraj, completeMoment.stat].filter(Boolean).join(" · ") || "—"}
+          </span>
+        </div>
+
+        <div className="mobile-export-detail-row mobile-export-detail-row--symbol">
+          <span className="mobile-export-label">Typ symbolu</span>
+          <span className="mobile-export-value mobile-export-value--symbol">
+            {completeMoment.symbolImage ? (
+              <img
+                className="mobile-export-symbol-image"
+                src={completeMoment.symbolImage}
+                alt={completeMoment.symbolLabel || selectedSymbolLabel || "Symbol"}
+              />
+            ) : null}
+            <span>{completeMoment.symbolLabel || selectedSymbolLabel || "—"}</span>
+          </span>
+        </div>
+
+        <div className="mobile-export-detail-row">
+          <span className="mobile-export-label">Název momentu</span>
+          <span className="mobile-export-value">{completeMoment.nazev || "—"}</span>
+        </div>
+
+        {completeMoment.prikaz ? (
+          <div className="mobile-export-detail-row">
+            <span className="mobile-export-label">Příběh / poznámka</span>
+            <span className="mobile-export-value mobile-export-value--story">{completeMoment.prikaz}</span>
+          </div>
+        ) : null}
+
+        {completeMoment.datum ? (
+          <div className="mobile-export-detail-row">
+            <span className="mobile-export-label">Datum</span>
+            <span className="mobile-export-value">{completeMoment.datum}</span>
+          </div>
+        ) : null}
+
+        <div className="mobile-export-detail-row">
+          <span className="mobile-export-label">Web</span>
+          <span className="mobile-export-value mobile-export-value--web">{exportMomentUrl}</span>
+        </div>
+      </section>
+
+      <footer className="mobile-export-footer">
+        <span className="mobile-export-url">{exportMomentUrl}</span>
+        <p className="line-by-mine-credit">© Line By Mine</p>
+      </footer>
+    </>
+  );
+}
+
 function App() {
   const mapContainerRef = useRef(null);
   const completionMapRef = useRef(null);
   const markerRef = useRef(null);
   const publicMapContainerRef = useRef(null);
   const publicMapRef = useRef(null);
+  const publicMarkerElementsRef = useRef(new Map());
+  const selectedPublicMomentIdRef = useRef("");
+  const publicMarkerLayoutSyncRef = useRef(null);
   const completionScreenRef = useRef(null);
   const completionCardRef = useRef(null);
   const exportCardRef = useRef(null);
+  const exportMobileCardRef = useRef(null);
   const exportMapContainerRef = useRef(null);
   const exportMapRef = useRef(null);
   const shareImageBlobRef = useRef(null);
@@ -213,6 +680,7 @@ function App() {
   const animationStartedRef = useRef(false);
   const animationTimersRef = useRef([]);
   const [screen, setScreen] = useState("home");
+  const [clientId, setClientId] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTown, setSelectedTown] = useState(null);
@@ -225,10 +693,12 @@ function App() {
   const [animationStage, setAnimationStage] = useState("idle");
   const [mapReady, setMapReady] = useState(false);
   const [savedMoments, setSavedMoments] = useState([]);
-  const [publicMapMoments, setPublicMapMoments] = useState([]);
-  const [publicMapVersion, setPublicMapVersion] = useState(0);
+  const [remotePublicMoments, setRemotePublicMoments] = useState([]);
   const [activeMapMoment, setActiveMapMoment] = useState(null);
   const [selectedPublicMoment, setSelectedPublicMoment] = useState(null);
+  const [selectedPublicMomentGroup, setSelectedPublicMomentGroup] = useState([]);
+  const [selectedPublicMomentGroupIndex, setSelectedPublicMomentGroupIndex] = useState(0);
+  const [momentReactions, setMomentReactions] = useState({});
   const [towns, setTowns] = useState([]);
   const [townsLoaded, setTownsLoaded] = useState(false);
   const [townsLoading, setTownsLoading] = useState(false);
@@ -242,13 +712,81 @@ function App() {
   const [shareImageReady, setShareImageReady] = useState(false);
   const [sharedMomentId, setSharedMomentId] = useState("");
   const [sharedMomentImageError, setSharedMomentImageError] = useState(false);
+
+  useEffect(() => {
+    selectedPublicMomentIdRef.current = normalizeMomentId(selectedPublicMoment?.id || "");
+  }, [selectedPublicMoment?.id]);
   const websiteUrl = "https://osudovymoment.cz";
+  const publicMapMoments = useMemo(
+    () => mergeMomentsById([], remotePublicMoments),
+    [remotePublicMoments]
+  );
+
+  useEffect(() => {
+    if (!selectedPublicMoment?.id) {
+      return;
+    }
+
+    const matchingMoment = publicMapMoments.find((moment) => normalizeMomentId(moment?.id || "") === normalizeMomentId(selectedPublicMoment.id));
+    if (!matchingMoment) {
+      return;
+    }
+
+    setSelectedPublicMoment((currentMoment) => {
+      if (!currentMoment || normalizeMomentId(currentMoment.id || "") !== normalizeMomentId(matchingMoment.id || "")) {
+        return currentMoment;
+      }
+
+      const nextMoment = {
+        ...currentMoment,
+        ...matchingMoment,
+        reactions: matchingMoment.reactions || currentMoment.reactions || {},
+      };
+
+      return JSON.stringify(currentMoment) === JSON.stringify(nextMoment) ? currentMoment : nextMoment;
+    });
+  }, [publicMapMoments, selectedPublicMoment?.id]);
   const isMobileClient = useMemo(() => {
     if (typeof navigator === "undefined") {
       return false;
     }
 
     return isMobileUserAgent(navigator.userAgent || "");
+  }, []);
+
+  useEffect(() => {
+    setClientId(getOrCreateClientId());
+  }, []);
+
+  useEffect(() => {
+    const syncMomentReactions = () => {
+      setMomentReactions(loadMomentReactions());
+    };
+
+    syncMomentReactions();
+
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    window.addEventListener("moment-reactions-updated", syncMomentReactions);
+    window.addEventListener("storage", syncMomentReactions);
+    window.addEventListener("focus", syncMomentReactions);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncMomentReactions();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("moment-reactions-updated", syncMomentReactions);
+      window.removeEventListener("storage", syncMomentReactions);
+      window.removeEventListener("focus", syncMomentReactions);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -355,11 +893,12 @@ function App() {
 
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) {
-        setSavedMoments(parsed);
-        setPublicMapMoments(parsed);
+        const currentClientId = getOrCreateClientId();
+        const normalizedMoments = parsed.map((moment) => ensureMomentOwnerId(moment, currentClientId));
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedMoments));
+        setSavedMoments(normalizedMoments);
       } else {
         setSavedMoments([]);
-        setPublicMapMoments([]);
         window.localStorage.setItem(STORAGE_KEY, "[]");
       }
     } catch (error) {
@@ -369,6 +908,209 @@ function App() {
 
     return undefined;
   }, []);
+
+  const loadRemotePublicMoments = useCallback(async () => {
+    try {
+      const response = await fetch(PUBLIC_MOMENTS_ENDPOINT, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const moments = Array.isArray(payload?.moments)
+        ? payload.moments.map((moment) => normalizePublicMoment(moment)).filter(Boolean).map((moment) => ({
+          ...moment,
+          reactions: {},
+        }))
+        : [];
+
+      setRemotePublicMoments(moments);
+    } catch (error) {
+      console.error("Nepodařilo se načíst veřejné momenty:", error);
+      setRemotePublicMoments([]);
+    }
+  }, []);
+
+  const publishMomentToPublicMap = useCallback(async (moment) => {
+    const normalized = normalizePublicMoment(moment);
+    if (!normalized) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(PUBLIC_MOMENTS_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(normalized),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const moments = Array.isArray(payload?.moments)
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean).map((item) => ({
+          ...item,
+          reactions: {},
+        }))
+        : null;
+
+      if (moments) {
+        setRemotePublicMoments(moments);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Nepodařilo se publikovat moment na veřejnou mapu:", error);
+      return false;
+    }
+  }, []);
+
+  const deleteMomentFromPublicMap = useCallback(async (momentId, ownerId) => {
+    const safeMomentId = normalizeMomentId(momentId || "");
+    const safeOwnerId = normalizeMomentId(ownerId || "");
+
+    if (!safeMomentId || !safeOwnerId) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(PUBLIC_MOMENTS_ENDPOINT, {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: safeMomentId,
+          ownerId: safeOwnerId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const moments = Array.isArray(payload?.moments)
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean).map((item) => ({
+          ...item,
+          reactions: {},
+        }))
+        : [];
+      setRemotePublicMoments(moments);
+      return true;
+    } catch (error) {
+      console.error("Nepodařilo se smazat veřejný moment:", error);
+      return false;
+    }
+  }, []);
+
+  const canDeleteMoment = useCallback((moment) => {
+    if (!moment?.id) {
+      return false;
+    }
+
+    const safeId = normalizeMomentId(moment.id);
+    const safeOwnerId = normalizeMomentId(moment.ownerId || "");
+    const hasLocalCopy = savedMoments.some((localMoment) => normalizeMomentId(localMoment?.id || "") === safeId);
+
+    if (safeOwnerId && clientId && safeOwnerId === clientId) {
+      return true;
+    }
+
+    if (safeOwnerId && clientId && !safeOwnerId) {
+      return true;
+    }
+
+    // Backward compatibility for legacy local-only moments created before ownerId existed.
+    if (!safeOwnerId && hasLocalCopy) {
+      return true;
+    }
+
+    return false;
+  }, [clientId, savedMoments]);
+
+  useEffect(() => {
+    loadRemotePublicMoments();
+  }, [loadRemotePublicMoments]);
+
+  useEffect(() => {
+    if (screen !== "public-map") {
+      return undefined;
+    }
+
+    let isRefreshing = false;
+
+    const refreshRemoteMoments = () => {
+      if (isRefreshing) {
+        return;
+      }
+
+      isRefreshing = true;
+      loadRemotePublicMoments()
+        .catch((error) => {
+          console.error("Pravidelná synchronizace veřejných momentů selhala:", error);
+        })
+        .finally(() => {
+          isRefreshing = false;
+        });
+    };
+
+    const handleFocusRefresh = () => {
+      refreshRemoteMoments();
+    };
+
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        refreshRemoteMoments();
+      }
+    };
+
+    const interval = window.setInterval(refreshRemoteMoments, 12000);
+    window.addEventListener("focus", handleFocusRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocusRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
+  }, [screen, loadRemotePublicMoments]);
+
+  useEffect(() => {
+    if (!clientId || !savedMoments.length) {
+      return;
+    }
+
+    const legacyMoments = savedMoments.filter((moment) => !normalizeMomentId(moment?.ownerId || ""));
+    if (!legacyMoments.length) {
+      return;
+    }
+
+    const updatedSavedMoments = savedMoments.map((moment) => ensureMomentOwnerId(moment, clientId));
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSavedMoments));
+      setSavedMoments(updatedSavedMoments);
+    } catch (error) {
+      console.error("Nepodařilo se uložit migraci starších momentů:", error);
+      return;
+    }
+
+    // Backfill ownership in public storage so legacy own moments can be deleted.
+    Promise.all(
+      legacyMoments.map((moment) => publishMomentToPublicMap(ensureMomentOwnerId(moment, clientId)))
+    ).catch((error) => {
+      console.error("Migrace starších momentů do veřejné mapy selhala:", error);
+    });
+  }, [clientId, savedMoments, publishMomentToPublicMap]);
 
   useEffect(() => {
     if (screen !== "town") {
@@ -764,20 +1506,13 @@ function App() {
       return false;
     }
 
-    const requiredTileCount = Math.max(
-      6,
-      Math.ceil((Math.max(mapNode.clientWidth, 1) * Math.max(mapNode.clientHeight, 1)) / (256 * 256) * 1.2)
-    );
-
     const hasLoadedTiles = () => {
       const tiles = mapNode.querySelectorAll("img.leaflet-tile");
       if (!tiles.length) {
         return false;
       }
 
-      const tileList = Array.from(tiles);
-      const loadedCount = tileList.filter((tile) => tile.complete && tile.naturalWidth > 0).length;
-      return tileList.length >= requiredTileCount && loadedCount === tileList.length;
+      return Array.from(tiles).every((tile) => tile.complete && tile.naturalWidth > 0);
     };
 
     if (hasLoadedTiles()) {
@@ -880,6 +1615,42 @@ function App() {
     return results.every(Boolean);
   };
 
+  const lockSymbolAspectRatio = async (imageElement, maxSizePx) => {
+    if (!imageElement) {
+      return;
+    }
+
+    if (!(imageElement.complete && imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0)) {
+      await new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          resolve();
+        };
+
+        imageElement.addEventListener("load", finish, { once: true });
+        imageElement.addEventListener("error", finish, { once: true });
+        window.setTimeout(finish, 2000);
+      });
+    }
+
+    const naturalWidth = imageElement.naturalWidth || 0;
+    const naturalHeight = imageElement.naturalHeight || 0;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+
+    imageElement.style.width = "auto";
+    imageElement.style.height = "auto";
+    imageElement.style.maxWidth = `${maxSizePx}px`;
+    imageElement.style.maxHeight = `${maxSizePx}px`;
+    imageElement.style.objectFit = "contain";
+    imageElement.style.aspectRatio = `${naturalWidth} / ${naturalHeight}`;
+  };
+
   const prepareShareImage = async (shareId = "") => {
     console.log("Export started", {
       screen,
@@ -888,7 +1659,7 @@ function App() {
 
     const userAgent = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
     const isMobileDevice = isMobileUserAgent(userAgent);
-    const baseCaptureNode = exportCardRef.current;
+    const baseCaptureNode = isMobileDevice ? exportMobileCardRef.current : exportCardRef.current;
 
     if (!baseCaptureNode || !completeMoment || isPreparingShareImage) {
       console.error("Export failed", {
@@ -958,6 +1729,13 @@ function App() {
             });
           }
         }
+
+        await lockSymbolAspectRatio(exportSymbolImage, 118);
+      }
+
+      const exportSummarySymbolImage = node.querySelector(".mobile-export-symbol-image");
+      if (exportSummarySymbolImage) {
+        await lockSymbolAspectRatio(exportSummarySymbolImage, 30);
       }
 
       const missingImages = Array.from(node.querySelectorAll("img")).filter(
@@ -982,9 +1760,34 @@ function App() {
         });
       });
 
-      const captureWidth = EXPORT_SHARE_WIDTH;
-      const captureHeight = EXPORT_SHARE_HEIGHT;
-      const captureScale = EXPORT_CAPTURE_SCALE;
+      const captureRect = node.getBoundingClientRect();
+      const captureWidth = Math.max(
+        1,
+        Math.round(captureRect.width || (isMobileDevice ? EXPORT_MOBILE_WIDTH : EXPORT_SHARE_WIDTH))
+      );
+      const captureHeight = Math.max(
+        1,
+        Math.round(captureRect.height || (isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT))
+      );
+      const captureScale = isMobileDevice ? 1 : EXPORT_CAPTURE_SCALE;
+      const captureJpegQuality = isMobileDevice ? 1 : EXPORT_JPEG_QUALITY;
+      const domAspectRatio = computeAspectRatio(captureRect.width, captureRect.height);
+
+      console.log("[export-diagnostics] dom", {
+        rectWidth: captureRect.width,
+        rectHeight: captureRect.height,
+        roundedWidth: captureWidth,
+        roundedHeight: captureHeight,
+        aspectRatio: domAspectRatio,
+        targetWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : EXPORT_SHARE_WIDTH,
+        targetHeight: isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT,
+        targetAspectRatio: computeAspectRatio(
+          isMobileDevice ? EXPORT_MOBILE_WIDTH : EXPORT_SHARE_WIDTH,
+          isMobileDevice ? EXPORT_MOBILE_HEIGHT : EXPORT_SHARE_HEIGHT
+        ),
+        captureScale,
+        isMobileDevice,
+      });
 
       previousNodeInlineStyles = {
         position: node.style.position,
@@ -1050,26 +1853,51 @@ function App() {
       node.classList.add("capture-freeze");
 
       const captureWithHtml2Canvas = async (foreignObjectRendering) => {
+        const mobileCaptureDimensions = isMobileDevice
+          ? {
+              width: EXPORT_MOBILE_WIDTH,
+              height: EXPORT_MOBILE_HEIGHT,
+              windowWidth: EXPORT_MOBILE_WIDTH,
+              windowHeight: EXPORT_MOBILE_HEIGHT,
+            }
+          : {};
+
         const canvas = await html2canvas(node, {
           backgroundColor: "#07111f",
           useCORS: true,
           allowTaint: false,
-          width: captureWidth,
-          height: captureHeight,
           scrollX: 0,
           scrollY: 0,
           imageTimeout: 15000,
           removeContainer: true,
           logging: false,
           foreignObjectRendering,
-          windowWidth: captureWidth,
-          windowHeight: captureHeight,
           scale: captureScale,
+          ...mobileCaptureDimensions,
         });
 
-        return new Promise((resolve, reject) => {
-          canvasToJpegBlob(canvas, EXPORT_JPEG_QUALITY).then(resolve).catch(reject);
+        console.log("[export-diagnostics] html2canvas-canvas", {
+          foreignObjectRendering,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          canvasAspectRatio: computeAspectRatio(canvas.width, canvas.height),
         });
+
+        const html2CanvasBlob = await new Promise((resolve, reject) => {
+          canvasToJpegBlob(canvas, captureJpegQuality).then(resolve).catch(reject);
+        });
+
+        const html2CanvasBlobMetrics = await readBlobImageDimensions(html2CanvasBlob);
+        console.log("[export-diagnostics] html2canvas-blob", {
+          foreignObjectRendering,
+          type: html2CanvasBlob?.type || null,
+          size: html2CanvasBlob?.size || null,
+          width: html2CanvasBlobMetrics?.width || null,
+          height: html2CanvasBlobMetrics?.height || null,
+          aspectRatio: html2CanvasBlobMetrics?.aspectRatio || null,
+        });
+
+        return html2CanvasBlob;
       };
 
       let blob = null;
@@ -1087,15 +1915,40 @@ function App() {
 
       if (!blob) {
         try {
+          const htmlToImageCanvas = await htmlToImageToCanvas(node, {
+            cacheBust: true,
+            pixelRatio: captureScale,
+            backgroundColor: "#07111f",
+            canvasWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : undefined,
+            canvasHeight: isMobileDevice ? EXPORT_MOBILE_HEIGHT : undefined,
+          });
+
+          console.log("[export-diagnostics] html-to-image-canvas", {
+            canvasWidth: htmlToImageCanvas.width,
+            canvasHeight: htmlToImageCanvas.height,
+            canvasAspectRatio: computeAspectRatio(htmlToImageCanvas.width, htmlToImageCanvas.height),
+          });
+
           blob = await htmlToImageToBlob(node, {
             cacheBust: true,
             pixelRatio: captureScale,
-            canvasWidth: captureWidth,
-            canvasHeight: captureHeight,
-            quality: EXPORT_JPEG_QUALITY,
+            quality: captureJpegQuality,
             type: "image/jpeg",
             backgroundColor: "#07111f",
+            canvasWidth: isMobileDevice ? EXPORT_MOBILE_WIDTH : undefined,
+            canvasHeight: isMobileDevice ? EXPORT_MOBILE_HEIGHT : undefined,
           });
+
+          if (blob) {
+            const htmlToImageBlobMetrics = await readBlobImageDimensions(blob);
+            console.log("[export-diagnostics] html-to-image-blob", {
+              type: blob.type,
+              size: blob.size,
+              width: htmlToImageBlobMetrics?.width || null,
+              height: htmlToImageBlobMetrics?.height || null,
+              aspectRatio: htmlToImageBlobMetrics?.aspectRatio || null,
+            });
+          }
         } catch (primaryCaptureError) {
           console.error("html-to-image capture failed, falling back to html2canvas", {
             message: primaryCaptureError?.message || String(primaryCaptureError),
@@ -1130,7 +1983,21 @@ function App() {
         throw new Error("Nepodařilo se připravit JPG.");
       }
 
-      blob = await normalizeShareBlobToJpeg(blob, EXPORT_JPEG_QUALITY);
+      blob = await normalizeShareBlobToJpeg(blob, captureJpegQuality);
+
+      const finalBlobMetrics = await readBlobImageDimensions(blob);
+      console.log("[export-diagnostics] final-jpg", {
+        type: blob?.type || null,
+        size: blob?.size || null,
+        width: finalBlobMetrics?.width || null,
+        height: finalBlobMetrics?.height || null,
+        aspectRatio: finalBlobMetrics?.aspectRatio || null,
+        domAspectRatio,
+        aspectDelta:
+          finalBlobMetrics?.aspectRatio !== null && domAspectRatio !== null
+            ? Number((finalBlobMetrics.aspectRatio - domAspectRatio).toFixed(6))
+            : null,
+      });
 
       console.log("JPG generated", {
         width: Math.round(captureWidth * captureScale),
@@ -1172,6 +2039,7 @@ function App() {
 
       captureSurface?.classList.remove("is-capturing");
       exportCardRef.current?.classList.remove("capture-freeze");
+      exportMobileCardRef.current?.classList.remove("capture-freeze");
       completionCardRef.current?.classList.remove("capture-freeze");
       completionScreenRef.current?.classList.remove("capture-freeze");
       setIsPreparingShareImage(false);
@@ -1187,8 +2055,6 @@ function App() {
     const updated = [...existing, moment];
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     setSavedMoments(updated);
-    setPublicMapMoments(updated);
-    setPublicMapVersion((value) => value + 1);
     return updated;
   };
 
@@ -1201,19 +2067,163 @@ function App() {
     const updated = existing.filter((moment) => moment.id !== momentId);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     setSavedMoments(updated);
-    setPublicMapMoments(updated);
-    setPublicMapVersion((value) => value + 1);
     return updated;
   };
 
-  const handleDeleteSelectedPublicMoment = () => {
+  const handleToggleMomentReaction = useCallback((momentOrId = "") => {
+    const safeId = typeof momentOrId === "object" && momentOrId !== null
+      ? getMomentReactionKey(momentOrId)
+      : normalizeMomentId(momentOrId || "");
+
+    if (!safeId) {
+      return;
+    }
+
+    setMomentReactions((current) => {
+      const next = toggleMomentReaction(current, momentOrId);
+      saveMomentReactions(next);
+
+      const sourceMoment = typeof momentOrId === "object" && momentOrId !== null
+        ? momentOrId
+        : selectedPublicMoment;
+
+      if (sourceMoment?.id) {
+        const resolvedMomentReaction = resolveMomentReactionState(next, sourceMoment);
+        const nextLocalReactionState = resolvedMomentReaction?.key ? next?.[resolvedMomentReaction.key] : null;
+        const nextMomentPayload = buildMomentReactionPayload(
+          sourceMoment,
+          resolvedMomentReaction?.key
+            ? {
+              [resolvedMomentReaction.key]: {
+                count: Math.max(0, Number(nextLocalReactionState?.count) || 0),
+                liked: false,
+              },
+            }
+            : {}
+        );
+        setSelectedPublicMoment((currentMoment) => currentMoment?.id === sourceMoment.id ? nextMomentPayload : currentMoment);
+        setRemotePublicMoments((currentMoments) => currentMoments.map((moment) => {
+          const sameMoment = normalizeMomentId(moment?.id || "") === normalizeMomentId(sourceMoment.id || "");
+          if (!sameMoment) {
+            return moment;
+          }
+
+          return {
+            ...moment,
+            ...nextMomentPayload,
+            reactions: normalizeReactionPayload(nextMomentPayload.reactions),
+          };
+        }));
+      }
+
+      return next;
+    });
+  }, [publishMomentToPublicMap, selectedPublicMoment]);
+
+  const getCurrentMomentReactionState = useCallback((moment = selectedPublicMoment) => {
+    if (!moment) {
+      return { count: 0, liked: false };
+    }
+
+    return resolveMomentReactionState(momentReactions, moment).state;
+  }, [momentReactions, selectedPublicMoment]);
+
+  const selectedMomentReactionState = useMemo(
+    () => getCurrentMomentReactionState(selectedPublicMoment),
+    [getCurrentMomentReactionState, selectedPublicMoment]
+  );
+
+  const handleDeleteSelectedPublicMoment = async () => {
     if (!selectedPublicMoment?.id) {
       return;
     }
 
+    if (!canDeleteMoment(selectedPublicMoment)) {
+      window.alert("Tento moment nelze z tohoto zařízení smazat.");
+      return;
+    }
+
     removeMomentFromStorage(selectedPublicMoment.id);
+    const safeOwnerId = normalizeMomentId(selectedPublicMoment.ownerId || "");
+    if (safeOwnerId) {
+      const deletedRemote = await deleteMomentFromPublicMap(selectedPublicMoment.id, safeOwnerId);
+      if (!deletedRemote) {
+        window.alert("Mazání veřejného momentu se nepodařilo. Zkuste to prosím znovu.");
+      }
+    }
+
+    loadRemotePublicMoments().catch((error) => {
+      console.error("Obnova veřejných momentů po smazání selhala:", error);
+    });
     setSelectedPublicMoment(null);
+    setSelectedPublicMomentGroup([]);
+    setSelectedPublicMomentGroupIndex(0);
   };
+
+  const showPublicMomentAtGroupIndex = useCallback((index) => {
+    if (!selectedPublicMomentGroup.length) {
+      return;
+    }
+
+    const size = selectedPublicMomentGroup.length;
+    const normalizedIndex = ((index % size) + size) % size;
+    setSelectedPublicMomentGroupIndex(normalizedIndex);
+    setSelectedPublicMoment(selectedPublicMomentGroup[normalizedIndex] || null);
+  }, [selectedPublicMomentGroup]);
+
+  const showNextPublicMoment = useCallback(() => {
+    showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex + 1);
+  }, [selectedPublicMomentGroupIndex, showPublicMomentAtGroupIndex]);
+
+  const showPreviousPublicMoment = useCallback(() => {
+    showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex - 1);
+  }, [selectedPublicMomentGroupIndex, showPublicMomentAtGroupIndex]);
+
+  const selectClusteredPublicMoment = useCallback((moment, clusterItems = []) => {
+    const clusterSelection = buildSelectionCluster(
+      clusterItems,
+      moment,
+      86,
+      (candidate) => {
+        const x = Number(candidate?.screenX ?? candidate?.x ?? 0);
+        const y = Number(candidate?.screenY ?? candidate?.y ?? 0);
+        return { x, y };
+      }
+    );
+
+    if (!clusterSelection.cluster.length) {
+      setSelectedPublicMomentGroup([moment]);
+      setSelectedPublicMomentGroupIndex(0);
+      setSelectedPublicMoment(moment);
+      return;
+    }
+
+    const orderedCluster = [...clusterSelection.cluster].sort((left, right) => {
+      const leftTime = Date.parse(left.createdAt || "") || 0;
+      const rightTime = Date.parse(right.createdAt || "") || 0;
+      return rightTime - leftTime;
+    });
+
+    const activeIndex = Math.max(0, orderedCluster.findIndex((item) => item.id === moment.id));
+    setSelectedPublicMomentGroup(orderedCluster);
+    setSelectedPublicMomentGroupIndex(activeIndex);
+    setSelectedPublicMoment(orderedCluster[activeIndex] || moment);
+  }, []);
+
+  const syncSelectedPublicMarker = useCallback(() => {
+    const selectedId = normalizeMomentId(selectedPublicMoment?.id || "");
+    const markerMap = publicMarkerElementsRef.current;
+
+    markerMap.forEach((element, markerId) => {
+      if (!element) {
+        return;
+      }
+
+      const isActive = !!selectedId && markerId === selectedId;
+      element.classList.toggle("is-selected", isActive);
+      element.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  }, [selectedPublicMoment?.id]);
 
   const goToCompletionStep = (event) => {
     event.preventDefault();
@@ -1224,9 +2234,14 @@ function App() {
 
     const latitude = parseCoordinate(selectedTown?.latitude);
     const longitude = parseCoordinate(selectedTown?.longitude);
+    const effectiveOwnerId = clientId || getOrCreateClientId();
+    if (!clientId && effectiveOwnerId) {
+      setClientId(effectiveOwnerId);
+    }
 
     const createdMoment = {
       id: `${Date.now()}`,
+      ownerId: effectiveOwnerId,
       obec: selectedTown?.nazev || "",
       okres: selectedTown?.okres || "",
       kraj: selectedTown?.kraj || "",
@@ -1243,6 +2258,9 @@ function App() {
     };
 
     saveMomentToStorage(createdMoment);
+    publishMomentToPublicMap(createdMoment).catch((error) => {
+      console.error("Publikace momentu selhala:", error);
+    });
     setCompleteMoment(createdMoment);
     setAnimationComplete(false);
     setScreen("complete");
@@ -1413,15 +2431,29 @@ function App() {
             }
           }
 
-          const mobileBlobUrl = URL.createObjectURL(blob);
-          setDirectDownloadLink(mobileBlobUrl, filename, true);
-          const openedBlobTab = window.open(mobileBlobUrl, "_blank", "noopener,noreferrer");
-          if (!openedBlobTab) {
-            setShareStatus("Tento prohlížeč nepodporuje přímé stažení. Otevřete stránku v Safari nebo Chrome.");
+          const uploadedDownload = await uploadShareImageForFacebook(
+            blob,
+            completeMoment.nazev,
+            activeShareId,
+            { client: "mobile" }
+          );
+          if (uploadedDownload?.imageUrl) {
+            await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
+
+            const mobileDownloadUrl = appendVersionQuery(
+              buildServerDownloadUrl(uploadedDownload.imageUrl, filename) || uploadedDownload.imageUrl,
+              attemptToken
+            );
+            setDirectDownloadLink(mobileDownloadUrl, filename, false);
+            window.location.assign(mobileDownloadUrl);
+            setShareStatus("JPG otevřeno pro stažení. V mobilním Chrome případně použijte menu a zvolte Stáhnout.");
             return;
           }
 
-          setShareStatus("JPG otevřeno v nové kartě. Uložte obrázek přes nabídku prohlížeče.");
+          const mobileBlobUrl = shareImageObjectUrlRef.current || URL.createObjectURL(blob);
+          setDirectDownloadLink(mobileBlobUrl, filename, mobileBlobUrl.startsWith("blob:"));
+          window.location.assign(mobileBlobUrl);
+          setShareStatus("JPG otevřeno. Pokud se nestáhne samo, použijte nabídku prohlížeče nebo podržte obrázek.");
           return;
         }
 
@@ -1440,40 +2472,6 @@ function App() {
           setShareStatus("Stahuji JPG v plne kvalite.");
           return;
         }
-
-        const uploadedDownload = await uploadShareImageForFacebook(
-          blob,
-          completeMoment.nazev,
-          activeShareId,
-          { client: "desktop" }
-        );
-        if (uploadedDownload?.imageUrl) {
-          await waitForShareImageAvailability(uploadedDownload.imageUrl, 6000);
-
-          if (isMobileClient) {
-            const mobileImageUrl = appendVersionQuery(uploadedDownload.imageUrl, attemptToken);
-            setDirectDownloadLink(mobileImageUrl, filename, false);
-            window.location.assign(mobileImageUrl);
-            setShareStatus("JPG otevreno. Na iPhonu dlouze podrzte obrazek a ulozte ho do fotek.");
-            return;
-          }
-
-          const uniqueFilename = `${slugify(completeMoment.obec || completeMoment.nazev || "osudovy-moment")}-${uploadedDownload.id || Date.now()}.jpg`;
-          const serverDownloadUrl = appendVersionQuery(
-            buildServerDownloadUrl(uploadedDownload.imageUrl, uniqueFilename),
-            attemptToken
-          );
-          setDirectDownloadLink(serverDownloadUrl, filename, false);
-          const downloadedFromServer = triggerServerDownload(serverDownloadUrl, {
-            sameTab: true,
-          });
-          if (downloadedFromServer) {
-            setShareStatus("Otevírám stejné serverové JPG pro všechna zařízení.");
-            return;
-          }
-        }
-
-        setShareStatus("Nepodařilo se připravit serverové JPG pro stažení. Zkuste to prosím znovu.");
       }
     } catch (error) {
       console.error("Nepodařilo se vytvořit JPG kartičku:", error);
@@ -1658,6 +2656,7 @@ function App() {
         </p>
 
         {renderMomentSummary()}
+        <p className="line-by-mine-credit">© Line By Mine</p>
       </div>
     </>
   );
@@ -1681,6 +2680,7 @@ function App() {
         </p>
 
         {renderMomentSummary()}
+        <p className="line-by-mine-credit">© Line By Mine</p>
 
         {showActions ? (
           <div className="completion-actions">
@@ -1780,7 +2780,10 @@ function App() {
       inertia: true,
       inertiaDeceleration: 3000,
       inertiaMaxSpeed: 1500,
-    }).setView([latitude, longitude], 9);
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+    }).setView([latitude, longitude], 11, { animate: false });
 
     completionMapRef.current = map;
 
@@ -1824,18 +2827,37 @@ function App() {
 
     const markerElement = L.DomUtil.create("div", "completion-map-marker is-fade");
     markerElement.setAttribute("data-stage", "fade");
-    markerElement.innerHTML = renderMomentMarkerBody(selectedPlace.symbolImage);
+    markerElement.innerHTML = renderMomentMarkerBody(
+      resolveMomentSymbolImage(selectedPlace, selectedSymbol?.image || "")
+    );
     markerLayer.appendChild(markerElement);
+
+    const placeLabelText = (selectedPlace.obec || selectedPlace.nazev || "").trim();
+    const placeLabelElement = placeLabelText
+      ? L.DomUtil.create("div", "completion-map-place-label")
+      : null;
+    if (placeLabelElement) {
+      placeLabelElement.textContent = placeLabelText;
+      markerLayer.appendChild(placeLabelElement);
+    }
 
     markerRef.current = markerElement;
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
-      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x));
-      const boundedY = Math.max(24, Math.min(container.clientHeight - 24, point.y));
+      const markerSize = 210;
+      const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
+      markerElement.style.left = `${point.x - markerSize / 2}px`;
+      markerElement.style.top = `${point.y - markerSize / 2}px`;
+      markerElement.style.setProperty("--marker-scale", scaleValue);
 
-      markerElement.style.left = `${boundedX}px`;
-      markerElement.style.top = `${boundedY}px`;
+      if (placeLabelElement) {
+        const labelX = point.x;
+        const labelY = point.y + 68 > container.clientHeight - 18 ? point.y - 84 : point.y + 68;
+
+        placeLabelElement.style.left = `${labelX}px`;
+        placeLabelElement.style.top = `${labelY}px`;
+      }
     };
 
     const handleMapResize = () => {
@@ -1947,7 +2969,7 @@ function App() {
       zoomAnimation: false,
       markerZoomAnimation: false,
       inertia: false,
-    }).setView([latitude, longitude], 9, { animate: false });
+    }).setView([latitude, longitude], 11, { animate: false });
 
     exportMapRef.current = map;
 
@@ -1975,16 +2997,33 @@ function App() {
 
     const markerElement = L.DomUtil.create("div", "completion-map-marker is-final");
     markerElement.setAttribute("data-stage", "ready");
-    markerElement.innerHTML = renderMomentMarkerBody(place.symbolImage);
+    markerElement.innerHTML = renderMomentMarkerBody(resolveMomentSymbolImage(place));
     markerLayer.appendChild(markerElement);
+
+    const exportPlaceLabelText = (place.obec || place.nazev || "").trim();
+    const exportPlaceLabelElement = exportPlaceLabelText
+      ? L.DomUtil.create("div", "completion-map-place-label")
+      : null;
+    if (exportPlaceLabelElement) {
+      exportPlaceLabelElement.textContent = exportPlaceLabelText;
+      markerLayer.appendChild(exportPlaceLabelElement);
+    }
 
     const updateMarkerPosition = () => {
       const point = map.latLngToContainerPoint([latitude, longitude]);
-      const markerAnchorX = 14;
-      const boundedX = Math.max(24, Math.min(container.clientWidth - 24, point.x - markerAnchorX));
-      const boundedY = Math.max(24, Math.min(container.clientHeight - 24, point.y));
-      markerElement.style.left = `${boundedX}px`;
-      markerElement.style.top = `${boundedY}px`;
+      const markerSize = 210;
+      const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
+      markerElement.style.left = `${point.x - markerSize / 2}px`;
+      markerElement.style.top = `${point.y - markerSize / 2}px`;
+      markerElement.style.setProperty("--marker-scale", scaleValue);
+
+      if (exportPlaceLabelElement) {
+        const labelX = point.x;
+        const labelY = point.y + 68 > container.clientHeight - 18 ? point.y - 84 : point.y + 68;
+
+        exportPlaceLabelElement.style.left = `${labelX}px`;
+        exportPlaceLabelElement.style.top = `${labelY}px`;
+      }
     };
 
     const handleExportMapResize = () => {
@@ -2038,6 +3077,7 @@ function App() {
 
   useEffect(() => {
     if (screen !== "public-map") {
+      publicMarkerElementsRef.current.clear();
       if (publicMapRef.current) {
         publicMapRef.current.remove();
         publicMapRef.current = null;
@@ -2066,7 +3106,10 @@ function App() {
       minZoom: 3,
       maxZoom: 15,
       preferCanvas: true,
-    }).setView([49.8, 15.3], 6);
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+    }).setView([49.8, 15.3], 6, { animate: false });
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
@@ -2084,30 +3127,205 @@ function App() {
       zIndex: 650,
     }).addTo(map);
 
+    if (!map.getPane("momentsPane")) {
+      const momentsPane = map.createPane("momentsPane");
+      momentsPane.style.zIndex = "700";
+    }
+
     const validMoments = publicMapMoments.filter((moment) => {
       const latitude = parseCoordinate(moment?.latitude);
       const longitude = parseCoordinate(moment?.longitude);
       return latitude !== null && longitude !== null;
     });
 
-    validMoments.forEach((moment) => {
-      const markerIcon = L.divIcon({
-        html: renderMomentMarkerMarkup(moment.symbolImage, ["is-final", "public-map-marker"]),
-        className: "",
-        iconSize: [210, 210],
-        iconAnchor: [105, 105],
+    const getSpreadMoments = (focusMomentId = selectedPublicMomentIdRef.current) =>
+      spreadOverlappingMoments(validMoments, focusMomentId);
+
+    const spreadMoments = getSpreadMoments();
+    publicMarkerElementsRef.current.clear();
+
+    const openMomentGroup = (moment) => {
+      const spreadForCurrentFocus = getSpreadMoments();
+      const selectedLat = Number(moment.displayLatitude ?? moment.latitude);
+      const selectedLng = Number(moment.displayLongitude ?? moment.longitude);
+      const selectedPoint = map.latLngToContainerPoint([selectedLat, selectedLng]);
+
+      const nearby = spreadForCurrentFocus.filter((candidate) => {
+        const candidateLat = Number(candidate.displayLatitude ?? candidate.latitude);
+        const candidateLng = Number(candidate.displayLongitude ?? candidate.longitude);
+        const candidatePoint = map.latLngToContainerPoint([candidateLat, candidateLng]);
+        const distance = Math.hypot(candidatePoint.x - selectedPoint.x, candidatePoint.y - selectedPoint.y);
+        return distance <= 86;
       });
 
-      const marker = L.marker([moment.latitude, moment.longitude], { icon: markerIcon }).addTo(map);
-      marker.on("click", () => {
-        setSelectedPublicMoment(moment);
+      const uniqueNearby = nearby.filter(
+        (candidate, index, array) => array.findIndex((item) => item.id === candidate.id) === index
+      );
+
+      const clusterItems = uniqueNearby.map((candidate) => {
+        const candidateLat = Number(candidate.displayLatitude ?? candidate.latitude);
+        const candidateLng = Number(candidate.displayLongitude ?? candidate.longitude);
+        const candidatePoint = map.latLngToContainerPoint([candidateLat, candidateLng]);
+        return {
+          ...candidate,
+          screenX: candidatePoint.x,
+          screenY: candidatePoint.y,
+        };
       });
+
+      const clusteredMoment = {
+        ...moment,
+        screenX: selectedPoint.x,
+        screenY: selectedPoint.y,
+      };
+
+      selectClusteredPublicMoment(clusteredMoment, clusterItems);
+    };
+
+    const markerTouchCleanup = [];
+    const markerLayer = L.DomUtil.create("div", "completion-map-overlay");
+    map.getPane("overlayPane").appendChild(markerLayer);
+    markerLayer.style.zIndex = "560";
+
+    const syncPublicMarkerPositions = (focusMomentId = selectedPublicMomentIdRef.current) => {
+      const laidOutMoments = getSpreadMoments(focusMomentId);
+      const scaleValue = String(getMarkerScaleFromZoom(map.getZoom()));
+
+      laidOutMoments.forEach((laidOutMoment) => {
+        const markerElement = publicMarkerElementsRef.current.get(normalizeMomentId(laidOutMoment.id || ""));
+        if (!markerElement) {
+          return;
+        }
+
+        const latitude = parseCoordinate(laidOutMoment?.displayLatitude ?? laidOutMoment?.latitude);
+        const longitude = parseCoordinate(laidOutMoment?.displayLongitude ?? laidOutMoment?.longitude);
+        if (latitude === null || longitude === null) {
+          return;
+        }
+
+        const point = map.latLngToContainerPoint([latitude, longitude]);
+        const markerSize = 210;
+        markerElement.style.left = `${point.x - markerSize / 2}px`;
+        markerElement.style.top = `${point.y - markerSize / 2}px`;
+        markerElement.style.setProperty("--marker-scale", scaleValue);
+
+        const markerIcon = markerElement.querySelector?.(".completion-map-marker");
+        if (markerIcon) {
+          markerIcon.style.setProperty("--marker-scale", scaleValue);
+        }
+      });
+    };
+
+    publicMarkerLayoutSyncRef.current = syncPublicMarkerPositions;
+
+    spreadMoments.forEach((moment) => {
+      const markerElement = L.DomUtil.create("div", "public-map-marker-shell");
+      markerElement.innerHTML = renderMomentMarkerMarkup(resolveMomentSymbolImage(moment), ["is-final", "public-map-marker"]);
+      markerLayer.appendChild(markerElement);
+
+      const markerKey = normalizeMomentId(moment.id || "");
+      if (markerKey) {
+        publicMarkerElementsRef.current.set(markerKey, markerElement);
+      }
+
+      let suppressNextClick = false;
+
+      if (markerElement) {
+        let longPressTimer = 0;
+        let startX = 0;
+        let startY = 0;
+        let longPressTriggered = false;
+
+        const clearLongPressTimer = () => {
+          if (longPressTimer) {
+            window.clearTimeout(longPressTimer);
+            longPressTimer = 0;
+          }
+        };
+
+        const handleTouchStart = (event) => {
+          const touch = event.touches?.[0];
+          if (!touch) {
+            return;
+          }
+
+          longPressTriggered = false;
+          startX = touch.clientX;
+          startY = touch.clientY;
+          clearLongPressTimer();
+          longPressTimer = window.setTimeout(() => {
+            longPressTriggered = true;
+            suppressNextClick = true;
+            openMomentGroup(moment);
+            if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+              navigator.vibrate(12);
+            }
+          }, 380);
+        };
+
+        const handleTouchMove = (event) => {
+          const touch = event.touches?.[0];
+          if (!touch) {
+            return;
+          }
+
+          const moveDistance = Math.hypot(touch.clientX - startX, touch.clientY - startY);
+          if (moveDistance > 10) {
+            clearLongPressTimer();
+          }
+        };
+
+        const handleTouchEnd = (event) => {
+          clearLongPressTimer();
+          if (longPressTriggered) {
+            event.preventDefault();
+          }
+        };
+
+        const handleTouchCancel = () => {
+          clearLongPressTimer();
+        };
+
+        markerElement.addEventListener("touchstart", handleTouchStart, { passive: true });
+        markerElement.addEventListener("touchmove", handleTouchMove, { passive: true });
+        markerElement.addEventListener("touchend", handleTouchEnd, { passive: false });
+        markerElement.addEventListener("touchcancel", handleTouchCancel, { passive: true });
+
+        markerTouchCleanup.push(() => {
+          markerElement.removeEventListener("touchstart", handleTouchStart);
+          markerElement.removeEventListener("touchmove", handleTouchMove);
+          markerElement.removeEventListener("touchend", handleTouchEnd);
+          markerElement.removeEventListener("touchcancel", handleTouchCancel);
+        });
+      }
+
+      const tooltipText = (moment.obec || moment.nazev || "").trim();
+      if (tooltipText) {
+        markerElement.setAttribute("title", tooltipText);
+      }
+
+      markerElement.addEventListener("click", () => {
+        if (suppressNextClick) {
+          suppressNextClick = false;
+          return;
+        }
+        openMomentGroup(moment);
+      });
+    });
+
+    syncPublicMarkerPositions();
+    map.on("zoom zoomend viewreset move resize", syncPublicMarkerPositions);
+    markerTouchCleanup.push(() => {
+      map.off("zoom zoomend viewreset move resize", syncPublicMarkerPositions);
+      if (publicMarkerLayoutSyncRef.current === syncPublicMarkerPositions) {
+        publicMarkerLayoutSyncRef.current = null;
+      }
     });
 
     if (validMoments.length === 0) {
       map.setView([49.8, 15.3], 6);
     } else {
-      const bounds = L.latLngBounds(validMoments.map((moment) => [moment.latitude, moment.longitude]));
+      const bounds = L.latLngBounds(spreadMoments.map((moment) => [moment.displayLatitude, moment.displayLongitude]));
       map.fitBounds(bounds.pad(0.2), { animate: false, maxZoom: 8 });
     }
 
@@ -2128,16 +3346,35 @@ function App() {
 
     requestAnimationFrame(() => {
       handlePublicMapResize();
+      syncSelectedPublicMarker();
     });
 
     return () => {
+      markerTouchCleanup.forEach((cleanup) => cleanup());
+      publicMarkerElementsRef.current.clear();
       window.removeEventListener("resize", handlePublicMapResize);
       if (publicMapRef.current) {
         publicMapRef.current.remove();
         publicMapRef.current = null;
       }
     };
-  }, [screen, publicMapMoments, publicMapVersion]);
+  }, [screen, publicMapMoments, syncSelectedPublicMarker]);
+
+  useEffect(() => {
+    if (screen !== "public-map") {
+      return;
+    }
+
+    syncSelectedPublicMarker();
+  }, [screen, selectedPublicMoment?.id, syncSelectedPublicMarker]);
+
+  useEffect(() => {
+    if (screen !== "public-map") {
+      return;
+    }
+
+    publicMarkerLayoutSyncRef.current?.(selectedPublicMomentIdRef.current);
+  }, [screen, selectedPublicMoment?.id]);
 
   const handleShowOnMap = () => {
     setScreen("home");
@@ -2152,6 +3389,11 @@ function App() {
 
   const handleOpenPublicMap = () => {
     setSelectedPublicMoment(null);
+    setSelectedPublicMomentGroup([]);
+    setSelectedPublicMomentGroupIndex(0);
+    loadRemotePublicMoments().catch((error) => {
+      console.error("Obnova veřejných momentů selhala:", error);
+    });
     setScreen("public-map");
   };
 
@@ -2273,6 +3515,9 @@ function App() {
                   <p className="wizard-text">
                     Vyberte symbol na mapě a zobrazte detail vybraného osudového momentu.
                   </p>
+                  <p className="wizard-text public-map-help-text">
+                    Když je momentů víc blízko sebe, podržte symbol (mobil) nebo klikněte a v detailu použijte Předchozí/Další.
+                  </p>
                 </div>
 
                 <div className="public-map-shell">
@@ -2287,18 +3532,43 @@ function App() {
                   <button
                     className="public-map-detail__close"
                     type="button"
-                    onClick={() => setSelectedPublicMoment(null)}
+                    onClick={() => {
+                      setSelectedPublicMoment(null);
+                      setSelectedPublicMomentGroup([]);
+                      setSelectedPublicMomentGroupIndex(0);
+                    }}
                     aria-label="Zavřít detail"
                   >
                     ×
                   </button>
 
+                  {selectedPublicMomentGroup.length > 1 ? (
+                    <div className="public-map-detail__pager" aria-label="Přepínání blízkých momentů">
+                      <button
+                        className="public-map-detail__pager-button"
+                        type="button"
+                        onClick={showPreviousPublicMoment}
+                      >
+                        ← Předchozí
+                      </button>
+                      <span className="public-map-detail__pager-count">
+                        {selectedPublicMomentGroupIndex + 1} / {selectedPublicMomentGroup.length}
+                      </span>
+                      <button
+                        className="public-map-detail__pager-button"
+                        type="button"
+                        onClick={showNextPublicMoment}
+                      >
+                        Další →
+                      </button>
+                    </div>
+                  ) : null}
+
                   <div className="public-map-detail__symbol">
-                    {selectedPublicMoment.symbolImage ? (
-                      <img src={selectedPublicMoment.symbolImage} alt={selectedPublicMoment.symbolLabel || "Symbol"} />
-                    ) : (
-                      <span>✦</span>
-                    )}
+                    <img
+                      src={resolveMomentSymbolImage(selectedPublicMoment)}
+                      alt={selectedPublicMoment.symbolLabel || "Symbol"}
+                    />
                   </div>
 
                   <div className="public-map-detail__body">
@@ -2317,13 +3587,26 @@ function App() {
                       </div>
                     ) : null}
 
-                    <button
-                      className="public-map-detail__delete"
-                      type="button"
-                      onClick={handleDeleteSelectedPublicMoment}
-                    >
-                      Smazat z mapy
-                    </button>
+                    <div className="public-map-detail__actions">
+                      <button
+                        className={`public-map-detail__reaction${selectedMomentReactionState.liked ? " is-active" : ""}`}
+                        type="button"
+                        onClick={() => handleToggleMomentReaction(selectedPublicMoment)}
+                        aria-label="Přidat reakci"
+                        disabled={selectedMomentReactionState.liked}
+                      >
+                        <span aria-hidden="true">❤️</span>
+                        <span>{selectedMomentReactionState.count || 0}</span>
+                      </button>
+                      <button
+                        className="public-map-detail__delete"
+                        type="button"
+                        onClick={handleDeleteSelectedPublicMoment}
+                        disabled={!canDeleteMoment(selectedPublicMoment)}
+                      >
+                        {canDeleteMoment(selectedPublicMoment) ? "Smazat můj moment" : "Nelze smazat cizí moment"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2593,11 +3876,24 @@ function App() {
               </main>
             </div>
 
-            <div className="export-render-surface" aria-hidden="true">
-              <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
-                {renderExportCardContent()}
-              </section>
-            </div>
+            {isMobileClient ? (
+              <div className="export-render-surface export-render-surface--mobile" aria-hidden="true">
+                <section className="wizard-card completion-card is-exporting-mobile" ref={exportMobileCardRef}>
+                  <MobileMomentExportCard
+                    completeMoment={completeMoment}
+                    exportMomentUrl={exportMomentUrl}
+                    exportMapContainerRef={exportMapContainerRef}
+                    selectedSymbolLabel={selectedSymbol?.label}
+                  />
+                </section>
+              </div>
+            ) : (
+              <div className="export-render-surface" aria-hidden="true">
+                <section className="wizard-card completion-card is-exporting" ref={exportCardRef}>
+                  {renderExportCardContent()}
+                </section>
+              </div>
+            )}
           </>
         )}
       </div>
