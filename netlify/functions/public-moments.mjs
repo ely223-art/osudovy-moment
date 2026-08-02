@@ -14,6 +14,7 @@ const toJsonResponse = (status, payload) =>
   });
 
 const normalizeId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
+const normalizeText = (value = "") => String(value ?? "").trim();
 const normalizeMomentKey = (value = "") => {
   const trimmed = String(value || "").trim();
   if (!trimmed) {
@@ -67,18 +68,18 @@ const normalizeMoment = (moment = {}, options = {}) => {
     id,
     ownerId,
     originalId: originalId || id,
-    obec: String(moment?.obec || "").slice(0, 120),
-    okres: String(moment?.okres || "").slice(0, 120),
-    kraj: String(moment?.kraj || "").slice(0, 120),
-    stat: String(moment?.stat || "").slice(0, 120),
+    obec: normalizeText(moment?.obec).slice(0, 120),
+    okres: normalizeText(moment?.okres).slice(0, 120),
+    kraj: normalizeText(moment?.kraj).slice(0, 120),
+    stat: normalizeText(moment?.stat).slice(0, 120),
     latitude,
     longitude,
-    symbolType: String(moment?.symbolType || "").slice(0, 60),
-    symbolImage: String(moment?.symbolImage || "").slice(0, 400),
-    symbolLabel: String(moment?.symbolLabel || "").slice(0, 100),
-    nazev: String(moment?.nazev || "").slice(0, 180),
-    prikaz: String(moment?.prikaz || "").slice(0, 500),
-    datum: String(moment?.datum || "").slice(0, 30),
+    symbolType: normalizeText(moment?.symbolType).slice(0, 60),
+    symbolImage: normalizeText(moment?.symbolImage).slice(0, 400),
+    symbolLabel: normalizeText(moment?.symbolLabel).slice(0, 100),
+    nazev: normalizeText(moment?.nazev).slice(0, 180),
+    prikaz: normalizeText(moment?.prikaz).slice(0, 500),
+    datum: normalizeText(moment?.datum).slice(0, 30),
     createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
     reactions: normalizeReactions(moment?.reactions),
   };
