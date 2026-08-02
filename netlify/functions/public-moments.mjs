@@ -333,6 +333,32 @@ export default async (request) => {
       return toJsonResponse(200, { ok: true, moments, reset: true });
     }
 
+    if (request.method === "POST" && payload?.setReactionCount === true) {
+      const targetId = normalizeId(payload?.id || "");
+      const nextCount = Math.max(0, Number(payload?.count) || 0);
+      if (!targetId) {
+        return toJsonResponse(400, { error: "Missing id" });
+      }
+
+      const updatedMoments = existing.map((moment) => {
+        if (moment.id !== targetId && moment.originalId !== targetId) {
+          return moment;
+        }
+
+        return {
+          ...moment,
+          reactions: nextCount > 0
+            ? {
+              [moment.id]: { count: nextCount, liked: false },
+            }
+            : {},
+        };
+      });
+
+      const moments = await saveMoments(store, updatedMoments);
+      return toJsonResponse(200, { ok: true, moments, updated: true });
+    }
+
     if (request.method === "DELETE") {
       const id = normalizeId(payload?.id || "");
       const ownerId = normalizeId(payload?.ownerId || "");
