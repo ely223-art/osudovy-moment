@@ -324,6 +324,15 @@ export default async (request) => {
 
     const existing = await loadMoments(store);
 
+    if (request.method === "POST" && payload?.resetAllReactions === true) {
+      const resetMoments = existing.map((moment) => ({
+        ...moment,
+        reactions: {},
+      }));
+      const moments = await saveMoments(store, resetMoments);
+      return toJsonResponse(200, { ok: true, moments, reset: true });
+    }
+
     if (request.method === "DELETE") {
       const id = normalizeId(payload?.id || "");
       const ownerId = normalizeId(payload?.ownerId || "");
