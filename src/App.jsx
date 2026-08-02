@@ -2080,10 +2080,16 @@ function App() {
 
       if (sourceMoment?.id) {
         const resolvedMomentReaction = resolveMomentReactionState(next, sourceMoment);
+        const nextLocalReactionState = resolvedMomentReaction?.key ? next?.[resolvedMomentReaction.key] : null;
         const nextMomentPayload = buildMomentReactionPayload(
           sourceMoment,
           resolvedMomentReaction?.key
-            ? { [resolvedMomentReaction.key]: resolvedMomentReaction.state }
+            ? {
+              [resolvedMomentReaction.key]: {
+                count: Math.max(0, Number(nextLocalReactionState?.count) || 0),
+                liked: false,
+              },
+            }
             : {}
         );
         setSelectedPublicMoment((currentMoment) => currentMoment?.id === sourceMoment.id ? nextMomentPayload : currentMoment);
