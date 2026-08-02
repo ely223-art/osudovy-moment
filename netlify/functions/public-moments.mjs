@@ -206,6 +206,42 @@ const normalizeReactions = (value = {}) => {
   );
 };
 
+const normalizeTextKey = (value = '') =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const isKnownKdyneMoment = (moment = {}) => {
+  const normalizedId = normalizeId(moment?.id || '');
+  if (normalizedId === '1785664076458') {
+    return true;
+  }
+
+  return (
+    normalizeTextKey(moment?.obec) === 'kdyne'
+    && normalizeTextKey(moment?.datum) === '2004-07-22'
+    && normalizeTextKey(moment?.nazev).includes('osudove setkani')
+  );
+};
+
+const repairKnownMomentText = (moment = {}) => {
+  if (!isKnownKdyneMoment(moment)) {
+    return moment;
+  }
+
+  return {
+    ...moment,
+    obec: 'Kdyně',
+    okres: 'Domažlice',
+    kraj: 'Plzeňský kraj',
+    symbolLabel: 'Láska',
+    nazev: 'Osudové setkání',
+    prikaz: 'Tady jsem se seznámila se svým budoucím mužem ❤️ Po 11ti letech vztahu a jednom dítěti mi zemřel 😢',
+  };
+};
+
 const normalizeMoment = (moment = {}, options = {}) => {
   const { requireOwnerId = false } = options;
   const originalId = String(moment?.id || "").trim();
@@ -218,7 +254,7 @@ const normalizeMoment = (moment = {}, options = {}) => {
     return null;
   }
 
-  return {
+  return repairKnownMomentText({
     id,
     ownerId,
     originalId: originalId || id,
@@ -236,7 +272,7 @@ const normalizeMoment = (moment = {}, options = {}) => {
     datum: normalizeText(moment?.datum).slice(0, 30),
     createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
     reactions: normalizeReactions(moment?.reactions),
-  };
+  });
 };
 
 const sortByCreatedAtDesc = (moments = []) =>

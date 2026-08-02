@@ -80,6 +80,42 @@ const repairTextValue = (value = "") => {
     .trim();
 };
 
+const normalizeTextKey = (value = "") =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const isKnownKdyneMoment = (moment = {}) => {
+  const normalizedId = normalizeMomentId(moment?.id || "");
+  if (normalizedId === "1785664076458") {
+    return true;
+  }
+
+  return (
+    normalizeTextKey(moment?.obec) === "kdyne"
+    && normalizeTextKey(moment?.datum) === "2004-07-22"
+    && normalizeTextKey(moment?.nazev).includes("osudove setkani")
+  );
+};
+
+const repairKnownPublicMomentText = (moment = {}) => {
+  if (!isKnownKdyneMoment(moment)) {
+    return moment;
+  }
+
+  return {
+    ...moment,
+    obec: "Kdyně",
+    okres: "Domažlice",
+    kraj: "Plzeňský kraj",
+    symbolLabel: "Láska",
+    nazev: "Osudové setkání",
+    prikaz: "Tady jsem se seznámila se svým budoucím mužem ❤️ Po 11ti letech vztahu a jednom dítěti mi zemřel 😢",
+  };
+};
+
 const parseCoordinate = (value) => {
   const numberValue = typeof value === "string" ? Number(value) : value;
   return Number.isFinite(numberValue) ? numberValue : null;
@@ -276,7 +312,7 @@ const normalizePublicMoment = (moment = {}) => {
     reactions: normalizeReactionPayload(moment?.reactions),
   };
 
-  return normalized;
+  return repairKnownPublicMomentText(normalized);
 };
 
 const mergeMomentsById = (localMoments = [], remoteMoments = []) => {
