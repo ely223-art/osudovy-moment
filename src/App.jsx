@@ -36,6 +36,50 @@ const normalizeText = (text = "") =>
     .toLowerCase()
     .trim();
 
+const repairTextValue = (value = "") => {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return "";
+  }
+
+  return text
+    .replace(/\uFFFD/g, "")
+    .replace(/sezn�mila/g, "seznámila")
+    .replace(/d�teti/g, "dítěti")
+    .replace(/zemrel/g, "zemřel")
+    .replace(/m�zem/g, "mužem")
+    .replace(/budouc�m/g, "budoucím")
+    .replace(/\u00e3\u0081/g, "á")
+    .replace(/\u00c4\u008d/g, "č")
+    .replace(/\u00c4\u0099/g, "ď")
+    .replace(/\u00c4\u008e/g, "ě")
+    .replace(/\u00c5\u0099/g, "ř")
+    .replace(/\u00c5\u00a5/g, "ť")
+    .replace(/\u00c5\u00af/g, "ů")
+    .replace(/\u00c5\u00bd/g, "ž")
+    .replace(/\u00c3\u00a1/g, "á")
+    .replace(/\u00c3\u00a9/g, "é")
+    .replace(/\u00c3\u00ad/g, "í")
+    .replace(/\u00c3\u00b3/g, "ó")
+    .replace(/\u00c3\u00ba/g, "ú")
+    .replace(/\u00c3\u00bd/g, "ý")
+    .replace(/\u00c4\u0081/g, "Á")
+    .replace(/\u00c4\u0082/g, "Â")
+    .replace(/\u00c4\u008d/g, "Č")
+    .replace(/\u00c4\u009b/g, "ě")
+    .replace(/\u00c5\u008d/g, "Ř")
+    .replace(/\u00c5\u009a/g, "Š")
+    .replace(/\u00c5\u00a0/g, "Š")
+    .replace(/\u00c5\u00a4/g, "Ť")
+    .replace(/\u00c5\u00af/g, "Ů")
+    .replace(/\u00c5\u00be/g, "Ž")
+    .replace(/\u00c5\u00bd/g, "Ž")
+    .replace(/\u00e2\u0080\u009d/g, "”")
+    .replace(/\u00e2\u0080\u0099/g, "’")
+    .normalize("NFC")
+    .trim();
+};
+
 const parseCoordinate = (value) => {
   const numberValue = typeof value === "string" ? Number(value) : value;
   return Number.isFinite(numberValue) ? numberValue : null;
@@ -216,18 +260,18 @@ const normalizePublicMoment = (moment = {}) => {
   const normalized = {
     id,
     ownerId: normalizeMomentId(moment?.ownerId || getMomentStableId(moment)),
-    obec: String(moment?.obec || "").slice(0, 120),
-    okres: String(moment?.okres || "").slice(0, 120),
-    kraj: String(moment?.kraj || "").slice(0, 120),
-    stat: String(moment?.stat || "").slice(0, 120),
+    obec: repairTextValue(moment?.obec).slice(0, 120),
+    okres: repairTextValue(moment?.okres).slice(0, 120),
+    kraj: repairTextValue(moment?.kraj).slice(0, 120),
+    stat: repairTextValue(moment?.stat).slice(0, 120),
     latitude,
     longitude,
-    symbolType: String(moment?.symbolType || "").slice(0, 60),
-    symbolImage: String(moment?.symbolImage || "").slice(0, 400),
-    symbolLabel: String(moment?.symbolLabel || "").slice(0, 100),
-    nazev: String(moment?.nazev || "").slice(0, 180),
-    prikaz: String(moment?.prikaz || "").slice(0, 500),
-    datum: String(moment?.datum || "").slice(0, 30),
+    symbolType: repairTextValue(moment?.symbolType).slice(0, 60),
+    symbolImage: repairTextValue(moment?.symbolImage).slice(0, 400),
+    symbolLabel: repairTextValue(moment?.symbolLabel).slice(0, 100),
+    nazev: repairTextValue(moment?.nazev).slice(0, 180),
+    prikaz: repairTextValue(moment?.prikaz).slice(0, 500),
+    datum: repairTextValue(moment?.datum).slice(0, 30),
     createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
     reactions: normalizeReactionPayload(moment?.reactions),
   };
@@ -652,22 +696,20 @@ function App() {
       return;
     }
 
-    const currentSerialized = JSON.stringify(selectedPublicMoment?.reactions || {});
-    const nextSerialized = JSON.stringify(matchingMoment?.reactions || {});
-    if (currentSerialized !== nextSerialized) {
-      setSelectedPublicMoment((currentMoment) => {
-        if (!currentMoment || normalizeMomentId(currentMoment.id || "") !== normalizeMomentId(matchingMoment.id || "")) {
-          return currentMoment;
-        }
+    setSelectedPublicMoment((currentMoment) => {
+      if (!currentMoment || normalizeMomentId(currentMoment.id || "") !== normalizeMomentId(matchingMoment.id || "")) {
+        return currentMoment;
+      }
 
-        return {
-          ...currentMoment,
-          ...matchingMoment,
-          reactions: matchingMoment.reactions || {},
-        };
-      });
-    }
-  }, [publicMapMoments, selectedPublicMoment?.id, selectedPublicMoment?.reactions]);
+      const nextMoment = {
+        ...currentMoment,
+        ...matchingMoment,
+        reactions: matchingMoment.reactions || currentMoment.reactions || {},
+      };
+
+      return JSON.stringify(currentMoment) === JSON.stringify(nextMoment) ? currentMoment : nextMoment;
+    });
+  }, [publicMapMoments, selectedPublicMoment?.id]);
   const isMobileClient = useMemo(() => {
     if (typeof navigator === "undefined") {
       return false;
@@ -1960,6 +2002,18 @@ function App() {
       if (sourceMoment?.id) {
         const nextMomentPayload = buildMomentReactionPayload(sourceMoment, next);
         setSelectedPublicMoment((currentMoment) => currentMoment?.id === sourceMoment.id ? nextMomentPayload : currentMoment);
+        setRemotePublicMoments((currentMoments) => currentMoments.map((moment) => {
+          const sameMoment = normalizeMomentId(moment?.id || "") === normalizeMomentId(sourceMoment.id || "");
+          if (!sameMoment) {
+            return moment;
+          }
+
+          return {
+            ...moment,
+            ...nextMomentPayload,
+            reactions: normalizeReactionPayload(nextMomentPayload.reactions),
+          };
+        }));
         publishMomentToPublicMap(nextMomentPayload).catch((error) => {
           console.error("Nepodařilo se uložit reakce do veřejného momentu:", error);
         });
