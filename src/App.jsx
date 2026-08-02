@@ -7,6 +7,7 @@ import logo from "./assets/logo.png";
 import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
 import { buildSelectionCluster } from "./utils/selectionClusters";
+import { getMomentReactionKey, loadMomentReactions, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -185,7 +186,7 @@ const spreadOverlappingMoments = (moments = [], focusMomentId = "") => {
 const normalizePublicMoment = (moment = {}) => {
   const latitude = parseCoordinate(moment?.latitude);
   const longitude = parseCoordinate(moment?.longitude);
-  const id = normalizeMomentId(moment?.id || "");
+  const id = normalizeMomentId(moment?.id || "") || getMomentReactionKey(moment);
 
   if (!id || latitude === null || longitude === null) {
     return null;
@@ -596,6 +597,7 @@ function App() {
   const [selectedPublicMoment, setSelectedPublicMoment] = useState(null);
   const [selectedPublicMomentGroup, setSelectedPublicMomentGroup] = useState([]);
   const [selectedPublicMomentGroupIndex, setSelectedPublicMomentGroupIndex] = useState(0);
+  const [momentReactions, setMomentReactions] = useState({});
   const [towns, setTowns] = useState([]);
   const [townsLoaded, setTownsLoaded] = useState(false);
   const [townsLoading, setTownsLoading] = useState(false);
@@ -628,6 +630,10 @@ function App() {
 
   useEffect(() => {
     setClientId(getOrCreateClientId());
+  }, []);
+
+  useEffect(() => {
+    setMomentReactions(loadMomentReactions());
   }, []);
 
   useEffect(() => {
@@ -1851,6 +1857,22 @@ function App() {
     setSavedMoments(updated);
     return updated;
   };
+
+  const handleToggleMomentReaction = useCallback((momentOrId = "") => {
+    const safeId = typeof momentOrId === "object" && momentOrId !== null
+      ? getMomentReactionKey(momentOrId)
+      : normalizeMomentId(momentOrId || "");
+
+    if (!safeId) {
+      return;
+    }
+
+    setMomentReactions((current) => {
+      const next = toggleMomentReaction(current, momentOrId);
+      saveMomentReactions(next);
+      return next;
+    });
+  }, []);
 
   const handleDeleteSelectedPublicMoment = async () => {
     if (!selectedPublicMoment?.id) {
@@ -3306,14 +3328,25 @@ function App() {
                       </div>
                     ) : null}
 
-                    <button
-                      className="public-map-detail__delete"
-                      type="button"
-                      onClick={handleDeleteSelectedPublicMoment}
-                      disabled={!canDeleteMoment(selectedPublicMoment)}
-                    >
-                      {canDeleteMoment(selectedPublicMoment) ? "Smazat můj moment" : "Nelze smazat cizí moment"}
-                    </button>
+                    <div className="public-map-detail__actions">
+                      <button
+                        className={`public-map-detail__reaction${momentReactions[getMomentReactionKey(selectedPublicMoment)]?.liked ? " is-active" : ""}`}
+                        type="button"
+                        onClick={() => handleToggleMomentReaction(selectedPublicMoment)}
+                        aria-label="Přidat reakci"
+                      >
+                        <span aria-hidden="true">❤️</span>
+                        <span>{momentReactions[getMomentReactionKey(selectedPublicMoment)]?.count || 0}</span>
+                      </button>
+                      <button
+                        className="public-map-detail__delete"
+                        type="button"
+                        onClick={handleDeleteSelectedPublicMoment}
+                        disabled={!canDeleteMoment(selectedPublicMoment)}
+                      >
+                        {canDeleteMoment(selectedPublicMoment) ? "Smazat můj moment" : "Nelze smazat cizí moment"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
