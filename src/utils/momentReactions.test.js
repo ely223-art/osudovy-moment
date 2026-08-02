@@ -157,6 +157,28 @@ describe('moment reactions', () => {
     expect(cleared.other).toEqual({ count: 1, liked: true });
   });
 
+  it('keeps a browser like locked even when local and shared reaction keys differ', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      createdAt: '2020-01-01T00:00:00.000Z',
+      reactions: {
+        'shared-moment': { count: 1, liked: false },
+      },
+    };
+
+    const localReactions = {
+      'coords-50.08000-14.42000': { count: 1, liked: true },
+    };
+
+    const resolved = resolveMomentReactionState(localReactions, moment);
+    const next = toggleMomentReaction(localReactions, moment);
+
+    expect(resolved.state).toEqual({ count: 1, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 0, liked: false });
+  });
+
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
     const olderMoment = {
       nazev: 'Starý moment',
