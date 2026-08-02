@@ -546,6 +546,18 @@ a {
   background: rgba(255, 185, 70, 0.18);
 }
 
+.public-map-detail__reaction:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.public-map-detail__reaction.is-active:disabled {
+  border-color: rgba(255, 185, 70, 0.75);
+  background: rgba(255, 185, 70, 0.26);
+  color: #ffe1aa;
+}
+
 .public-map-detail__delete {
   background: rgba(255, 185, 70, 0.16);
   color: #ffd48e;
