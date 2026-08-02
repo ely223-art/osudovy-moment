@@ -202,7 +202,10 @@ export const toggleMomentReaction = (reactions = {}, momentIdOrMoment = '') => {
   };
 
   const existing = resolvedState.state || { count: 0, liked: false };
-  const nextLiked = !existing.liked;
+  const localLikeState = isMomentObject
+    ? resolveLocalMomentReactionState(reactions, momentIdOrMoment).state
+    : (reactions[canonicalKey] || { liked: false });
+  const nextLiked = !Boolean(localLikeState?.liked);
   const nextCount = Math.max(0, (existing.count || 0) + (nextLiked ? 1 : -1));
 
   const nextReactions = { ...reactions };

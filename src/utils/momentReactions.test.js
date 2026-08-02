@@ -241,6 +241,21 @@ describe('moment reactions', () => {
     expect(secondState.state).toEqual({ count: 0, liked: false });
   });
 
+  it('allows a different device to add like when shared count exists and local liked is false', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 1, liked: false },
+      },
+    };
+
+    const next = toggleMomentReaction({}, moment);
+
+    expect(next['shared-moment']).toEqual({ count: 2, liked: true });
+  });
+
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
     const olderMoment = {
       nazev: 'Starý moment',
