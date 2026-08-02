@@ -7,7 +7,7 @@ import logo from "./assets/logo.png";
 import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
 import { buildSelectionCluster } from "./utils/selectionClusters";
-import { getMomentReactionKey, loadMomentReactions, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
+import { getMomentReactionKey, loadMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -1908,8 +1908,8 @@ function App() {
   }, []);
 
   const getCurrentMomentReactionState = useCallback((moment = {}) => {
-    const reactionKey = getMomentReactionKey(moment);
-    return momentReactions[reactionKey] || { count: 0, liked: false };
+    const resolvedState = resolveMomentReactionState(momentReactions, moment);
+    return resolvedState.state || { count: 0, liked: false };
   }, [momentReactions]);
 
   const handleDeleteSelectedPublicMoment = async () => {

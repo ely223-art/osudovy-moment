@@ -10,11 +10,6 @@ const normalizeCoordinateValue = (value) => {
 };
 
 export const getMomentStableId = (moment = {}) => {
-  const explicitId = normalizeMomentIdentityToken(moment?.id || '');
-  if (explicitId) {
-    return explicitId;
-  }
-
   const latitude = normalizeCoordinateValue(moment?.latitude);
   const longitude = normalizeCoordinateValue(moment?.longitude);
   const location = [moment?.obec, moment?.okres, moment?.kraj, moment?.stat]
@@ -23,5 +18,11 @@ export const getMomentStableId = (moment = {}) => {
     .join('|');
 
   const seed = [latitude, longitude, location].filter(Boolean).join('::');
-  return normalizeMomentIdentityToken(seed) || 'legacy-moment';
+  const fallbackId = normalizeMomentIdentityToken(seed) || 'legacy-moment';
+
+  if (fallbackId && fallbackId !== 'legacy-moment') {
+    return fallbackId;
+  }
+
+  return normalizeMomentIdentityToken(moment?.id || '') || 'legacy-moment';
 };

@@ -21,9 +21,9 @@ const normalizeCoordinateReactionKey = (moment = {}) => {
 export const getMomentReactionCandidates = (moment = {}) => {
   const candidates = [];
 
-  const explicitId = normalizeReactionKey(moment?.id || '');
-  if (explicitId) {
-    candidates.push(explicitId);
+  const stableId = getMomentStableId(moment);
+  if (stableId) {
+    candidates.push(stableId);
   }
 
   const coordinateKey = normalizeCoordinateReactionKey(moment);
@@ -31,9 +31,9 @@ export const getMomentReactionCandidates = (moment = {}) => {
     candidates.push(coordinateKey);
   }
 
-  const stableId = getMomentStableId(moment);
-  if (stableId) {
-    candidates.push(stableId);
+  const explicitId = normalizeReactionKey(moment?.id || '');
+  if (explicitId && explicitId !== stableId) {
+    candidates.push(explicitId);
   }
 
   return [...new Set(candidates)];
@@ -74,7 +74,9 @@ export const saveMomentReactions = (reactions = {}) => {
 
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(reactions));
-    window.dispatchEvent(new CustomEvent('moment-reactions-updated', { detail: reactions }));
+    if (typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('moment-reactions-updated', { detail: reactions }));
+    }
   } catch {
     // ignore storage failures
   }

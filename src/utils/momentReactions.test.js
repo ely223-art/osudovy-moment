@@ -33,15 +33,21 @@ describe('moment reactions', () => {
     expect(next[reactionKey]).toEqual({ count: 1, liked: true });
   });
 
-  it('creates a stable fallback id for legacy moments', () => {
+  it('creates a stable fallback id from coordinates for legacy moments even when an explicit id exists', () => {
     const moment = {
+      id: 'legacy-id',
       nazev: 'Starý moment',
       latitude: 50.08,
       longitude: 14.42,
+      obec: 'Bělčice',
       createdAt: '2020-01-01T00:00:00.000Z',
     };
 
-    expect(getMomentStableId(moment)).toBeTruthy();
+    const stableId = getMomentStableId(moment);
+
+    expect(stableId).toBeTruthy();
+    expect(stableId).not.toBe('legacy-id');
+    expect(stableId).toContain('5008000');
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
@@ -61,18 +67,44 @@ describe('moment reactions', () => {
 
     const reactions = toggleMomentReaction({}, olderMoment);
     const next = toggleMomentReaction(reactions, newerMoment);
+    const stableKey = getMomentReactionKey(newerMoment);
 
-    expect(next[ 'coords-50.08000-14.42000' ]).toEqual({ count: 0, liked: false });
-    expect(next['legacy-1']).toEqual({ count: 0, liked: false });
+    expect(next[stableKey]).toEqual({ count: 0, liked: false });
+    expect(next['legacy-1']).toBeUndefined();
   });
 
   it('notifies listeners when reactions are saved', () => {
     const listener = vi.fn();
-    window.addEventListener('moment-reactions-updated', listener);
+    const listeners = new Map();
+    const mockWindow = {
+      addEventListener: vi.fn((eventName, handler) => {
+        listeners.set(eventName, handler);
+      }),
+      removeEventListener: vi.fn((eventName, handler) => {
+        if (listeners.get(eventName) === handler) {
+          listeners.delete(eventName);
+        }
+      }),
+      dispatchEvent: vi.fn((event) => {
+        const handler = listeners.get(event.type);
+        if (handler) {
+          handler(event);
+        }
+        return true;
+      }),
+      localStorage: {
+        setItem: vi.fn(),
+        getItem: vi.fn(),
+      },
+    };
+
+    vi.stubGlobal('window', mockWindow);
+    mockWindow.addEventListener('moment-reactions-updated', listener);
 
     saveMomentReactions({ 'moment-1': { count: 1, liked: true } });
 
     expect(listener).toHaveBeenCalled();
-    window.removeEventListener('moment-reactions-updated', listener);
+    mockWindow.removeEventListener('moment-reactions-updated', listener);
+    vi.unstubAllGlobals();
   });
 });
