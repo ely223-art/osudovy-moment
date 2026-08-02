@@ -2009,7 +2009,7 @@ function App() {
 
     const latestReactions = loadMomentReactions();
     const payloadReactions = normalizeReactionPayload(selectedPublicMoment?.reactions);
-    const mergedReactions = { ...payloadReactions, ...latestReactions };
+    const mergedReactions = { ...latestReactions, ...payloadReactions };
 
     if (Object.keys(mergedReactions).length) {
       setMomentReactions(mergedReactions);
