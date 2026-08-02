@@ -641,6 +641,23 @@ function App() {
     () => mergeMomentsById([], remotePublicMoments),
     [remotePublicMoments]
   );
+
+  useEffect(() => {
+    if (!selectedPublicMoment?.id) {
+      return;
+    }
+
+    const matchingMoment = publicMapMoments.find((moment) => normalizeMomentId(moment?.id || "") === normalizeMomentId(selectedPublicMoment.id));
+    if (!matchingMoment) {
+      return;
+    }
+
+    const currentSerialized = JSON.stringify(selectedPublicMoment?.reactions || {});
+    const nextSerialized = JSON.stringify(matchingMoment?.reactions || {});
+    if (currentSerialized !== nextSerialized) {
+      setSelectedPublicMoment(matchingMoment);
+    }
+  }, [publicMapMoments, selectedPublicMoment?.id, selectedPublicMoment?.reactions]);
   const isMobileClient = useMemo(() => {
     if (typeof navigator === "undefined") {
       return false;
@@ -1931,7 +1948,9 @@ function App() {
         : selectedPublicMoment;
 
       if (sourceMoment?.id) {
-        publishMomentToPublicMap(buildMomentReactionPayload(sourceMoment, next)).catch((error) => {
+        const nextMomentPayload = buildMomentReactionPayload(sourceMoment, next);
+        setSelectedPublicMoment((currentMoment) => currentMoment?.id === sourceMoment.id ? nextMomentPayload : currentMoment);
+        publishMomentToPublicMap(nextMomentPayload).catch((error) => {
           console.error("Nepodařilo se uložit reakce do veřejného momentu:", error);
         });
       }

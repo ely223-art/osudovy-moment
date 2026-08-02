@@ -65,6 +65,21 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 2, liked: true });
   });
 
+  it('preserves reaction keys that include punctuation for shared storage', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'coords-50.08000-14.42000': { count: 3, liked: true },
+      },
+    };
+
+    const resolved = resolveMomentReactionState({}, moment);
+
+    expect(resolved.state).toEqual({ count: 3, liked: true });
+  });
+
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
     const olderMoment = {
       nazev: 'Starý moment',

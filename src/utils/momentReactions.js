@@ -3,7 +3,7 @@ import { getMomentStableId } from './momentIdentity';
 const STORAGE_KEY = 'osudovy-moment-reactions';
 
 const normalizeReactionKey = (value = '') => {
-  const normalized = String(value || '').trim().replace(/[^a-zA-Z0-9-]/g, '');
+  const normalized = String(value || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
   return normalized;
 };
 

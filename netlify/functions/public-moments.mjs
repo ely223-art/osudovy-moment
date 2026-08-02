@@ -29,6 +29,8 @@ const normalizeReactionState = (value = {}) => {
   };
 };
 
+const normalizeReactionKey = (value = '') => String(value || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
+
 const normalizeReactions = (value = {}) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
@@ -37,7 +39,7 @@ const normalizeReactions = (value = {}) => {
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key, reaction]) => Boolean(key) && reaction && typeof reaction === 'object' && !Array.isArray(reaction))
-      .map(([key, reaction]) => [normalizeId(key), normalizeReactionState(reaction)])
+      .map(([key, reaction]) => [normalizeReactionKey(key), normalizeReactionState(reaction)])
   );
 };
 
