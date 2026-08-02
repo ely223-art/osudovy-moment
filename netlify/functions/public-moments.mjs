@@ -20,10 +20,31 @@ const parseCoordinate = (value) => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
+const normalizeReactionState = (value = {}) => {
+  const normalized = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+
+  return {
+    count: Math.max(0, Number(normalized?.count) || 0),
+    liked: Boolean(normalized?.liked),
+  };
+};
+
+const normalizeReactions = (value = {}) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, reaction]) => Boolean(key) && reaction && typeof reaction === 'object' && !Array.isArray(reaction))
+      .map(([key, reaction]) => [normalizeId(key), normalizeReactionState(reaction)])
+  );
+};
+
 const normalizeMoment = (moment = {}, options = {}) => {
   const { requireOwnerId = false } = options;
   const id = normalizeId(moment?.id || "");
-  const ownerId = normalizeId(moment?.ownerId || "");
+  const ownerId = normalizeId(moment?.ownerId || "") || normalizeId(moment?.id || "");
   const latitude = parseCoordinate(moment?.latitude);
   const longitude = parseCoordinate(moment?.longitude);
 
@@ -47,6 +68,7 @@ const normalizeMoment = (moment = {}, options = {}) => {
     prikaz: String(moment?.prikaz || "").slice(0, 500),
     datum: String(moment?.datum || "").slice(0, 30),
     createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
+    reactions: normalizeReactions(moment?.reactions),
   };
 };
 

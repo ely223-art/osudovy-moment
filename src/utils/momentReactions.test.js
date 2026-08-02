@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getMomentStableId } from './momentIdentity';
-import { getMomentReactionKey, readMomentReactions, saveMomentReactions, toggleMomentReaction } from './momentReactions';
+import { getMomentReactionKey, readMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from './momentReactions';
 
 describe('moment reactions', () => {
   it('adds a like for a moment that was not liked yet', () => {
@@ -48,6 +48,21 @@ describe('moment reactions', () => {
     expect(stableId).toBeTruthy();
     expect(stableId).not.toBe('legacy-id');
     expect(stableId).toContain('5008000');
+  });
+
+  it('reads reaction state from a moment payload for shared cross-device updates', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 2, liked: true },
+      },
+    };
+
+    const resolved = resolveMomentReactionState({}, moment);
+
+    expect(resolved.state).toEqual({ count: 2, liked: true });
   });
 
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {

@@ -7,6 +7,15 @@ const normalizeReactionKey = (value = '') => {
   return normalized;
 };
 
+const normalizeReactionStateValue = (value = {}) => {
+  const normalized = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+
+  return {
+    count: Math.max(0, Number(normalized?.count) || 0),
+    liked: Boolean(normalized?.liked),
+  };
+};
+
 const normalizeCoordinateReactionKey = (moment = {}) => {
   const latitude = Number(moment?.latitude);
   const longitude = Number(moment?.longitude);
@@ -40,6 +49,19 @@ export const getMomentReactionCandidates = (moment = {}) => {
 };
 
 export const getMomentReactionKey = (moment = {}) => getMomentReactionCandidates(moment)[0] || 'legacy-moment';
+
+export const getMomentPayloadReactions = (moment = {}) => {
+  const candidate = moment?.reactions;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(candidate)
+      .filter(([key, value]) => Boolean(key) && value && typeof value === 'object' && !Array.isArray(value))
+      .map(([key, value]) => [normalizeReactionKey(key), normalizeReactionStateValue(value)])
+  );
+};
 
 export const readMomentReactions = (source = {}) => {
   if (source && typeof source === 'object' && !Array.isArray(source)) {
@@ -84,7 +106,9 @@ export const saveMomentReactions = (reactions = {}) => {
 
 export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const candidates = getMomentReactionCandidates(moment);
-  const matchingKey = candidates.find((candidate) => reactions[candidate]);
+  const payloadReactions = getMomentPayloadReactions(moment);
+  const mergedReactions = { ...payloadReactions, ...reactions };
+  const matchingKey = candidates.find((candidate) => mergedReactions[candidate]);
   const canonicalKey = getMomentReactionKey(moment);
 
   if (!matchingKey) {
@@ -96,7 +120,7 @@ export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
 
   return {
     key: matchingKey,
-    state: reactions[matchingKey] || { count: 0, liked: false },
+    state: mergedReactions[matchingKey] || { count: 0, liked: false },
   };
 };
 

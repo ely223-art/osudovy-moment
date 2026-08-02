@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import logo from "./assets/logo.png";
 import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
+import { getMomentStableId } from "./utils/momentIdentity";
 import { buildSelectionCluster } from "./utils/selectionClusters";
 import { getMomentReactionKey, loadMomentReactions, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
@@ -84,6 +85,26 @@ const getMarkerScaleFromZoom = (zoomValue = 3) => {
 };
 
 const normalizeMomentId = (value = "") => String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "");
+
+const normalizeReactionPayload = (reactions = {}) => {
+  if (!reactions || typeof reactions !== "object" || Array.isArray(reactions)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(reactions)
+      .filter(([key, value]) => Boolean(key) && value && typeof value === "object" && !Array.isArray(value))
+      .map(([key, value]) => [String(key).trim(), {
+        count: Math.max(0, Number(value?.count) || 0),
+        liked: Boolean(value?.liked),
+      }])
+  );
+};
+
+const buildMomentReactionPayload = (moment = {}, reactions = {}) => ({
+  ...moment,
+  reactions: normalizeReactionPayload(reactions),
+});
 
 const getOrCreateClientId = () => {
   if (typeof window === "undefined") {
@@ -194,7 +215,7 @@ const normalizePublicMoment = (moment = {}) => {
 
   const normalized = {
     id,
-    ownerId: normalizeMomentId(moment?.ownerId || ""),
+    ownerId: normalizeMomentId(moment?.ownerId || getMomentStableId(moment)),
     obec: String(moment?.obec || "").slice(0, 120),
     okres: String(moment?.okres || "").slice(0, 120),
     kraj: String(moment?.kraj || "").slice(0, 120),
@@ -208,6 +229,7 @@ const normalizePublicMoment = (moment = {}) => {
     prikaz: String(moment?.prikaz || "").slice(0, 500),
     datum: String(moment?.datum || "").slice(0, 30),
     createdAt: String(moment?.createdAt || new Date().toISOString()).slice(0, 64),
+    reactions: normalizeReactionPayload(moment?.reactions),
   };
 
   return normalized;
@@ -1903,9 +1925,20 @@ function App() {
     setMomentReactions((current) => {
       const next = toggleMomentReaction(current, momentOrId);
       saveMomentReactions(next);
+
+      const sourceMoment = typeof momentOrId === "object" && momentOrId !== null
+        ? momentOrId
+        : selectedPublicMoment;
+
+      if (sourceMoment?.id) {
+        publishMomentToPublicMap(buildMomentReactionPayload(sourceMoment, next)).catch((error) => {
+          console.error("Nepodařilo se uložit reakce do veřejného momentu:", error);
+        });
+      }
+
       return next;
     });
-  }, []);
+  }, [publishMomentToPublicMap, selectedPublicMoment]);
 
   const getCurrentMomentReactionState = useCallback((moment = {}) => {
     const resolvedState = resolveMomentReactionState(momentReactions, moment);
@@ -1956,10 +1989,13 @@ function App() {
     }
 
     const latestReactions = loadMomentReactions();
-    if (Object.keys(latestReactions).length) {
-      setMomentReactions(latestReactions);
+    const payloadReactions = normalizeReactionPayload(selectedPublicMoment?.reactions);
+    const mergedReactions = { ...payloadReactions, ...latestReactions };
+
+    if (Object.keys(mergedReactions).length) {
+      setMomentReactions(mergedReactions);
     }
-  }, [selectedPublicMoment?.id, selectedPublicMoment?.latitude, selectedPublicMoment?.longitude, selectedPublicMoment?.createdAt, selectedPublicMoment?.nazev]);
+  }, [selectedPublicMoment?.id, selectedPublicMoment?.latitude, selectedPublicMoment?.longitude, selectedPublicMoment?.createdAt, selectedPublicMoment?.nazev, selectedPublicMoment?.reactions]);
 
   const showNextPublicMoment = useCallback(() => {
     showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex + 1);
