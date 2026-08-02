@@ -194,6 +194,28 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 1, liked: true });
   });
 
+  it('resolves liked=true when any candidate key is liked, even if first key is liked=false', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 1, liked: false },
+      },
+    };
+
+    const localReactions = {
+      'shared-moment': { count: 1, liked: false },
+      'coords-50.08000-14.42000': { count: 1, liked: true },
+    };
+
+    const resolved = resolveMomentReactionState(localReactions, moment);
+    const next = toggleMomentReaction(localReactions, moment);
+
+    expect(resolved.state).toEqual({ count: 1, liked: true });
+    expect(next['shared-moment']).toEqual({ count: 0, liked: false });
+  });
+
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
     const olderMoment = {
       nazev: 'Starý moment',

@@ -63,10 +63,22 @@ export const getMomentReactionCandidates = (moment = {}) => {
 
 export const getMomentReactionKey = (moment = {}) => getMomentReactionCandidates(moment)[0] || 'legacy-moment';
 
+const getMaxCandidateCount = (source = {}, candidates = []) =>
+  candidates.reduce((maxCount, candidate) => {
+    const count = Math.max(0, Number(source?.[candidate]?.count) || 0);
+    return Math.max(maxCount, count);
+  }, 0);
+
+const hasLikedCandidate = (source = {}, candidates = []) =>
+  candidates.some((candidate) => Boolean(source?.[candidate]?.liked));
+
 export const resolveLocalMomentReactionState = (reactions = {}, moment = {}) => {
   const candidates = getMomentReactionCandidates(moment);
   const matchingKey = candidates.find((candidate) => reactions[candidate]) || getMomentReactionKey(moment);
-  const localState = normalizeReactionStateValue(matchingKey ? reactions[matchingKey] : {});
+  const localState = {
+    count: getMaxCandidateCount(reactions, candidates),
+    liked: hasLikedCandidate(reactions, candidates),
+  };
 
   return {
     key: matchingKey,
@@ -146,8 +158,14 @@ export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const payloadKey = candidates.find((candidate) => payloadReactions[candidate]) || '';
   const localKey = candidates.find((candidate) => reactions[candidate]) || '';
   const matchingKey = payloadKey || localKey || canonicalKey;
-  const payloadState = normalizeReactionStateValue(payloadKey ? payloadReactions[payloadKey] : {});
-  const localState = normalizeReactionStateValue(localKey ? reactions[localKey] : {});
+  const payloadState = {
+    count: getMaxCandidateCount(payloadReactions, candidates),
+    liked: false,
+  };
+  const localState = {
+    count: getMaxCandidateCount(reactions, candidates),
+    liked: hasLikedCandidate(reactions, candidates),
+  };
   const hasSharedPayload = Object.prototype.hasOwnProperty.call(moment || {}, 'reactions');
   const hasPayloadState = Boolean(payloadKey && payloadReactions[payloadKey]);
   const hasLocalState = Boolean(localKey && reactions[localKey]);
