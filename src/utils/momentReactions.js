@@ -158,18 +158,20 @@ export const saveMomentReactions = (reactions = {}) => {
 export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const canonicalKey = getMomentReactionKey(moment);
   const candidates = getMomentReactionCandidates(moment);
+  const payloadReactions = getMomentPayloadReactions(moment);
   const localKey = candidates.find((candidate) => reactions[candidate]) || '';
   const matchingKey = localKey || canonicalKey;
   const localState = {
     count: getMaxCandidateCount(reactions, candidates),
     liked: hasLikedCandidate(reactions, candidates),
   };
+  const sharedCount = getMaxCandidateCount(payloadReactions, candidates);
   const hasLocalState = Boolean(localKey && reactions[localKey]);
 
   return {
     key: matchingKey,
     state: {
-      count: localState.count,
+      count: Math.max(sharedCount, hasLocalState ? localState.count : 0),
       liked: hasLocalState ? localState.liked : false,
     },
   };

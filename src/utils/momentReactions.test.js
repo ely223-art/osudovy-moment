@@ -50,7 +50,7 @@ describe('moment reactions', () => {
     expect(stableId).toContain('5008000');
   });
 
-  it('ignores payload counts and keeps likes device-local', () => {
+  it('shows shared payload counts while keeping liked state device-local', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -62,7 +62,7 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({}, moment);
 
-    expect(resolved.state).toEqual({ count: 0, liked: false });
+    expect(resolved.state).toEqual({ count: 2, liked: false });
   });
 
   it('ignores fallback payload keys when a reliable explicit id exists', () => {
@@ -80,7 +80,7 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 0, liked: false });
   });
 
-  it('keeps only the local reaction count when the payload differs', () => {
+  it('shows shared count even when local device is already liked', () => {
     const moment = {
       id: 'shared-moment',
       latitude: 50.08,
@@ -92,7 +92,7 @@ describe('moment reactions', () => {
 
     const resolved = resolveMomentReactionState({ 'shared-moment': { count: 1, liked: true } }, moment);
 
-    expect(resolved.state).toEqual({ count: 1, liked: true });
+    expect(resolved.state).toEqual({ count: 2, liked: true });
   });
 
   it('does not treat payload liked=true as liked on a new device', () => {
