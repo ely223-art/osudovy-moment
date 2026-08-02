@@ -655,7 +655,17 @@ function App() {
     const currentSerialized = JSON.stringify(selectedPublicMoment?.reactions || {});
     const nextSerialized = JSON.stringify(matchingMoment?.reactions || {});
     if (currentSerialized !== nextSerialized) {
-      setSelectedPublicMoment(matchingMoment);
+      setSelectedPublicMoment((currentMoment) => {
+        if (!currentMoment || normalizeMomentId(currentMoment.id || "") !== normalizeMomentId(matchingMoment.id || "")) {
+          return currentMoment;
+        }
+
+        return {
+          ...currentMoment,
+          ...matchingMoment,
+          reactions: matchingMoment.reactions || {},
+        };
+      });
     }
   }, [publicMapMoments, selectedPublicMoment?.id, selectedPublicMoment?.reactions]);
   const isMobileClient = useMemo(() => {
