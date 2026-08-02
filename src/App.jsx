@@ -8,7 +8,7 @@ import "./App.css";
 import { buildServerDownloadUrl } from "./utils/downloadUrls";
 import { getMomentStableId } from "./utils/momentIdentity";
 import { buildSelectionCluster } from "./utils/selectionClusters";
-import { clearMomentReactionState, getMomentReactionKey, loadMomentReactions, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
+import { clearMomentReactionState, getMomentReactionKey, loadMomentReactions, mergeMomentReactionState, resolveLocalMomentReactionState, resolveMomentReactionState, saveMomentReactions, toggleMomentReaction } from "./utils/momentReactions";
 
 const mapPoints = [
   { id: 1, x: 56, y: 40 },
@@ -922,7 +922,10 @@ function App() {
 
       const payload = await response.json();
       const moments = Array.isArray(payload?.moments)
-        ? payload.moments.map((moment) => normalizePublicMoment(moment)).filter(Boolean)
+        ? payload.moments.map((moment) => normalizePublicMoment(moment)).filter(Boolean).map((moment) => ({
+          ...moment,
+          reactions: {},
+        }))
         : [];
 
       setRemotePublicMoments(moments);
@@ -953,7 +956,10 @@ function App() {
 
       const payload = await response.json();
       const moments = Array.isArray(payload?.moments)
-        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean)
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean).map((item) => ({
+          ...item,
+          reactions: {},
+        }))
         : null;
 
       if (moments) {
@@ -993,7 +999,10 @@ function App() {
 
       const payload = await response.json();
       const moments = Array.isArray(payload?.moments)
-        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean)
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean).map((item) => ({
+          ...item,
+          reactions: {},
+        }))
         : [];
       setRemotePublicMoments(moments);
       return true;
@@ -2105,19 +2114,24 @@ function App() {
             reactions: normalizeReactionPayload(nextMomentPayload.reactions),
           };
         }));
-        publishMomentToPublicMap(nextMomentPayload).catch((error) => {
-          console.error("Nepodařilo se uložit reakce do veřejného momentu:", error);
-        });
       }
 
       return next;
     });
   }, [publishMomentToPublicMap, selectedPublicMoment]);
 
-  const getCurrentMomentReactionState = useCallback((moment = {}) => {
-    const resolvedState = resolveMomentReactionState(momentReactions, moment);
-    return resolvedState.state || { count: 0, liked: false };
-  }, [momentReactions]);
+  const getCurrentMomentReactionState = useCallback((moment = selectedPublicMoment) => {
+    if (!moment) {
+      return { count: 0, liked: false };
+    }
+
+    return resolveMomentReactionState(momentReactions, moment).state;
+  }, [momentReactions, selectedPublicMoment]);
+
+  const selectedMomentReactionState = useMemo(
+    () => getCurrentMomentReactionState(selectedPublicMoment),
+    [getCurrentMomentReactionState, selectedPublicMoment]
+  );
 
   const handleDeleteSelectedPublicMoment = async () => {
     if (!selectedPublicMoment?.id) {
@@ -2156,34 +2170,6 @@ function App() {
     setSelectedPublicMomentGroupIndex(normalizedIndex);
     setSelectedPublicMoment(selectedPublicMomentGroup[normalizedIndex] || null);
   }, [selectedPublicMomentGroup]);
-
-  useEffect(() => {
-    if (!selectedPublicMoment) {
-      return;
-    }
-
-    const latestReactions = loadMomentReactions();
-    const payloadReactions = normalizeReactionPayload(selectedPublicMoment?.reactions);
-    const mergedReactions = clearMomentReactionState(latestReactions, selectedPublicMoment);
-    const localMomentReaction = resolveLocalMomentReactionState(latestReactions, selectedPublicMoment);
-    const localLiked = Boolean(localMomentReaction?.state?.liked);
-
-    Object.entries(payloadReactions).forEach(([key, payloadState]) => {
-      mergedReactions[key] = {
-        count: Math.max(0, Number(payloadState?.count) || 0),
-        liked: localLiked,
-      };
-    });
-
-    const latestSerialized = JSON.stringify(latestReactions);
-    const mergedSerialized = JSON.stringify(mergedReactions);
-
-    if (latestSerialized !== mergedSerialized) {
-      saveMomentReactions(mergedReactions);
-    } else {
-      setMomentReactions(mergedReactions);
-    }
-  }, [selectedPublicMoment?.id, selectedPublicMoment?.latitude, selectedPublicMoment?.longitude, selectedPublicMoment?.createdAt, selectedPublicMoment?.nazev, selectedPublicMoment?.reactions]);
 
   const showNextPublicMoment = useCallback(() => {
     showPublicMomentAtGroupIndex(selectedPublicMomentGroupIndex + 1);
@@ -3603,13 +3589,14 @@ function App() {
 
                     <div className="public-map-detail__actions">
                       <button
-                        className={`public-map-detail__reaction${getCurrentMomentReactionState(selectedPublicMoment).liked ? " is-active" : ""}`}
+                        className={`public-map-detail__reaction${selectedMomentReactionState.liked ? " is-active" : ""}`}
                         type="button"
                         onClick={() => handleToggleMomentReaction(selectedPublicMoment)}
                         aria-label="Přidat reakci"
+                        disabled={selectedMomentReactionState.liked}
                       >
                         <span aria-hidden="true">❤️</span>
-                        <span>{getCurrentMomentReactionState(selectedPublicMoment).count || 0}</span>
+                        <span>{selectedMomentReactionState.count || 0}</span>
                       </button>
                       <button
                         className="public-map-detail__delete"
