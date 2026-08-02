@@ -922,10 +922,7 @@ function App() {
 
       const payload = await response.json();
       const moments = Array.isArray(payload?.moments)
-        ? payload.moments.map((moment) => normalizePublicMoment(moment)).filter(Boolean).map((moment) => ({
-          ...moment,
-          reactions: {},
-        }))
+        ? payload.moments.map((moment) => normalizePublicMoment(moment)).filter(Boolean)
         : [];
 
       setRemotePublicMoments(moments);
@@ -956,10 +953,7 @@ function App() {
 
       const payload = await response.json();
       const moments = Array.isArray(payload?.moments)
-        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean).map((item) => ({
-          ...item,
-          reactions: {},
-        }))
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean)
         : null;
 
       if (moments) {
@@ -999,10 +993,7 @@ function App() {
 
       const payload = await response.json();
       const moments = Array.isArray(payload?.moments)
-        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean).map((item) => ({
-          ...item,
-          reactions: {},
-        }))
+        ? payload.moments.map((item) => normalizePublicMoment(item)).filter(Boolean)
         : [];
       setRemotePublicMoments(moments);
       return true;
@@ -2090,12 +2081,17 @@ function App() {
       if (sourceMoment?.id) {
         const resolvedMomentReaction = resolveMomentReactionState(next, sourceMoment);
         const nextLocalReactionState = resolvedMomentReaction?.key ? next?.[resolvedMomentReaction.key] : null;
+        const currentSharedReactions = normalizeReactionPayload(sourceMoment.reactions);
+        const currentSharedState = resolvedMomentReaction?.key
+          ? currentSharedReactions[resolvedMomentReaction.key]
+          : null;
+        const nextSharedCount = Math.max(0, Number(currentSharedState?.count) || 0) + 1;
         const nextMomentPayload = buildMomentReactionPayload(
           sourceMoment,
           resolvedMomentReaction?.key
             ? {
               [resolvedMomentReaction.key]: {
-                count: Math.max(0, Number(nextLocalReactionState?.count) || 0),
+                count: nextSharedCount,
                 liked: false,
               },
             }
@@ -2114,6 +2110,10 @@ function App() {
             reactions: normalizeReactionPayload(nextMomentPayload.reactions),
           };
         }));
+
+        publishMomentToPublicMap(nextMomentPayload).catch((error) => {
+          console.error("Uložení reakce veřejného momentu selhalo:", error);
+        });
       }
 
       return next;
