@@ -80,6 +80,21 @@ describe('moment reactions', () => {
     expect(resolved.state).toEqual({ count: 3, liked: true });
   });
 
+  it('prefers server payload reactions over stale local state for shared updates', () => {
+    const moment = {
+      id: 'shared-moment',
+      latitude: 50.08,
+      longitude: 14.42,
+      reactions: {
+        'shared-moment': { count: 2, liked: true },
+      },
+    };
+
+    const resolved = resolveMomentReactionState({ 'shared-moment': { count: 0, liked: false } }, moment);
+
+    expect(resolved.state).toEqual({ count: 2, liked: true });
+  });
+
   it('keeps reaction state aligned for legacy moments even when the payload shape changes', () => {
     const olderMoment = {
       nazev: 'Starý moment',

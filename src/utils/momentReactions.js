@@ -120,10 +120,9 @@ export const saveMomentReactions = (reactions = {}) => {
 export const resolveMomentReactionState = (reactions = {}, moment = {}) => {
   const canonicalKey = getMomentReactionKey(moment);
   const payloadReactions = getMomentPayloadReactions(moment);
-  const mergedReactions = { ...payloadReactions, ...reactions };
   const candidates = getMomentReactionCandidates(moment);
-  const matchingKey = candidates.find((candidate) => mergedReactions[candidate]) || canonicalKey;
-  const resolvedState = mergedReactions[matchingKey] || { count: 0, liked: false };
+  const matchingKey = candidates.find((candidate) => payloadReactions[candidate]) || candidates.find((candidate) => reactions[candidate]) || canonicalKey;
+  const resolvedState = payloadReactions[matchingKey] || reactions[matchingKey] || { count: 0, liked: false };
 
   return {
     key: matchingKey,
