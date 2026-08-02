@@ -1,6 +1,7 @@
 import { getMomentStableId } from './momentIdentity';
 
-const STORAGE_KEY = 'osudovy-moment-reactions';
+// Versioned key forces a one-time global reset of previously stored device likes.
+const STORAGE_KEY = 'osudovy-moment-reactions-v2-reset-20260802';
 
 const normalizeReactionKey = (value = '') => {
   const normalized = String(value || '').trim().replace(/[^a-zA-Z0-9_.-]/g, '');
