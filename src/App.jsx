@@ -35,8 +35,8 @@ const SOCIAL_LINKS = [
     href: "https://www.instagram.com/osudovy_moment?igsh=ZnRxOXgweWVxYmkx&utm_source=qr&fbclid=IwY2xjawTdxBhwZG9mBWV4dG4DYWVtAjEwAGJyaWQRMHJENnB1aGlRWHVlTDAzS29zcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEeRe1pPccG9WCO0itOWYX_EwwfYbI67xufdil6xwoggEgwaXyekmLNO8AqQqs_aem_xZrgf65Zs9d_ajP4zxzY5A",
     svg: (
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+        <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="2.2" />
         <circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" />
       </svg>
     ),
@@ -3514,7 +3514,7 @@ function App() {
                   {SOCIAL_LINKS.map((socialLink) => (
                     <a
                       key={socialLink.id}
-                      className="hero-social-link"
+                      className={`hero-social-link hero-social-link--${socialLink.id}`}
                       href={socialLink.href}
                       target="_blank"
                       rel="noopener noreferrer"

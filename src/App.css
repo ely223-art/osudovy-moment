@@ -176,7 +176,7 @@ a {
   right: 28px;
   z-index: 4;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 10px;
   margin-top: 0;
 }
@@ -196,6 +196,16 @@ a {
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(10px);
   transition: transform 200ms ease, border-color 200ms ease, background 200ms ease, box-shadow 200ms ease;
+}
+
+.hero-social-link--instagram {
+  color: #ffd6a6;
+  border-color: rgba(255, 168, 96, 0.5);
+}
+
+.hero-social-link--facebook {
+  color: #d9e4ff;
+  border-color: rgba(148, 178, 255, 0.5);
 }
 
 .hero-social-link:hover {
@@ -2124,6 +2134,8 @@ a {
     top: auto;
     right: 16px;
     bottom: 16px;
+    left: auto;
+    flex-direction: row;
     gap: 8px;
   }
 
