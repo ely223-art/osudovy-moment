@@ -83,8 +83,10 @@ a {
 }
 
 .hero-copy {
+  position: relative;
   max-width: 620px;
   margin-top: 0;
+  padding-right: 64px;
 }
 
 .hero-title {
@@ -172,9 +174,9 @@ a {
 
 .hero-socials {
   position: absolute;
-  top: 28px;
-  right: 28px;
-  z-index: 4;
+  top: 8px;
+  right: 0;
+  z-index: 8;
   display: flex;
   flex-direction: row;
   gap: 10px;
@@ -189,8 +191,8 @@ a {
   height: 46px;
   padding: 0;
   border-radius: 999px;
-  border: 1px solid rgba(255, 234, 197, 0.2);
-  background: rgba(7, 16, 29, 0.62);
+  border: 1px solid rgba(255, 234, 197, 0.48);
+  background: rgba(7, 16, 29, 0.84);
   color: #f7efe2;
   text-decoration: none;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
@@ -2106,6 +2108,10 @@ a {
     gap: 20px;
     padding: 114px 18px 18px;
     transform: translateY(12px);
+  }
+
+  .hero-copy {
+    padding-right: 0;
   }
 
   .hero-title {
