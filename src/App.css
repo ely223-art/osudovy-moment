@@ -176,6 +176,7 @@ a {
   top: 20px;
   right: 20px;
   z-index: 8;
+  transform: translateY(96px);
   display: flex;
   flex-direction: row;
   gap: 10px;
@@ -2140,6 +2141,7 @@ a {
     right: 16px;
     bottom: 40px;
     left: auto;
+    transform: none;
     flex-direction: row;
     gap: 8px;
   }
