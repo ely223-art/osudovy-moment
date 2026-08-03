@@ -3510,7 +3510,7 @@ function App() {
                   </button>
                 </div>
 
-                <div className="hero-socials" aria-label="Sociální sítě">
+                <div className="hero-socials hero-socials--corner" aria-label="Sociální sítě">
                   {SOCIAL_LINKS.map((socialLink) => (
                     <a
                       key={socialLink.id}
@@ -3524,7 +3524,6 @@ function App() {
                       <span className="hero-social-link__icon" aria-hidden="true">
                         {socialLink.svg}
                       </span>
-                      <span className="hero-social-link__label">{socialLink.label}</span>
                     </a>
                   ))}
                 </div>
