@@ -180,30 +180,6 @@ const SYMBOL_IMAGE_BY_LABEL = {
   vzpominka: "/vzpominka.png",
   ostatni: "/ostatni.png",
 };
-const SOCIAL_LINKS = [
-  {
-    id: "instagram",
-    label: "Instagram",
-    href: "https://www.instagram.com/osudovy_moment?igsh=ZnRxOXgweWVxYmkx&utm_source=qr&fbclid=IwY2xjawTdxBhwZG9mBWV4dG4DYWVtAjEwAGJyaWQRMHJENnB1aGlRWHVlTDAzS29zcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEeRe1pPccG9WCO0itOWYX_EwwfYbI67xufdil6xwoggEgwaXyekmLNO8AqQqs_aem_xZrgf65Zs9d_ajP4zxzY5A",
-    svg: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        <circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
-    id: "facebook",
-    label: "Facebook",
-    href: "https://www.facebook.com/profile.php?id=61592683892851&mibextid=wwXIfr&rdid=vxdUmkC6pjIYeYVN&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1Bads957X8%2F%3Fmibextid%3DwwXIfr#",
-    svg: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M13.7 21v-7h2.4l.4-2.7h-2.8V9.5c0-.8.2-1.4 1.5-1.4h1.6V5.7c-.3 0-1.4-.1-2.6-.1-2.6 0-4.4 1.6-4.4 4.5v1.9H7v2.7h2.8v7h3.9Z" fill="currentColor" />
-      </svg>
-    ),
-  },
-];
 const isMobileUserAgent = (userAgent = "") => /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
 
 const getMarkerScaleFromZoom = (zoomValue = 3) => {
